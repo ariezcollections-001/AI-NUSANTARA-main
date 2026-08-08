@@ -1,0 +1,111 @@
+
+> ai-nusantara@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.21
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 26.6s
+   Linting and checking validity of types ...
+
+./app/api/ai/process/route.ts
+11:17  Warning: 'streamText' is defined but never used.  @typescript-eslint/no-unused-vars
+554:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+629:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+634:16  Warning: 'getFounderKeys' is defined but never used.  @typescript-eslint/no-unused-vars
+634:31  Warning: 'request' is defined but never used.  @typescript-eslint/no-unused-vars
+675:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/auth/google/route.ts
+3:12  Warning: 'createFallbackUser' is defined but never used.  @typescript-eslint/no-unused-vars
+3:32  Warning: 'adjustUserBalanceByEmail' is defined but never used.  @typescript-eslint/no-unused-vars
+36:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/auth/login/route.ts
+2:12  Warning: 'redirect' is defined but never used.  @typescript-eslint/no-unused-vars
+81:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/auth/logout/route.ts
+9:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/auth/phone/route.ts
+9:13  Warning: 'isRegistration' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+25:13  Warning: 'supabase' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+61:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/auth/register/route.ts
+2:12  Warning: 'redirect' is defined but never used.  @typescript-eslint/no-unused-vars
+90:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/auth/route.ts
+42:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+90:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/founder/profile/route.ts
+15:13  Warning: 'password_hash' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/founder/seed-features/route.ts
+20:28  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/transactions/page.tsx
+27:5  Warning: Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps').
+
+./app/register/page.tsx
+69:15  Warning: 'data' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/x-founder-control-99f7jK/page.tsx
+78:10  Warning: 'profileLoading' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+87:29  Warning: 'setCreditPauseActive' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+197:16  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+286:14  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+331:102  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+334:70  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+335:14  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+361:18  Warning: 'applyKeys' is defined but never used.  @typescript-eslint/no-unused-vars
+400:16  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+446:18  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+919:159  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+920:30  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/AIGenerator.tsx
+17:3  Warning: 'Download' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/DashboardShell.tsx
+6:10  Warning: 'ShieldCheck' is defined but never used.  @typescript-eslint/no-unused-vars
+6:59  Warning: 'UserCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/FounderDashboardShell.tsx
+110:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+137:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+164:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+185:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+212:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+269:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+299:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+341:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+372:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/Header.tsx
+3:10  Warning: 'Cpu' is defined but never used.  @typescript-eslint/no-unused-vars
+3:15  Warning: 'ShieldCheck' is defined but never used.  @typescript-eslint/no-unused-vars
+3:61  Warning: 'Code2' is defined but never used.  @typescript-eslint/no-unused-vars
+3:95  Warning: 'UserCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+37:3  Warning: 'activeTab' is defined but never used.  @typescript-eslint/no-unused-vars
+38:3  Warning: 'setActiveTab' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/authStore.ts
+71:10  Warning: 'persistAll' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/fallbackStore.ts
+166:41  Warning: 'phone' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/supabase/founder.ts
+2:15  Warning: 'Database' is defined but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+
+> Build error occurred
+SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)

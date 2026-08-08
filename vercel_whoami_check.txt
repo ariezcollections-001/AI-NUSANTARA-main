@@ -1,0 +1,2 @@
+Vercel CLI 58.9.0 (Node.js 24.19.0)
+ariezcollections-project

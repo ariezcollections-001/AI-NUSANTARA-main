@@ -1,0 +1,17 @@
+{
+  "name": "Gemini 2.5 Flash",
+  "vendor": "google",
+  "apiKey": "MASUKKAN_API_KEY_DISINI",
+  "apiType": "google",
+  "models": [
+    {
+      "id": "gemini-2.5-flash",
+      "name": "Gemini 2.5 Flash",
+      "url": "https://generativelanguage.googleapis.com",
+      "toolCalling": true,
+      "vision": true,
+      "maxInputTokens": 128000,
+      "maxOutputTokens": 4096
+    }
+  ]
+}

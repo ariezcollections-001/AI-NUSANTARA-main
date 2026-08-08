@@ -1,0 +1,13 @@
+Failed to compile.
+
+./app/api/founder/config/route.ts:77:9
+Type error: Object literal may only specify known properties, and 'key_name' does not exist in type 'never[]'.
+
+[0m [90m 75 |[39m     [36mconst[39m admin [33m=[39m createAdminClient()[33m;[39m
+ [90m 76 |[39m     [36mconst[39m response [33m=[39m [36mawait[39m admin[33m.[39m[36mfrom[39m([32m"founder_config"[39m)[33m.[39mupsert(
+[31m[1m>[22m[39m[90m 77 |[39m       { key_name[33m,[39m key_value[33m:[39m [33mString[39m(key_value [33m?[39m[33m?[39m [32m""[39m) }[33m,[39m
+ [90m    |[39m         [31m[1m^[22m[39m
+ [90m 78 |[39m       { onConflict[33m:[39m [[32m"key_name"[39m][33m,[39m returning[33m:[39m [32m"representation"[39m }
+ [90m 79 |[39m     )[33m;[39m
+ [90m 80 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null

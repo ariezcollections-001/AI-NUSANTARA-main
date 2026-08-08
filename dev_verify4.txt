@@ -1,0 +1,295 @@
+ ⚠ Port 3000 is in use by process 12928, using available port 3002 instead.
+   ▲ Next.js 15.5.21
+   - Local:        http://localhost:3002
+   - Network:      http://192.168.2.107:3002
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 24.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 2.1s (115 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 36.7s (730 modules)
+ GET /login 200 in 46072ms
+ ✓ Compiled in 10.3s (302 modules)
+ ✓ Compiled in 1644ms (302 modules)
+ ✓ Compiled in 826ms (302 modules)
+ ✓ Compiled in 672ms (302 modules)
+ ✓ Compiled in 794ms (302 modules)
+ ✓ Compiled in 868ms (302 modules)
+ ✓ Compiled in 1352ms (302 modules)
+ ✓ Compiled in 913ms (302 modules)
+ ✓ Compiled in 923ms (302 modules)
+ ✓ Compiled in 1858ms (302 modules)
+ ✓ Compiled in 676ms (302 modules)
+ ✓ Compiled in 712ms (302 modules)
+ ✓ Compiled in 717ms (302 modules)
+ ✓ Compiled in 825ms (302 modules)
+ ✓ Compiled in 866ms (302 modules)
+ ✓ Compiled in 620ms (302 modules)
+ ✓ Compiled in 437ms (302 modules)
+ ✓ Compiled in 1103ms (302 modules)
+ ✓ Compiled in 2s (302 modules)
+ ✓ Compiled in 511ms (302 modules)
+ ✓ Compiled in 837ms (302 modules)
+ ✓ Compiled in 1089ms (302 modules)
+ ✓ Compiled in 1639ms (302 modules)
+ ✓ Compiled in 1707ms (302 modules)
+ ✓ Compiled in 1536ms (302 modules)
+ ✓ Compiled in 2.5s (302 modules)
+ ✓ Compiled in 1058ms (302 modules)
+ ✓ Compiled in 775ms (302 modules)
+ ✓ Compiled in 700ms (302 modules)
+ ✓ Compiled in 778ms (302 modules)
+ ✓ Compiled in 556ms (302 modules)
+ ✓ Compiled in 586ms (302 modules)
+ ✓ Compiled in 413ms (302 modules)
+ ✓ Compiled in 1116ms (302 modules)
+ ✓ Compiled in 1069ms (302 modules)
+ ✓ Compiled in 676ms (302 modules)
+ ✓ Compiled in 808ms (302 modules)
+ ✓ Compiled in 1147ms (302 modules)
+ ✓ Compiled in 1979ms (302 modules)
+ ✓ Compiled in 2.5s (302 modules)
+ ✓ Compiled in 7.3s (302 modules)
+ ✓ Compiled in 1047ms (302 modules)
+ ✓ Compiled in 1879ms (302 modules)
+ GET /login 200 in 7002ms
+ GET /login 200 in 1734ms
+ ○ Compiling /api/auth/callback ...
+ ✓ Compiled /api/auth/callback in 9.3s (795 modules)
+ GET /api/auth/callback 307 in 10910ms
+ GET /login?google_not_registered=true 200 in 2817ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 10.6s (838 modules)
+ GET /dashboard 200 in 12709ms
+ GET /login 200 in 159ms
+ GET /login 200 in 168ms
+ GET /api/auth/callback 307 in 267ms
+ GET /login?google_not_registered=true 200 in 308ms
+ ○ Compiling /register ...
+ ✓ Compiled /register in 2.1s (849 modules)
+ GET /register 200 in 3091ms
+ GET /api/auth/callback 307 in 161ms
+ GET /login?google_not_registered=true 200 in 523ms
+ GET /dashboard 200 in 456ms
+ GET /login 200 in 76ms
+ GET /login 200 in 108ms
+ GET /api/auth/callback 307 in 45ms
+ GET /login?google_not_registered=true 200 in 295ms
+ GET /dashboard 200 in 415ms
+ ✓ Compiled in 4.3s (326 modules)
+ ✓ Compiled in 999ms (326 modules)
+ ✓ Compiled in 1464ms (326 modules)
+ GET /dashboard 200 in 1649ms
+ ✓ Compiled in 909ms (326 modules)
+ ✓ Compiled in 1057ms (326 modules)
+ GET /dashboard 200 in 1091ms
+ ✓ Compiled in 1051ms (326 modules)
+ ✓ Compiled in 641ms (326 modules)
+ GET /dashboard 200 in 518ms
+ ✓ Compiled in 770ms (326 modules)
+ GET /dashboard 200 in 152ms
+ ✓ Compiled in 926ms (326 modules)
+ ✓ Compiled in 814ms (326 modules)
+ GET /dashboard 200 in 964ms
+ ✓ Compiled in 716ms (326 modules)
+ GET /dashboard 200 in 801ms
+ ✓ Compiled in 761ms (326 modules)
+ ✓ Compiled in 536ms (326 modules)
+ GET /dashboard 200 in 855ms
+ ✓ Compiled in 585ms (326 modules)
+ ✓ Compiled in 667ms (326 modules)
+ GET /dashboard 200 in 1047ms
+ ✓ Compiled in 611ms (326 modules)
+ ✓ Compiled in 639ms (326 modules)
+ GET /dashboard 200 in 656ms
+ ✓ Compiled in 574ms (326 modules)
+ ✓ Compiled in 577ms (326 modules)
+ GET /dashboard 200 in 976ms
+ ✓ Compiled in 854ms (326 modules)
+ ✓ Compiled in 431ms (326 modules)
+ GET /dashboard 200 in 703ms
+ ✓ Compiled in 426ms (326 modules)
+ ✓ Compiled in 698ms (326 modules)
+ GET /dashboard 200 in 680ms
+ ✓ Compiled in 574ms (326 modules)
+ ✓ Compiled in 567ms (326 modules)
+ GET /dashboard 200 in 697ms
+ ✓ Compiled in 590ms (326 modules)
+ ✓ Compiled in 399ms (326 modules)
+ GET /dashboard 200 in 462ms
+ ✓ Compiled in 444ms (326 modules)
+ ⨯ SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>) {
+  page: '/dashboard'
+}
+ ✓ Compiled in 562ms (326 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 7.2s (1132 modules)
+ GET /dashboard 500 in 10354ms
+ ✓ Compiled in 1267ms (479 modules)
+ ✓ Compiled in 1082ms (479 modules)
+ GET /dashboard 200 in 1121ms
+ ✓ Compiled in 888ms (479 modules)
+ ✓ Compiled in 953ms (479 modules)
+ ✓ Compiled in 750ms (479 modules)
+ GET /dashboard 200 in 919ms
+ ✓ Compiled in 717ms (479 modules)
+ ✓ Compiled in 666ms (479 modules)
+ ✓ Compiled in 1001ms (479 modules)
+ GET /dashboard 200 in 1074ms
+ ✓ Compiled in 623ms (479 modules)
+ GET /dashboard 200 in 629ms
+ ✓ Compiled in 531ms (479 modules)
+ ✓ Compiled in 602ms (479 modules)
+ GET /dashboard 200 in 681ms
+ ✓ Compiled in 640ms (479 modules)
+ GET /dashboard 200 in 742ms
+ ✓ Compiled in 898ms (479 modules)
+ ✓ Compiled in 644ms (479 modules)
+ GET /dashboard 200 in 670ms
+ ✓ Compiled in 441ms (479 modules)
+ GET /dashboard 200 in 532ms
+ ✓ Compiled in 454ms (479 modules)
+ ✓ Compiled in 1010ms (479 modules)
+ GET /dashboard 200 in 1025ms
+ ✓ Compiled in 760ms (479 modules)
+ GET /dashboard 200 in 1113ms
+ ✓ Compiled in 916ms (479 modules)
+ ✓ Compiled in 621ms (479 modules)
+ GET /dashboard 200 in 639ms
+ ✓ Compiled in 414ms (479 modules)
+ GET /dashboard 200 in 657ms
+ ✓ Compiled in 649ms (479 modules)
+ ✓ Compiled in 871ms (479 modules)
+ GET /dashboard 200 in 835ms
+ ✓ Compiled in 3.4s (479 modules)
+ GET /dashboard 200 in 2832ms
+ ✓ Compiled in 501ms (479 modules)
+ ✓ Compiled in 690ms (479 modules)
+ GET /dashboard 200 in 804ms
+ ✓ Compiled in 700ms (479 modules)
+ ✓ Compiled in 652ms (479 modules)
+ GET /dashboard 200 in 643ms
+ ✓ Compiled in 394ms (479 modules)
+ GET /dashboard 200 in 493ms
+ ✓ Compiled in 471ms (479 modules)
+ ✓ Compiled in 968ms (479 modules)
+ GET /dashboard 200 in 913ms
+ ✓ Compiled in 819ms (479 modules)
+ GET /dashboard 200 in 1515ms
+ ✓ Compiled in 955ms (479 modules)
+ ✓ Compiled in 506ms (479 modules)
+ GET /dashboard 200 in 551ms
+ ✓ Compiled in 421ms (479 modules)
+ GET /dashboard 200 in 705ms
+ ✓ Compiled in 481ms (479 modules)
+ GET /dashboard 200 in 828ms
+ ✓ Compiled in 795ms (479 modules)
+ ✓ Compiled in 618ms (479 modules)
+ GET /dashboard 200 in 722ms
+ ✓ Compiled in 687ms (479 modules)
+ GET /dashboard 200 in 662ms
+ ✓ Compiled in 631ms (479 modules)
+ ✓ Compiled in 496ms (479 modules)
+ GET /dashboard 200 in 804ms
+ ✓ Compiled in 509ms (479 modules)
+ ✓ Compiled in 741ms (479 modules)
+ GET /dashboard 200 in 790ms
+ ✓ Compiled in 627ms (479 modules)
+ GET /dashboard 200 in 972ms
+ ✓ Compiled in 870ms (479 modules)
+ ✓ Compiled in 664ms (479 modules)
+ GET /dashboard 200 in 598ms
+ ✓ Compiled in 508ms (479 modules)
+ ✓ Compiled in 428ms (479 modules)
+ GET /dashboard 200 in 1005ms
+ ✓ Compiled in 646ms (479 modules)
+ ✓ Compiled in 792ms (479 modules)
+ GET /dashboard 200 in 850ms
+ ✓ Compiled in 596ms (479 modules)
+ GET /dashboard 200 in 836ms
+ ✓ Compiled in 792ms (479 modules)
+ ✓ Compiled in 490ms (479 modules)
+ GET /dashboard 200 in 489ms
+ ✓ Compiled in 424ms (479 modules)
+ GET /dashboard 200 in 861ms
+ ✓ Compiled in 831ms (479 modules)
+ ✓ Compiled in 593ms (479 modules)
+ GET /dashboard 200 in 881ms
+ ✓ Compiled in 711ms (479 modules)
+ ✓ Compiled in 692ms (479 modules)
+ GET /dashboard 200 in 762ms
+ ✓ Compiled in 707ms (479 modules)
+ ✓ Compiled in 440ms (479 modules)
+ GET /dashboard 200 in 453ms
+ ✓ Compiled in 493ms (479 modules)
+ GET /dashboard 200 in 943ms
+ ✓ Compiled in 822ms (479 modules)
+ ✓ Compiled in 1087ms (479 modules)
+ GET /dashboard 200 in 1522ms
+ ✓ Compiled in 694ms (479 modules)
+ ✓ Compiled in 3.7s (479 modules)
+ GET /dashboard 200 in 3767ms
+ ✓ Compiled in 473ms (479 modules)
+ GET /dashboard 200 in 856ms
+ ✓ Compiled in 692ms (479 modules)
+ GET /dashboard 200 in 1070ms
+ ✓ Compiled in 1066ms (479 modules)
+ ✓ Compiled in 751ms (479 modules)
+ GET /dashboard 200 in 710ms
+ ✓ Compiled in 450ms (479 modules)
+ GET /dashboard 200 in 575ms
+ ✓ Compiled in 542ms (479 modules)
+ ✓ Compiled in 981ms (479 modules)
+ GET /dashboard 200 in 958ms
+ ✓ Compiled in 693ms (479 modules)
+ GET /dashboard 200 in 702ms
+ ✓ Compiled in 587ms (479 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: RangeError: Failed to allocate memory
+ ⨯ SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>) {
+  page: '/dashboard'
+}
+ ✓ Compiled in 8.4s (1132 modules)
+ GET /dashboard 500 in 9025ms
+ ✓ Compiled in 717ms (479 modules)
+ ✓ Compiled in 762ms (479 modules)
+ GET /dashboard 200 in 786ms
+ ✓ Compiled in 868ms (479 modules)
+ ✓ Compiled in 859ms (479 modules)
+ GET /dashboard 200 in 936ms
+ ✓ Compiled in 658ms (479 modules)
+ GET /dashboard 200 in 712ms
+ ✓ Compiled in 558ms (479 modules)
+ GET /dashboard 200 in 641ms
+ ✓ Compiled in 588ms (479 modules)
+ ✓ Compiled in 461ms (479 modules)
+ GET /dashboard 200 in 1098ms
+ ✓ Compiled in 1097ms (479 modules)
+ ✓ Compiled in 775ms (479 modules)
+ ✓ Compiled in 1043ms (479 modules)
+ GET /dashboard 200 in 1139ms
+ ✓ Compiled in 911ms (479 modules)
+ ✓ Compiled in 1298ms (479 modules)
+ GET /dashboard 200 in 1274ms
+ ✓ Compiled in 756ms (479 modules)
+ GET /dashboard 200 in 788ms
+ ✓ Compiled in 650ms (479 modules)
+ ✓ Compiled in 438ms (479 modules)
+ GET /dashboard 200 in 494ms
+ ✓ Compiled in 896ms (479 modules)
+ GET /dashboard 200 in 597ms
+ ✓ Compiled in 567ms (479 modules)
+ ✓ Compiled in 380ms (479 modules)
+ GET /dashboard 200 in 620ms
+ ✓ Compiled in 546ms (479 modules)
+ ✓ Compiled in 453ms (479 modules)
+ GET /dashboard 200 in 468ms
+ ✓ Compiled in 668ms (479 modules)
+ GET /dashboard 200 in 781ms
+ ✓ Compiled in 664ms (479 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 917ms (479 modules)
+[?25h
