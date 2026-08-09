@@ -25,12 +25,26 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const isFounderArea = pathname.startsWith('/x-founder-control-99f7jK');
   const isDashboardArea = pathname.startsWith('/dashboard');
+  const isFounderLoginPage = pathname === '/founder-login' || pathname.startsWith('/founder-login/');
 
+  // If accessing founder login page without auth, allow it (show login form)
   if (userError || !user) {
+    if (isFounderLoginPage) {
+      return res; // Show founder login page
+    }
+    if (isFounderArea) {
+      return NextResponse.redirect(new URL('/founder-login', req.url));
+    }
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
   if (!user.email_confirmed_at) {
+    if (isFounderLoginPage) {
+      return res; // Show founder login page even if email not confirmed
+    }
+    if (isFounderArea) {
+      return NextResponse.redirect(new URL('/founder-login', req.url));
+    }
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
@@ -40,37 +54,50 @@ export async function middleware(req: NextRequest) {
     .eq('id', user.id)
     .maybeSingle<{ role: string }>();
 
-  if (profileRes.data) {
-    if (profileRes.data.role === 'founder' && isDashboardArea) {
-      return NextResponse.redirect(new URL('/x-founder-control-99f7jK', req.url));
-    }
-    if (profileRes.data.role === 'user' && isFounderArea) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
-    return res;
-  }
-
+  // Check founder table FIRST (authoritative source)
   const founderRes = await supabase
     .from('founder')
     .select('role')
     .eq('id', user.id)
     .maybeSingle<{ role: string }>();
 
-  if (founderRes.data?.role === 'founder') {
-    if (isDashboardArea) {
-      return NextResponse.redirect(new URL('/x-founder-control-99f7jK', req.url));
+  const isFounder = founderRes.data?.role === 'founder';
+  
+  // Check users table for regular user role
+  const isUser = profileRes.data?.role === 'user';
+
+  // Route protection logic
+  if (isFounderArea) {
+    // Only founders can access founder area
+    if (!isFounder) {
+      return NextResponse.redirect(new URL('/login', req.url));
     }
     return res;
   }
 
-  if (isFounderArea) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
-  }
-
-  if (isDashboardArea) {
+  if (isFounderLoginPage) {
+    // If already authenticated as founder, redirect to founder panel
+    if (isFounder) {
+      return NextResponse.redirect(new URL('/x-founder-control-99f7jK', req.url));
+    }
+    // If authenticated as regular user, redirect to user login
+    if (isUser) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+    // Allow access to founder login page for unclassified users
     return res;
   }
 
+  if (isDashboardArea) {
+    // Founders accessing dashboard should be redirected to founder panel
+    if (isFounder) {
+      return NextResponse.redirect(new URL('/x-founder-control-99f7jK', req.url));
+    }
+    // Regular users and unclassified users can access dashboard
+    return res;
+  }
+
+  // Default: redirect to login for unauthenticated or unmatched routes
   return NextResponse.redirect(new URL('/login', req.url));
 }
 
@@ -80,5 +107,7 @@ export const config = {
     '/dashboard/:path*',
     '/x-founder-control-99f7jK',
     '/x-founder-control-99f7jK/:path*',
+    '/founder-login',
+    '/founder-login/:path*',
   ],
 };

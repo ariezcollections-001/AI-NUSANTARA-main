@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogIn, Mail, Lock, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { LogIn, Mail, Lock, Loader2, Eye, EyeOff, ShieldCheck, Globe } from "lucide-react";
 import { manualLoginWithPassword } from "@/lib/auth";
 import { supabase } from "@/lib/supabase/client";
 
@@ -87,6 +87,36 @@ export default function FounderLoginPage() {
       router.replace(result.target);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat masuk.";
+      setError(errorMessage);
+      setLoading(false);
+    }
+  };
+
+  const handleFounderGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const currentOrigin = window.location.origin;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${currentOrigin}/api/auth/callback`,
+          queryParams: {
+            hl: "id",
+            prompt: "select_account",
+          },
+        },
+      });
+
+      if (error) {
+        setError("Google OAuth gagal: " + error.message);
+        writeAuditEvent({ email: "", success: false, message: error.message, target: "" });
+        setLoading(false);
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat login dengan Google.";
       setError(errorMessage);
       setLoading(false);
     }
@@ -190,6 +220,27 @@ export default function FounderLoginPage() {
               )}
             </button>
           </form>
+
+          {/* Google OAuth Login for Founder */}
+          <div className="mt-4">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-slate-900 text-slate-400">atau</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleFounderGoogleLogin}
+              disabled={loading}
+              className="mt-4 w-full rounded-2xl bg-white px-5 py-3 text-sm font-bold uppercase tracking-wider text-slate-900 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              <Globe className="h-4 w-4" />
+              <span>Masuk dengan Google (Founder)</span>
+            </button>
+          </div>
 
           <div className="mt-6 border-t border-slate-800 pt-5 text-center text-sm text-slate-400">
             <p>Jika Anda bukan Founder, gunakan login user biasa di <Link href="/login" className="text-emerald-300 hover:text-emerald-200 font-semibold">halaman login user</Link>.</p>
