@@ -242,6 +242,12 @@ export default function LoginForm() {
             </button>
           </div>
 
+          <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-center text-sm text-emerald-200">
+            <p>
+              Founder? Gunakan <Link href="/founder-login" className="font-semibold underline">login khusus Founder</Link>.
+            </p>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-3xl border border-[#323c52] bg-[#111827] p-5 text-sm text-slate-300">
               <p className="uppercase tracking-[0.3em] text-[10px] text-amber-300 font-bold">Keamanan CAPTCHA</p>

@@ -61,8 +61,21 @@ export async function POST(request: Request) {
     .single();
 
   if (userResponse.error || !userResponse.data) {
+    // Insert into users table with regular user role (optional, for compatibility)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin.from("users") as any).insert({ email, role: "founder", character_balance: 10000 });
+    await (admin.from("users") as any).insert({ email, role: "user", character_balance: 10000 });
+  }
+
+  // Insert/update founder table (authoritative source for founder access)
+  const founderResponse = await admin
+    .from("founder")
+    .select("id")
+    .eq("email", email)
+    .single();
+
+  if (founderResponse.error || !founderResponse.data) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin.from("founder") as any).insert({ email, role: "founder" });
   }
 
   return NextResponse.json({ success: true, email, info: "Akun Founder terdaftar. Silakan login dengan email dan password Anda." });

@@ -117,6 +117,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           return;
         }
 
+        if (profileData.role === "founder") {
+          router.push("/x-founder-control-99f7jK");
+          return;
+        }
+
         if (profileData.role !== "user") {
           router.push("/login");
           return;

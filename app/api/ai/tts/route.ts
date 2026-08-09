@@ -89,8 +89,8 @@ export async function POST(request: Request) {
         "Content-Disposition": `inline; filename="tts-${selectedVoice}.mp3"`,
       },
     });
-  } catch (error) {
-    console.error("TTS API error:", error);
+  } catch (e) {
+    console.error("TTS API error:", e);
     return NextResponse.json(
       { error: "Gagal memproses permintaan audio." },
       { status: 500 }

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import ReleaseControlPanel from "@/components/ReleaseControlPanel";
 
 type User = { id: string; email?: string; role?: string; character_balance?: number; is_banned?: boolean; last_seen?: string | null; last_active?: string | null };
 type Feature = { id: number; feature_slug: string; feature_name: string; system_prompt: string; temperature?: number; is_active?: boolean; seo_title?: string | null; seo_description?: string | null };
@@ -78,7 +79,7 @@ export default function FounderDashboard() {
   const [showProfileConfirmModal, setShowProfileConfirmModal] = useState(false);
   const [founderProfile, setFounderProfile] = useState<{ name: string; email: string }>({ name: 'Founder', email: 'ariezcollections@gmail.com' });
   const [founderPassword, setFounderPassword] = useState<string>('');
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoading, _setProfileLoading] = useState(false);
 
   const [vaultKeys, setVaultKeys] = useState({ gemini: [] as string[], openrouter: [] as string[] });
   const [newVaultKey, setNewVaultKey] = useState("");
@@ -87,7 +88,7 @@ export default function FounderDashboard() {
 
   // live users and credit guard state
   const [liveUsers, setLiveUsers] = useState<User[]>([]);
-  const [creditPauseActive, setCreditPauseActive] = useState(false);
+  const [creditPauseActive, _setCreditPauseActive] = useState(false);
 
   // 💬 Live Chat CS Room state
   const [showChatCSModal, setShowChatCSModal] = useState(false);
@@ -191,7 +192,7 @@ export default function FounderDashboard() {
     // load founder profile from server
     async function loadFounderProfile() {
       try {
-        setProfileLoading(true);
+        _setProfileLoading(true);
         const res = await fetch('/api/founder/profile');
         const data = await res.json();
         if (res.ok && data?.ok && data.data) {
@@ -200,13 +201,13 @@ export default function FounderDashboard() {
       } catch (e) {
         // ignore
       } finally {
-        setProfileLoading(false);
+        _setProfileLoading(false);
       }
     }
 
     async function saveFounderProfile(next: { name: string; email: string }, plainPassword: string) {
       try {
-        setProfileLoading(true);
+        _setProfileLoading(true);
         const body = { name: next.name, email: next.email, password: String(plainPassword || '') };
         const res = await fetch('/api/founder/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const data = await res.json();
@@ -223,7 +224,7 @@ export default function FounderDashboard() {
         alert('Gagal menyimpan profil Founder.');
         return { ok: false, error: String(e) };
       } finally {
-        setProfileLoading(false);
+        _setProfileLoading(false);
       }
     }
 
@@ -662,6 +663,12 @@ export default function FounderDashboard() {
             </div>
           </div>
         </div>
+
+        {/* 🚀 RELEASE CONTROL PANEL - founder-only */}
+        <div className="max-w-7xl mx-auto px-6">
+          <ReleaseControlPanel />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6">
           <button onClick={() => openModal('all')} className="group bg-slate-900 p-5 rounded-3xl border border-slate-800 hover:border-emerald-500 transition-all cursor-pointer text-left">
             <div className="text-xs uppercase tracking-[0.3em] text-emerald-400">📊 TOTAL AKUN TERDAFTAR</div>

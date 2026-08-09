@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ target: '/login' });
     }
 
-    // Prefer regular user routing first
+    // Priority 1: Check users table FIRST (regular users)
     const profileRes = await supabase
       .from('users')
       .select('role')
@@ -50,14 +50,14 @@ export async function GET(request: Request) {
       }
     }
 
-    // Fallback: check founder table if the role isn't available in users
+    // Priority 2: Check founder table for founder access
     const founderRes = await supabase
       .from('founder')
       .select('role')
       .eq('id', user.id)
       .maybeSingle<{ role: string }>();
 
-    if (founderRes.data && founderRes.data.role === 'founder') {
+    if (founderRes.data?.role === 'founder') {
       return NextResponse.json({ target: '/x-founder-control-99f7jK' });
     }
 

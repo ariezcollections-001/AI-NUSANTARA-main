@@ -66,8 +66,8 @@ export async function POST(request: Request) {
       redirect_url: data.redirect_url,
       order_id: orderId,
     });
-  } catch (error) {
-    console.warn("Midtrans create payment failed:", error);
+  } catch (e) {
+    console.warn("Midtrans create payment failed:", e);
     return NextResponse.json({ error: "Koneksi ke Midtrans gagal." }, { status: 502 });
   }
 }

@@ -4,7 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "regions": ["sin1", "hkg1"],
+  "regions": ["sin1"],
   "rewrites": [
     { "source": "/dashboard", "destination": "/dashboard" },
     { "source": "/dashboard/checkout", "destination": "/dashboard/checkout" },

@@ -1,0 +1,38 @@
+Vercel CLI 58.9.0 (Node.js 24.19.0)
+Fetching deployment "ai-nusantara-main-kbnjrt2nf-ariezcollections-projects.vercel.app" in ariezcollections-projects
+> Fetched deployment "ai-nusantara-main-kbnjrt2nf-ariezcollections-projects.vercel.app" in ariezcollections-projects [448ms]
+
+  General
+
+    id		dpl_4Cy48vNe6uFawMJmCJxBex4QKyfU
+    name	ai-nusantara-main
+    target	production
+    status	UNKNOWN
+    url		https://ai-nusantara-main-kbnjrt2nf-ariezcollections-projects.vercel.app
+    created	Sun Aug 09 2026 20:27:03 GMT+0800 (Central Indonesia Time) [27s ago]
+
+
+  Aliases
+
+    ╶ https://ai-nusantara-main-ariezcollections-projects.vercel.app
+    
+
+  Builds
+
+    ╶ .        [0ms]
+    
+
+  Routes
+
+    ╶ ^/x-founder-control-99f7jK$                   ->      /x-founder-control-99f7jK      
+    ╶ ^/dashboard/checkout$                         ->      /dashboard/checkout      
+    ╶ ^/dashboard$                                  ->      /dashboard      
+    ╶ ^/api(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?$      ->      /api/$1      
+    ┌ ^(?:/(.*))$                                                                          
+    ├── X-Content-Type-Options: nosniff
+    ├── X-Frame-Options: DENY
+    ├── X-XSS-Protection: 1; mode=block
+    ├── Referrer-Policy: strict-origin-when-cross-origin
+    └── Permissions-Policy: camera=(), microphone=(), geolocation=()
+    ╶ filesystem
+

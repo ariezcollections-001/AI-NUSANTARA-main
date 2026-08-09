@@ -61,32 +61,33 @@ export async function GET(request: Request) {
 
   if (user?.email) {
     try {
+      // Check if user exists in users table
       const { data: profile, error: profileReadError } = await supabase
-        .from('users_profile')
+        .from('users')
         .select('email')
         .eq('email', user.email)
         .maybeSingle();
 
       if (profileReadError) {
-        console.error('Failed to read users_profile for OAuth user:', profileReadError);
+        console.error('Failed to read users for OAuth user:', profileReadError);
       }
 
+      // If user doesn't exist, create with default 'user' role
       if (!profile) {
         const fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
         const { error: insertError } = await supabase
-          .from('users_profile')
+          .from('users')
           .insert({
             email: user.email,
-            full_name: fullName,
-            quota_balance: 50000,
+            role: 'user',
           });
 
         if (insertError) {
-          console.error('Failed to create users_profile for OAuth user:', insertError);
+          console.error('Failed to create user for OAuth user:', insertError);
         }
       }
-    } catch (error) {
-      console.error('Unexpected error while syncing OAuth profile:', error);
+    } catch (_error) {
+      console.error('Unexpected error while syncing OAuth profile:', _error);
     }
   }
 

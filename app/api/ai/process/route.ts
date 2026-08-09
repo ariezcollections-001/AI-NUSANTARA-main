@@ -2,14 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-async function* streamText(text: string) {
-  const words = text.split(" ");
-  for (let i = 0; i < words.length; i++) {
-    yield words[i] + (i < words.length - 1 ? " " : "");
-    await new Promise((resolve) => resolve(500));
-  }
-}
-
 const requestHistory: Record<string, number[]> = {};
 
 const featureInstructions: Record<string, string> = {
@@ -545,7 +537,7 @@ export async function GET(request: Request) {
         "X-Accel-Buffering": "no",
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Gagal memproses streaming." }, { status: 500 });
   }
 }
@@ -620,12 +612,12 @@ export async function PUT(request: Request) {
     }
 
     return NextResponse.json({ error: "Aksi tidak dikenali." }, { status: 400 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Gagal memproses permintaan Founder." }, { status: 500 });
   }
 }
 
-async function getFounderKeys(request: Request) {
+async function getFounderKeys(_request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -666,7 +658,7 @@ async function getFounderKeys(request: Request) {
       kran2_available: hasKran2,
       rotation_index: kran1RotationIndex % Math.max(1, keys.length),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Gagal mengambil data kunci." }, { status: 500 });
   }
 }

@@ -44,8 +44,8 @@ export async function POST(request: Request) {
         timestamp: new Date().toISOString(),
       },
     });
-  } catch (error) {
-    console.error("Chat API error:", error);
+  } catch (e) {
+    console.error("Chat API error:", e);
     return NextResponse.json(
       { error: "Gagal memproses pesan." },
       { status: 500 }

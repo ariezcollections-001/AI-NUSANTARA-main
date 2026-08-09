@@ -11,10 +11,10 @@ type SupabaseMockAuth = {
   onAuthStateChange(
     cb: (event: string, session: Session | null) => void,
   ): { data: { subscription: { unsubscribe: () => void } } };
-  signInWithOAuth(opts: Record<string, unknown>): Promise<{ data: null; error: null }>;
+  signInWithOAuth(_opts: Record<string, unknown>): Promise<{ data: null; error: null }>;
   signOut(): Promise<{ error: null }>;
-  resetPasswordForEmail(email: string, opts?: Record<string, unknown>): Promise<{ error: null }>;
-  signInWithPassword(creds: Record<string, unknown>): Promise<{ data: null; error: { message: string } }>;
+  resetPasswordForEmail(_email: string, _opts?: Record<string, unknown>): Promise<{ error: null }>;
+  signInWithPassword(_creds: Record<string, unknown>): Promise<{ data: null; error: { message: string } }>;
 };
 
 type MockClient = { auth: SupabaseMockAuth; from: (table: string) => unknown };

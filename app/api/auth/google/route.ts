@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    // Generate OAuth URL for Google
+    const requestUrl = new URL(request.url);
+    const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || requestUrl.host;
+    const protocol = request.headers.get("x-forwarded-proto") || (requestUrl.protocol.replace(":", "") || "https");
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      ?? process.env.NEXT_PUBLIC_SITE_URL
+      ?? `${protocol}://${forwardedHost}`;
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

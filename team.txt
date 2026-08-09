@@ -1,0 +1,4 @@
+team.name=ariezcollections projects
+team.slug=ariezcollections-projects
+team.id=team_Agpui2GPJx6A8A82IMAdS6t8
+team.created=2026-08-08T12:15:19.964Z

@@ -31,8 +31,8 @@ export async function POST(request: Request) {
         metadata: trimmedData,
       },
     });
-  } catch (error) {
-    console.error("Trim API error:", error);
+  } catch (e) {
+    console.error("Trim API error:", e);
     return NextResponse.json(
       { error: "Gagal memproses teks." },
       { status: 500 }

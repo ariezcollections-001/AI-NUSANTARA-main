@@ -13,7 +13,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    // Build app URL from request to ensure correct domain in production
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ??     process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
     const supabase = await createAdminClient();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

@@ -43,7 +43,7 @@ function LoginContent() {
   // ============================================================
   // JALUR LOGIN MANUAL (signInWithPassword)
   // ============================================================
-  const handleLoginManual = async (e: React.FormEvent) => {
+   const handleLoginManual = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -65,6 +65,7 @@ function LoginContent() {
         return;
       }
 
+      // Set session cookie and redirect to the appropriate dashboard
       document.cookie = "bikinai_session=true; path=/; max-age=86400";
       window.location.href = result.target;
     } catch (err: unknown) {
@@ -109,10 +110,11 @@ function LoginContent() {
   // ============================================================
   const handleGoogleLogin = async () => {
     try {
+      const currentOrigin = window.location.origin;
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
+          redirectTo: `${currentOrigin}/api/auth/callback`,
           queryParams: {
             hl: "id",
             prompt: "select_account",

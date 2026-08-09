@@ -10,8 +10,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
+  
+  // Build app URL from request to ensure correct domain in production
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? `${new URL(request.url).origin}`;
+
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/reset-password`,
+    redirectTo: `${appUrl}/reset-password`,
   });
 
   if (error) {

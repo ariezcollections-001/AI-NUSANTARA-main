@@ -44,6 +44,7 @@ function isEmailNotConfirmedError(message: string) {
 }
 
 export async function resolveUserRole(userId: string): Promise<LoginRole | null> {
+  // Priority 1: Check users table FIRST (regular users)
   const { data: profileData, error: profileError } = await supabase
     .from("users")
     .select("role")
@@ -55,6 +56,7 @@ export async function resolveUserRole(userId: string): Promise<LoginRole | null>
     if (profileData.role === "founder") return "founder";
   }
 
+  // Priority 2: Check founder table for founder access
   const { data: founderData, error: founderError } = await supabase
     .from("founder")
     .select("role")

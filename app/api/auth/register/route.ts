@@ -22,7 +22,9 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    
+    // Build app URL from request to ensure correct domain in production
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
 
     const { data, error } = await supabase.auth.signUp({
       email,
