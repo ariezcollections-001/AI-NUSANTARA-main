@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AI-NUSANTARA
 
 Platform agregator AI nomor satu di Indonesia — Guru, Mahasiswa, UMKM, dan Afiliator.
@@ -65,3 +66,6 @@ supabase/      → Migration SQL & konfigurasi Supabase
 ## Lisensi
 
 MIT — lihat [LICENSE](./LICENSE).
+=======
+# AI-NUSANTARA-main
+>>>>>>> 3db09ee0b395f7ed31cc5b47a291d55b03bbb86d
