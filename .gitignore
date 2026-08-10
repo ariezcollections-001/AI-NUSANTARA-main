@@ -87,3 +87,40 @@ Thumbs.db
 
 .vercel
 .env*
+
+# =============================================================================
+# Inspection & Debug Outputs (cleaned up 2026-08-10)
+# =============================================================================
+# Vercel API inspection, build outputs, and CLI debug files
+api_*.json
+api_*.txt
+apifields.txt
+.build-log.txt
+dlist.json
+inspx*.txt
+probe.txt
+vercel_check*.txt
+vercel_env_check.txt
+vercel_whoami*.txt
+
+# Test and verification outputs
+smoke*.txt
+smoke_test*.cmd
+smoke_tests.js
+verify_*.txt
+verify_output.txt
+test_confirm.txt
+confirm_test.txt
+test-results/
+
+# Development inspection outputs
+dev_*.txt
+final_smoke_*.txt
+next_build_*.txt
+dashboard_check.txt
+gitmail.txt
+hdr_root.txt
+members.txt
+process_list.txt
+team.txt
+creator.txt

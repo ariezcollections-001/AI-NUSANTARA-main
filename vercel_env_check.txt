@@ -1,8 +1,0 @@
-Vercel CLI 58.9.0 (Node.js 24.19.0)
-Retrieving project…
-> Environment Variables found for ariezcollections-projects/ai-nusantara-main [284ms]
-
- name                               value     type                environments        created    
- NEXT_PUBLIC_SUPABASE_URL           Hidden    Sensitive           Production          19m ago    
- NEXT_PUBLIC_SUPABASE_ANON_KEY      Hidden    Sensitive           Production          39m ago    
-

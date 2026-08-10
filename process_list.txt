@@ -1,7 +1,0 @@
-node.exe                      7032 Console                    3      3,152 K
-node.exe                     10740 Console                    3      1,804 K
-node.exe                     13276 Console                    3     19,036 K
-node.exe                     17300 Console                    3         84 K
-node.exe                      8876 Console                    3        372 K
-node.exe                      8120 Console                    3     17,724 K
-node.exe                      8664 Console                    3     96,692 K

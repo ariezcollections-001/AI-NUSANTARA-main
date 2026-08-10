@@ -1,7 +1,0 @@
-creator.uid=AkYP1w3Kx6vgOjunN9RnEMge
-creator.email=
-creator.username=ariezcollections-project
-source=cli
-meta.gitAuthor=
-meta.githubCommitAuthorName=ARIEZ
-meta.githubCommitSha=94c60f7282300a53816f4c583c9d2910e9b51b3b
