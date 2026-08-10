@@ -5,264 +5,218 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { manualLoginWithPassword } from "@/lib/auth";
-import { ShieldCheck, Mail, Lock, ArrowRight, RefreshCcw, LogIn, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { LogIn, Mail, Lock, Loader2, Eye, EyeOff, Globe, ShieldCheck, ArrowRight } from "lucide-react";
 
 const supabase = createClient();
-
-function getPlatformName(): string {
-  if (typeof window === "undefined") return "BIKIN AI";
-  try {
-    return localStorage.getItem("founder_config_platform_name") || "BIKIN AI";
-  } catch {
-    return "BIKIN AI";
-  }
-}
 
 export default function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [platformName, setPlatformName] = useState("BIKIN AI");
+  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
-  const [accountNotFound, setAccountNotFound] = useState(false);
-  const [isAgreed, setIsAgreed] = useState<boolean>(false);
+  const [isAgreed, setIsAgreed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setPlatformName(getPlatformName());
-    const handler = () => setPlatformName(getPlatformName());
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+    setIsMounted(true);
   }, []);
 
-  const loginWithPassword = async () => {
+  const handleLoginManual = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!isAgreed) {
-      setMessage("Silakan setujui Syarat Layanan sebelum masuk.");
+      setError("Setujui Syarat Layanan dan Kebijakan Privasi terlebih dahulu.");
       return;
     }
-
     setLoading(true);
-    setMessage(null);
-    setEmailNotConfirmed(false);
-    setAccountNotFound(false);
+    setError(null);
 
     const result = await manualLoginWithPassword(email, password);
-
     if (!result.success) {
-      setMessage(result.error);
-      setEmailNotConfirmed(result.reason === "not_confirmed");
-      setAccountNotFound(result.reason === "not_found");
+      setError(result.error);
       setLoading(false);
       return;
     }
 
     document.cookie = "bikinai_session=true; path=/; max-age=86400";
-    router.replace(result.target);
+    window.location.href = result.target;
     setLoading(false);
   };
 
-  const loginWithGoogle = async () => {
-    setLoading(true);
-    setMessage(null);
-
-    const result = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
-    });
-
-    if (result.error) {
-      setMessage(result.error.message || "Login Google gagal. Coba lagi.");
-    }
-    setLoading(false);
-  };
-
-  const requestPasswordReset = async () => {
-    setLoading(true);
-    setMessage(null);
-
+  const handleGoogleLogin = async () => {
     try {
-      if (!email) {
-        setMessage("Isi email untuk menerima tautan reset kata sandi.");
-        setLoading(false);
-        return;
-      }
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const currentOrigin = window.location.origin;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: currentOrigin + "/api/auth/callback" },
       });
-
       if (error) {
-        setMessage(error.message);
-      } else {
-        setMessage("Tautan reset password telah dikirim ke email Anda.");
+        setError(error.message || "Login Google gagal. Coba lagi.");
       }
-    } catch {
-      setMessage("Gagal mengirim tautan reset password.");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan saat login dengan Google.");
     }
   };
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-3xl rounded-[32px] border border-[#1a1f2f] bg-[#0f172a] shadow-[8px_8px_0px_0px_rgba(20,20,20,1)] p-8">
-        <div className="mb-8 grid gap-5 md:grid-cols-[1fr_1fr]">
-          <div>
-            <p className="text-sm uppercase tracking-[0.35em] text-amber-300 font-mono">{platformName} Secure Entry</p>
-            <h1 className="mt-4 text-4xl font-black tracking-tight text-white">Masuk dengan Email & Kata Sandi</h1>
-            <p className="mt-3 text-slate-400 leading-relaxed">
-              Masuk langsung ke dashboard {platformName} menggunakan akun email. Founder dapat masuk ke panel rahasia jika sudah terdaftar sebagai founder.
-            </p>
-          </div>
-          <div className="rounded-3xl border border-[#323c52] bg-[#111827] p-6">
-            <div className="flex items-center gap-3 text-slate-300">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              <span className="text-xs uppercase tracking-widest">Akses Email + Password</span>
-            </div>
-            <div className="mt-5 grid gap-3 text-sm text-slate-400">
-              <p>Login konvensional lebih stabil tanpa Custom SMTP. Email & password resmi Supabase siap digunakan.</p>
-              <p>Founder akan diarahkan ke rute <code className="rounded bg-slate-900 px-2 py-0.5 text-xs">/x-founder-control-99f7jK</code> jika terdaftar.</p>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="mb-6 flex justify-center">
+          <div className="w-14 h-14 rounded-xl bg-amber-500 border-2 border-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/30">
+            <div className="w-7 h-7 bg-slate-950 rounded" />
           </div>
         </div>
 
-        <div className="space-y-6">
-          {accountNotFound && (
-            <div className="mb-4 p-4 rounded-xl bg-orange-950/70 border border-orange-500/60 text-orange-200 text-sm flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5" />
-                <div>
-                  <p className="font-bold text-orange-300">❌ Akun Anda belum terdaftar!</p>
-                  <p className="text-xs leading-relaxed text-orange-200">Silakan daftar terlebih dahulu untuk membuat akun resmi sebelum masuk ke beranda user.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push('/register')}
-                className="inline-flex items-center justify-center rounded-full bg-amber-500 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-950 hover:bg-amber-400 transition"
-              >
-                Daftar Akun Baru
-              </button>
-            </div>
-          )}
-          {emailNotConfirmed && (
-            <div className="mb-4 p-4 rounded-xl bg-red-950/70 border border-red-500/60 text-red-200 text-sm flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 mt-0.5" />
-              <div>
-                <p className="font-bold text-red-300">⚠️ Akun Anda belum aktif!</p>
-                <p className="text-xs leading-relaxed text-red-200">Silakan cek email Anda dan klik tautan verifikasi Supabase sebelum masuk.</p>
-              </div>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={loginWithGoogle}
-            disabled={loading}
-            className="inline-flex w-full items-center justify-center gap-3 rounded-full border border-[#323c52] bg-[#111827] px-6 py-3 text-sm font-bold uppercase tracking-wider text-slate-100 transition hover:border-amber-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <LogIn className="w-5 h-5 text-amber-300" />
-            {loading ? "Mengarahkan Google..." : "Masuk Cepat dengan Google"}
-          </button>
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-white">Selamat Datang</h1>
+          <p className="mt-2 text-sm text-slate-400">Masuk ke akun AI Nusantara Anda</p>
+        </div>
 
-          <div className="mt-4 flex flex-col gap-2 text-sm text-slate-400">
-            <div className="flex items-start gap-2">
-              <input
-                id="login-terms"
-                type="checkbox"
-                checked={isAgreed}
-                onChange={(e) => setIsAgreed(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-amber-500 focus:ring-amber-500"
-              />
-              <label htmlFor="login-terms" className="select-none leading-relaxed">
-                Saya menyetujui <span className="text-amber-400 font-semibold">Syarat Layanan</span> dan <span className="text-amber-400 font-semibold">Kebijakan Privasi</span> BIKIN AI.
+        {/* Login Card */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl">
+          <form onSubmit={handleLoginManual} className="grid gap-5">
+            {/* Email Field */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Email
               </label>
-            </div>
-            <p className="text-xs text-slate-500">Centang hanya dibutuhkan untuk login manual email/password. Login Google tetap dapat digunakan langsung.</p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2 text-sm text-slate-300">
-              <span>📧 Alamat Email</span>
-              <div className="flex items-center gap-2 rounded-3xl border border-[#323c52] bg-[#0f172a] p-3">
-                <Mail className="w-4 h-4 text-amber-300" />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@domain.com"
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                  placeholder="nama@email.com"
+                  required
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 py-3 pl-10 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
                 />
               </div>
-            </label>
-            <label className="space-y-2 text-sm text-slate-300">
-              <span>🔒 Kata Sandi Rahasia</span>
-              <div className="relative flex items-center gap-2 rounded-3xl border border-[#323c52] bg-[#0f172a] p-3">
-                <Lock className="w-4 h-4 text-amber-300" />
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Kata Sandi
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Kata sandi Anda"
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                  placeholder="0 0 0 0 0 0 0 0"
+                  required
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 py-3 pl-10 pr-10 text-sm text-white outline-none placeholder:text-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
+                  onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                 >
-                  {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </label>
+            </div>
+
+            {/* Terms Checkbox */}
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="terms-validation"
+                checked={isAgreed}
+                onChange={(e) => setIsAgreed(e.target.checked)}
+                className="mt-1 rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500"
+              />
+              <label htmlFor="terms-validation" className="text-xs text-slate-400 cursor-pointer select-none leading-relaxed">
+                Saya setuju dengan Syarat Layanan dan Kebijakan Privasi resmi BIKIN AI
+              </label>
+            </div>
+            {/* Error message */}
+            {error ? (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
+                {error}
+              </div>
+            ) : null}
+
+            {/* Manual Login Button (dark) */}
+            <button
+              type="submit"
+              disabled={!isAgreed || loading}
+              className={
+                !isAgreed
+                  ? "w-full py-3 px-4 font-mono font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 rounded-xl bg-slate-800 text-slate-500 font-normal cursor-not-allowed pointer-events-none shadow-none"
+                  : "w-full py-3 px-4 font-mono font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold cursor-pointer transition-all active:scale-95"
+              }
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Memproses...</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4" />
+                  <span>Masuk Aplikasi</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="mt-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-800" />
+            <span className="text-xs text-slate-500 select-none">&mdash; atau &mdash;</span>
+            <div className="h-px flex-1 bg-slate-800" />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          {/* Google Login */}
+          <div className="mt-4">
             <button
               type="button"
-              onClick={loginWithPassword}
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-bold uppercase tracking-wider text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleGoogleLogin}
+              className="w-full py-3 px-4 font-mono font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 rounded-xl bg-amber-500 border-amber-500 text-slate-950 cursor-pointer hover:bg-amber-400 hover:border-amber-400 transition-all shadow-md"
             >
-              <ArrowRight className="w-4 h-4" />
-              {loading ? "Masuk..." : `🔓 MASUK KE DASHBOARD ${platformName}`}
-            </button>
-            <button
-              type="button"
-              onClick={requestPasswordReset}
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#323c52] px-5 py-3 text-sm font-bold uppercase tracking-wider text-slate-200 transition hover:border-amber-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <RefreshCcw className="w-4 h-4" />
-              Lupa Kata Sandi
+              <Globe className="w-4 h-4" />
+              <span>Masuk dengan Akun Google</span>
             </button>
           </div>
+        </div>
 
-          <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-center text-sm text-emerald-200">
-            <p>
-              Founder? Gunakan <Link href="/founder-login" className="font-semibold underline">login khusus Founder</Link>.
-            </p>
-          </div>
+        {/* Register Link */}
+        <div className="mt-5 pt-4 border-t border-slate-800 text-center">
+          <p className="text-xs text-slate-400">
+            Belum punya akun?{" "}
+            <Link href="/register" className="text-amber-400 hover:text-amber-300 font-bold">
+              Daftar sekarang <ArrowRight className="inline-block w-3 h-3" />
+            </Link>
+          </p>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-3xl border border-[#323c52] bg-[#111827] p-5 text-sm text-slate-300">
-              <p className="uppercase tracking-[0.3em] text-[10px] text-amber-300 font-bold">Keamanan CAPTCHA</p>
-              <p className="mt-3 text-sm leading-relaxed">Jika situs Anda terkonfigurasi, token CAPTCHA akan diverifikasi di server untuk mencegah bot dan brute-force.</p>
-              <p className="mt-3 text-xs text-slate-500">Parameter `NEXT_PUBLIC_TURNSTILE_SITE_KEY` dan `CLOUDFLARE_TURNSTILE_SECRET` diperlukan untuk proteksi penuh.</p>
-            </div>
-            <div className="rounded-3xl border border-[#323c52] bg-[#111827] p-5 text-sm text-slate-300">
-              <p className="uppercase tracking-[0.3em] text-[10px] text-amber-300 font-bold">Founder Control</p>
-              <p className="mt-3 text-sm leading-relaxed">Founder memiliki rute tersembunyi <code className="rounded bg-slate-900 px-2 py-0.5 text-xs">/x-founder-control-99f7jK</code>. Akses non-founder akan menghasilkan 404 palsu.</p>
-            </div>
-          </div>
+        {/* Back to Home */}
+        <div className="mt-4 text-center">
+          <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            &larr; Kembali ke Beranda
+          </Link>
+        </div>
 
-          {message ? (
-            <div className="rounded-3xl border border-[#323c52] bg-[#0f172a] p-4 text-sm text-slate-200">{message}</div>
-          ) : null}
+        {/* Footer */}
+        <div className="mt-3 text-center">
+          <p className="text-[10px] text-slate-600">
+            <ShieldCheck className="inline-block w-3 h-3 mr-1" />
+            Secure login protected by Google Cloud OAuth protocol.
+          </p>
         </div>
       </div>
     </div>
