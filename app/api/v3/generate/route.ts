@@ -136,11 +136,12 @@ async function fetchUserBalance(
   userId: string,
 ): Promise<number | null> {
   try {
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from("users")
       .select("character_balance")
       .eq("id", userId)
-      .single<{ character_balance: number }>();
+      .single();
     if (error || !data) return null;
     const balance = Number(data.character_balance);
     return Number.isFinite(balance) ? balance : null;
@@ -157,12 +158,13 @@ async function deductCharacterBalance(
   try {
     const adminAny = createAdminClient();
     const newBalance = Math.max(0, currentBalance - totalDeducted);
-    const updated = await adminAny
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updated = await (adminAny as any)
       .from("users")
       .update({ character_balance: newBalance })
       .eq("id", userId)
       .select("character_balance")
-      .single<{ character_balance: number }>();
+      .single();
     if (
       !updated.error &&
       updated.data &&
