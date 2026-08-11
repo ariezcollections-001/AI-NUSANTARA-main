@@ -23,6 +23,19 @@ export default function LoginForm() {
     setIsMounted(true);
   }, []);
 
+  // Read error from URL params (e.g. from OAuth callback failures)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get("error");
+    const errorDescription = params.get("error_description");
+    if (errorParam) {
+      const decodedError = decodeURIComponent(errorDescription || errorParam);
+      setError(decodedError);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   const handleLoginManual = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAgreed) {
