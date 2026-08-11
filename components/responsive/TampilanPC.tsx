@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Send, Copy, FileText, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Copy, FileText, Loader2 } from "lucide-react";
 
 interface FiturNusantara {
   id: string;
@@ -437,29 +437,14 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
    * ================================================================== */
   return (
     <div className="w-full h-screen max-h-screen overflow-hidden bg-slate-950 text-slate-100 p-3 flex flex-col">
-      {/* Spanduk Selamat Datang Mini */}
-      <div className="w-full shrink-0 bg-gradient-to-r from-slate-900 to-slate-900/60 border border-slate-800 rounded-xl p-3 mb-3 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-black text-white truncate">
-              👋 Selamat Datang di BIKIN AI
-            </h1>
-            <p className="text-[11px] text-slate-400 leading-tight truncate">
-              Pilih salah satu dari{" "}
-              <span className="text-amber-400 font-semibold">
-                {fiturNusantara.length} fitur AI Nusantara
-              </span>{" "}
-              di bawah. Klik kartu fitur untuk membuka antarmuka generator AI!
-            </p>
-          </div>
-        </div>
+                  {/* Minimalist floating instruction micro-text (legacy banner eliminated) */}
+      <div className="text-[11px] text-slate-400 font-medium tracking-wide mb-1 flex items-center gap-1.5">
+        ✦ Pilih salah satu dari 12 fitur AI Nusantara di bawah. Klik kartu fitur
+        untuk membuka antarmuka generator AI.
       </div>
 
       {/* 4-Column Horizontal Directory Grid */}
-      <div className="w-full flex-1 grid grid-cols-4 gap-3 mt-1 overflow-hidden h-full max-h-[calc(100vh-80px)]">
+      <div className="w-full flex-1 grid grid-cols-4 gap-3 overflow-hidden h-full max-h-[calc(100vh-95px)] bg-slate-950">
         {KLASTER_URUTAN.map((klaster) => {
           const items = fiturNusantara.filter(
             (item) => item.cat === klaster.cat,
