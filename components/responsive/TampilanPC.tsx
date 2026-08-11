@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Send, Copy, FileText, Sparkles, Loader2 } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { ArrowLeft, Send, Copy, FileText, Sparkles, Loader2, RefreshCw, Wallet } from "lucide-react";
 
 interface FiturNusantara {
   id: string;
@@ -15,119 +15,30 @@ interface ResponsiveDashboardProps {
   maxInputChars?: number;
 }
 
-/* ========================================================================
- * 4-COLUMN HORIZONTAL DIRECTORY — Fitur AI Nusantara Catalogue
- * ====================================================================== */
-const fiturNusantara: FiturNusantara[] = [
-  {
-    id: "gen-rpp",
-    nama: "⚡ Gen RPP",
-    desc: "Buat RPP Merdeka lengkap, guru, asesmen, dan rubrik.",
-    cat: "GURU",
-    contoh: "Buatkan RPP Matematika kelas 7 tentang aljabar dengan model pembelajaran PBL.",
-  },
-  {
-    id: "buat-soal",
-    nama: "📝 Buat Soal",
-    desc: "Buat soal HOTS pilihan ganda dan esai lengkap.",
-    cat: "GURU",
-    contoh: "Buatkan 5 soal HOTS pilihan ganda tentang fotosintesis untuk kelas 8.",
-  },
-  {
-    id: "koreksi-tugas",
-    nama: "🛡️ Koreksi Tugas",
-    desc: "Beri feedback tugas siswa secara objektif.",
-    cat: "GURU",
-    contoh: "Koreksi esai siswa tentang sejarah proklamasi dan beri nilai objektif.",
-  },
-  {
-    id: "bahan-ajar",
-    nama: "📚 Bahan Ajar",
-    desc: "Produksi materi ajar menarik dan mudah dipahami.",
-    cat: "GURU",
-    contoh: "Susun bahan ajar singkat tentang sistem tata surya untuk kelas 6 SD.",
-  },
-  {
-    id: "asisten-skripsi",
-    nama: "🎓 Asisten Skripsi",
-    desc: "Bantu susun kerangka, bab, dan arahan riset skripsi.",
-    cat: "MAHASISWA",
-    contoh: "Susun kerangka skripsi bab 1-5 tentang pengaruh media sosial terhadap minat baca.",
-  },
-  {
-    id: "ringkas-buku",
-    nama: "📖 Ringkas Buku",
-    desc: "Buat ringkasan bab buku yang padat dan mudah dipahami.",
-    cat: "MAHASISWA",
-    contoh: "Rangkum bab 3 buku tentang metode penelitian kualitatif secara padat.",
-  },
-  {
-    id: "parafrase-teks",
-    nama: "✍️ Parafrase Teks",
-    desc: "Tulis ulang teks akademis dengan gaya berbeda.",
-    cat: "MAHASISWA",
-    contoh: "Parafrase paragraf akademis berikut agar lebih mudah dipahami tanpa mengubah makna.",
-  },
-  {
-    id: "caption-tiktok",
-    nama: "🔥 Caption TikTok",
-    desc: "Buat skrip video jualan 30-60 detik dengan hook mematikan.",
-    cat: "UMKM",
-    contoh: "Buat skrip video TikTok 30 detik promosi kopi lokal dengan hook yang kuat.",
-  },
-  {
-    id: "strategi-bisnis",
-    nama: "📊 Strategi Bisnis",
-    desc: "Analisis tren pasar dan rekomendasi ide UMKM modal kecil.",
-    cat: "UMKM",
-    contoh: "Analisis SWOT untuk usaha katering rumahan di kota kecil.",
-  },
-  {
-    id: "copywriting-brosur",
-    nama: "📣 Copywriting Brosur",
-    desc: "Tulis teks brosur produk persuasif yang menjual.",
-    cat: "UMKM",
-    contoh: "Tulis teks brosur persuasif untuk produk keripik singkong sambal matah.",
-  },
-  {
-    id: "audio-mp3",
-    nama: "🎧 Audio MP3 Manusia Luwes",
-    desc: "Tulis narasi suara natural yang luwes dan enak didengar.",
-    cat: "UMUM",
-    contoh: "Tulis narasi suara yang luwes dan natural untuk iklan radio 30 detik.",
-  },
-  {
-    id: "generator-propaganda",
-    nama: "📢 Generator Propaganda Konten",
-    desc: "Bantu produksi konten promosi dan publikasi massa.",
-    cat: "UMUM",
-    contoh: "Susun materi publikasi kampanye produk untuk media massa dan komunitas.",
-  },
+const fiturNusantara = [
+  { id: "gen-rpp", nama: "âš¡ Gen RPP", desc: "Buat RPP Merdeka lengkap, guru, asesmen, dan rubrik.", cat: "GURU", contoh: "Buatkan RPP Matematika kelas 7 tentang aljabar dengan model pembelajaran PBL." },
+  { id: "buat-soal", nama: "ðŸ“ Buat Soal", desc: "Buat soal HOTS pilihan ganda dan esai lengkap.", cat: "GURU", contoh: "Buatkan 5 soal HOTS pilihan ganda tentang fotosintesis untuk kelas 8." },
+  { id: "koreksi-tugas", nama: "ðŸ›¡ï¸ Koreksi Tugas", desc: "Beri feedback tugas siswa secara objektif.", cat: "GURU", contoh: "Koreksi esai siswa tentang perjuangan kemerdekaan dan beri nilai objektif." },
+  { id: "bahan-ajar", nama: "ðŸ“š Bahan Ajar", desc: "Produksi materi ajar menarik dan mudah dipahami.", cat: "GURU", contoh: "Susun bahan ajar tentang sistem tata surya untuk kelas 6 SD." },
+  { id: "bedah-jurnal", nama: "âš–ï¸ Bedah Jurnal", desc: "Ringkas latar belakang, metode, dan hasil jurnal akademis.", cat: "MAHASISWA", contoh: "Bedah jurnal tentang pengaruh sosial media terhadap hasil belajar siswa." },
+  { id: "rangkum-buku", nama: "ðŸ“– Rangkum Buku", desc: "Buat ringkasan bab buku yang padat dan mudah dipahami.", cat: "MAHASISWA", contoh: "Rangkum bab 4 buku Psikologi Pendidikan tentang teori belajar kognitif." },
+  { id: "kerangka-skripsi", nama: "ðŸŽ“ Kerangka Skripsi", desc: "Buat outline skripsi bab 1-5 dengan judul dan arahan riset.", cat: "MAHASISWA", contoh: "Buat kerangka skripsi tentang analisis kepuasan pelanggan PT XYZ." },
+  { id: "tiktok-viral", nama: "ðŸ”¥ TikTok Viral", desc: "Buat skrip video jualan 30-60 detik dengan hook mematikan.", cat: "UMKM", contoh: "Buat skrip video TikTok untuk jualan kopi sachet dengan harga 5rb." },
+  { id: "caption-ig", nama: "ðŸ›ï¸ Caption IG", desc: "Tulis caption Instagram jualan persuasif dengan hashtag.", cat: "UMKM", contoh: "Buat 5 caption Instagram untuk promosi baju batik akhir tahun." },
+  { id: "ide-bisnis", nama: "ðŸ“Š Ide Bisnis", desc: "Analisis tren pasar lokal dan rekomendasi ide UMKM modal kecil.", cat: "UMKM", contoh: "Berikan 3 ide bisnis modal 5 juta untuk kalangan milenial di kota kecil." },
+  { id: "bahasa-formal", nama: "ðŸ’¼ Bahasa Formal", desc: "Ubah teks bisnis kasar menjadi bahasa formal korporat.", cat: "UMKM", contoh: "Ubah pesan WhatsApp 'Mau nanya soal harga barangnya' menjadi bahasa formal." },
+  { id: "audio-mp3", nama: "ðŸŽµ Audio MP3 Manusia Luwes", desc: "Buat skrip narasi audio dengan nuansa suara manusia alami dan heartfelt.", cat: "UMUM", contoh: "Buatkan naskah narasi audio promosi untuk produk lokal dengan gaya bicara santai." },
+  { id: "generator-propaganda", nama: "ðŸ“¢ Generator Propaganda Konten", desc: "Rancang materi persuasif dan konten propaganda yang kuat dan menarik.", cat: "UMUM", contoh: "Buatkan 3 varian konten propaganda untuk kampanye anti-narkoba di kalangan remaja." },
 ];
 
-const KLASTER_URUTAN: { cat: string; label: string; ribbon: string }[] = [
-  {
-    cat: "GURU",
-    label: "★ KLASTER GURU",
-    ribbon: "bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950",
-  },
-  {
-    cat: "MAHASISWA",
-    label: "★ KLASTER MAHASISWA",
-    ribbon: "bg-gradient-to-r from-sky-500 to-blue-600 text-white",
-  },
-  {
-    cat: "UMKM",
-    label: "★ KLASTER UMKM",
-    ribbon: "bg-gradient-to-r from-emerald-500 to-green-600 text-white",
-  },
-  {
-    cat: "UMUM",
-    label: "★ KLASTER UMUM",
-    ribbon: "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white",
-  },
-];
+const CATEGORIES = ["GURU", "MAHASISWA", "UMKM", "UMUM"];
 
+const CATEGORY_COLORS: Record<string, string> = {
+  GURU: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  MAHASISWA: "bg-sky-500/10 text-sky-400 border-sky-500/30",
+  UMKM: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+  UMUM: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30",
+};
 
 export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardProps) {
   const [selectedFitur, setSelectedFitur] = useState<string | null>(null);
@@ -135,110 +46,96 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [characterBalance] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const selectedFiturData =
-    fiturNusantara.find((item) => item.id === selectedFitur) || null;
+  const selectedFiturData = fiturNusantara.find((item) => item.id === selectedFitur) || null;
 
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
+  const handleBackToHome = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setSelectedFitur(null);
+    setAiResponse("");
+    setPromptInput("");
+    setErrorMessage(null);
+    setIsLoading(false);
+  };
 
-  /* ====================================================================
-   * 3. STREAM V2 PIPELINE TARGET (handleGenerateText)
-   * ================================================================== */
   const handleGenerateText = async () => {
     const trimmedInput = promptInput.trim();
     if (!trimmedInput || !selectedFitur || isLoading) return;
 
-    // Reset text outputs & toggle status loops
-    setAiResponse("");
     setIsLoading(true);
+    setAiResponse("");
     setErrorMessage(null);
+    abortControllerRef.current = new AbortController();
 
     try {
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      // POST to brand new v2 backend route
-      const response = await fetch("/api/v2/generate", {
+      const response = await fetch("/api/v3/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: promptInput, feature: selectedFitur }),
-        signal: controller.signal,
+        body: JSON.stringify({ message: trimmedInput, feature: selectedFitur }),
+        signal: abortControllerRef.current.signal,
       });
 
-      if (response.status === 401 || response.status === 405) {
-        alert("Akses ditolak atau metode tidak diizinkan.");
-        setIsLoading(false);
-        abortControllerRef.current = null;
-        return;
-      }
-
       if (!response.ok) {
-        let errorMsg = "Gagal memproses permintaan.";
-        try {
-          const errorData = await response.json();
-          if (errorData?.error) {
-            errorMsg = errorData.error;
-          }
-        } catch {
-          // ignore parse error
-        }
-        throw new Error(errorMsg);
+        const errBody = await response.text().catch(() => "");
+        throw new Error("Server responded with " + response.status + ": " + errBody);
       }
 
       const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
       if (!reader) {
-        throw new Error("Streaming tidak didukung oleh browser ini.");
+        throw new Error("Streaming reader unavailable.");
       }
 
+      const decoder = new TextDecoder();
       let buffer = "";
 
-      // while-loop stream reader -> progressive token append
       while (true) {
-        const { value, done } = await reader.read();
+        const { done, value } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
-        const linesArr = buffer.split("\n");
-        buffer = linesArr.pop() || "";
 
-        for (const line of linesArr) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data:")) continue;
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          const trimmed = frame.trim();
+          if (!trimmed.startsWith("data:")) continue;
           const dataStr = trimmed.slice(5).trim();
-          if (!dataStr) continue;
+
+          if (dataStr === "[DONE]") {
+            setIsLoading(false);
+            return;
+          }
+
           try {
-            const data = JSON.parse(dataStr);
-            if (data.type === "token" && typeof data.text === "string") {
-              setAiResponse((prev) => prev + data.text);
+            const payload = JSON.parse(dataStr);
+            if (payload.type === "error") {
+              setErrorMessage(payload.error ?? "Unknown streaming error.");
+              setIsLoading(false);
+              return;
+            }
+            const token = payload.text;
+            if (typeof token === "string" && token) {
+              setAiResponse((prev) => prev + token);
             }
           } catch {
-            // ignore malformed JSON
+            // ignore malformed frame
           }
         }
       }
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === "AbortError") {
+
+      setIsLoading(false);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
         setIsLoading(false);
-        abortControllerRef.current = null;
         return;
       }
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : "Terjadi kesalahan saat menghubungi AI.";
-      setErrorMessage(errorMsg);
-    } finally {
-      // Turn off loading upon stream completion
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMessage(msg);
       setIsLoading(false);
-      abortControllerRef.current = null;
     }
   };
 
@@ -249,181 +146,166 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
     }
   };
 
+  const handleCopyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("âœ… Teks berhasil disalin ke clipboard!");
+    } catch {
+      alert("âŒ Gagal menyalin teks. Silakan salin manual.");
+    }
+  };
+
   const handleExportWord = (text: string) => {
-    if (!text) return;
-    const safeText = text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>BIKIN AI - ${selectedFiturData?.nama ?? "Output"}</title></head><body style="font-family:Calibri, sans-serif; font-size:12pt;">${safeText.replace(/\n/g, "<br/>")}</body></html>`;
-    const blob = new Blob(["\ufeff", html], {
-      type: "application/msword",
-    });
+    const htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <title>${selectedFiturData?.nama || "Hasil AI Nusantara"}</title>
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; line-height: 1.6; color: #1a1a1a; }
+            h1 { color: #b45309; border-bottom: 3px solid #f59e0b; padding-bottom: 12px; }
+            p { margin-bottom: 16px; white-space: pre-wrap; }
+          </style>
+        </head>
+        <body>
+          <h1>${selectedFiturData?.nama || "Hasil AI Nusantara"}</h1>
+          <p>${text.replace(/\n/g, "<br/>")}</p>
+          <hr/>
+          <p style="font-size: 11px; color: #888;">Dihasilkan oleh BIKIN AI - Platform Nusantara pada ${new Date().toLocaleString("id-ID")}</p>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob(["\ufeff", htmlContent], { type: "application/msword" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `BIKIN-AI-${selectedFiturData?.id ?? "output"}.doc`;
+    link.download = `${selectedFiturData?.id || "hasil-ai"}-${new Date().toISOString().slice(0, 10)}.doc`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  /* ====================================================================
-   * 2. INSIDE INTERIOR FLOW — THE HORIZONTAL 2-COLUMN SPLIT DESK
-   * ================================================================== */
+  const getLastAIResponse = () => {
+    if (!aiResponse) return "";
+    return aiResponse;
+  };
+
   if (selectedFitur && selectedFiturData) {
     return (
       <div className="w-full h-screen max-h-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col">
-        {/* Workspace Top Ribbon Header */}
-        <div className="w-full shrink-0 bg-slate-900/80 border-b border-slate-800 backdrop-blur-sm">
-          <div className="w-full px-4 py-2.5 flex items-center justify-between gap-3">
-            <button
-              onClick={() => {
-                setSelectedFitur(null);
-                setAiResponse("");
-                setPromptInput("");
-                setErrorMessage(null);
-                setIsLoading(false);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 transition-all active:scale-95 shrink-0"
-            >
-              <ArrowLeft className="w-3 h-3" />
-              ⬅ KEMBALI KE BERANDA
-            </button>
-            <div className="min-w-0 flex items-center gap-2 flex-1 justify-center">
-              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-              <h1 className="text-xs font-black text-amber-400 truncate">
-                {selectedFiturData.nama}
-              </h1>
-            </div>
-            <div className="shrink-0">
-              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                Klaster {selectedFiturData.cat} • AI Active
-              </span>
-            </div>
+        <div className="shrink-0 flex items-center gap-3 px-4 py-2 bg-slate-900 border-b border-slate-800">
+          <button
+            onClick={handleBackToHome}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-200 transition-all active:scale-95"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Kembali
+          </button>
+          <div className="min-w-0 flex items-center gap-2 flex-1 justify-center">
+            <h2 className="text-sm font-black text-white truncate">{selectedFiturData.nama}</h2>
+            <span className="text-[10px] text-slate-400 truncate">{selectedFiturData.desc}</span>
           </div>
+          <div className="shrink-0 w-8" />
         </div>
 
-        {/* Interior Workspace Desk — locked to 1 frame height */}
-        <div className="w-full h-full flex flex-col max-h-[calc(100vh-80px)] overflow-hidden p-3 pt-2">
-          <div className="grid grid-cols-12 gap-3 flex-1 min-h-0">
-            {/* LEFT DESK SIDE — Input Form (span-5 / 40%) */}
-            <div className="col-span-5 flex flex-col gap-3 min-h-0">
-              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shrink-0">
-                <div>
-                  <h2 className="text-sm font-bold text-white">
-                    {selectedFiturData.nama}
-                  </h2>
-                  <p className="text-[11px] text-slate-400 leading-tight">
-                    {selectedFiturData.desc}
-                  </p>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
-                  <p className="text-[9px] font-mono text-slate-500 mb-1">
-                    💡 PILIHAN PERINTAH:
-                  </p>
-                  <p className="text-[10px] text-slate-300 leading-relaxed">
-                    {selectedFiturData.contoh}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col flex-1 min-h-0">
+        <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden min-h-0">
+          <div className="w-[40%] flex flex-col border-r border-slate-800 bg-slate-900/30 min-h-0">
+            <div className="shrink-0 px-3 py-2 border-b border-slate-800">
+              <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-300">Input Prompt</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Masukkan instruksi Anda</label>
                 <textarea
                   value={promptInput}
-                  onChange={(e) =>
-                    setPromptInput(e.target.value.slice(0, maxInputChars))
-                  }
-                  maxLength={maxInputChars}
+                  onChange={(e) => setPromptInput(e.target.value.slice(0, maxInputChars))}
                   onKeyDown={handleKeyDown}
-                  placeholder={`Tulis perintah untuk ${selectedFiturData.nama}... (maks ${maxInputChars} karakter)`}
-                  className="w-full flex-1 bg-transparent px-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none resize-none"
+                  placeholder={selectedFiturData.contoh ? "Contoh: " + selectedFiturData.contoh : "Ketik instruksi di sini..."}
+                  rows={10}
+                  className="w-full resize-none rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all"
                 />
-                <div className="flex items-center justify-between px-3 py-1.5 border-t border-slate-800 shrink-0">
-                  <span
-                    className={`text-[9px] font-mono ${
-                      promptInput.length >= Math.max(0, maxInputChars - 50)
-                        ? "text-amber-400"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    {promptInput.length} / {maxInputChars}
-                  </span>
-                  <button
-                    onClick={handleGenerateText}
-                    disabled={!promptInput.trim() || isLoading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-black uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg shadow-amber-500/20"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Send className="w-3 h-3" />
-                    )}
-                    GENERATE / MULAI BIKIN
-                  </button>
-                </div>
-              </div>
-            </div>
-
-
-            {/* RIGHT DESK SIDE — Jendela Gelap Output (span-7 / 60%) */}
-            <div className="col-span-7 flex flex-col min-h-0">
-              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col h-full overflow-hidden">
-                <div className="flex items-center gap-2 mb-2 shrink-0">
-                  <span className="w-3 h-3 rounded-full bg-red-500" />
-                  <span className="w-3 h-3 rounded-full bg-amber-500" />
-                  <span className="w-3 h-3 rounded-full bg-green-500" />
-                  <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider ml-1">
-                    Terminal AI — Output
-                  </span>
-                </div>
-                <div className="flex-1 overflow-y-auto pr-1">
-                  {isLoading && !aiResponse && (
-                    <div className="flex items-center gap-2 text-slate-400 text-xs">
-                      <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                      AI sedang mengetik...
-                    </div>
-                  )}
-                  {aiResponse && (
-                    <div className="text-xs leading-relaxed whitespace-pre-wrap text-slate-100 font-mono">
-                      {aiResponse}
-                    </div>
-                  )}
-                  {!isLoading && !aiResponse && !errorMessage && (
-                    <p className="text-[10px] text-slate-500 font-mono">
-                      Menunggu perintah... jalankan GENERATE untuk memulai.
-                    </p>
-                  )}
-                  {errorMessage && (
-                    <div className="px-3 py-2 rounded-lg bg-red-950/50 border border-red-900 text-red-400 text-[10px] font-mono">
-                      ⚠️ {errorMessage}
-                    </div>
-                  )}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500">{promptInput.length} / {maxInputChars}</span>
+                  <span className="text-[10px] text-slate-500">Enter = kirim</span>
                 </div>
               </div>
 
-              {/* 4. BIND ACTION MACROS — COPY TEXT HOOK */}
-              <div className="mt-2 flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(aiResponse);
-                  }}
-                  disabled={!aiResponse || isLoading}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 transition-all active:scale-95 disabled:opacity-40"
-                >
-                  <Copy className="w-3 h-3" />
-                  📋 Salin Cepat
-                </button>
+              <button
+                onClick={handleGenerateText}
+                disabled={!promptInput.trim() || isLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg shadow-amber-500/20"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Memproses...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Generate AI
+                  </>
+                )}
+              </button>
+
+              {errorMessage && (
+                <div className="rounded-xl bg-red-950/50 border border-red-800/50 p-3">
+                  <p className="text-[10px] font-bold text-red-400">Terjadi Kesalahan</p>
+                  <p className="text-[10px] text-red-300/80 mt-1 leading-relaxed">{errorMessage}</p>
+                </div>
+              )}
+
+              {aiResponse && (
                 <button
                   onClick={() => handleExportWord(aiResponse)}
-                  disabled={!aiResponse || isLoading}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 border border-blue-500 text-[10px] font-mono font-bold text-white transition-all active:scale-95 disabled:opacity-40"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold uppercase tracking-wider text-slate-200 transition-all active:scale-95"
                 >
-                  <FileText className="w-3 h-3" />
-                  📄 Ekspor ke MS Word
+                  <FileText className="w-4 h-4" />
+                  Export Word
                 </button>
-              </div>
+              )}
+            </div>
+          </div>
+
+          <div className="w-[60%] flex flex-col bg-slate-950 min-h-0">
+            <div className="shrink-0 px-3 py-2 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-300">Output AI</h3>
+              {aiResponse && (
+                <button
+                  onClick={() => handleCopyText(aiResponse)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-200 transition-all active:scale-95"
+                >
+                  <Copy className="w-3 h-3" />
+                  Salin Cepat
+                </button>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto pr-1 min-h-0">
+              {isLoading && !aiResponse && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center gap-2 text-slate-500">
+                    <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+                    <span className="text-[10px] font-medium">Sedang memproses...</span>
+                  </div>
+                </div>
+              )}
+
+              {aiResponse && (
+                <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-4 m-3">
+                  <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-slate-200">{aiResponse}</pre>
+                </div>
+              )}
+
+              {!aiResponse && !isLoading && (
+                <div className="flex items-center justify-center h-full text-slate-600">
+                  <div className="text-center space-y-1">
+                    <Sparkles className="w-8 h-8 mx-auto opacity-30" />
+                    <p className="text-[10px] font-medium">Output akan muncul di sini...</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -431,64 +313,66 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
     );
   }
 
-
-  /* ====================================================================
-   * 1. 4-COLUMN HORIZONTAL DIRECTORY GRID FRAMEWORK
-   * ================================================================== */
   return (
-    <div className="w-full h-screen max-h-screen overflow-hidden bg-slate-950 text-slate-100 p-3 flex flex-col">
-                  {/* Minimalist floating instruction micro-text (legacy banner eliminated) */}
-      <div className="text-[11px] text-slate-400 font-medium tracking-wide mb-1 flex items-center gap-1.5">
-        ✦ Pilih salah satu dari 12 fitur AI Nusantara di bawah. Klik kartu fitur
-        untuk membuka antarmuka generator AI.
+    <div className="w-full h-screen max-h-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col">
+      <div className="w-full bg-slate-950 text-slate-100 border-b border-slate-800/80 px-4 py-2 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-white font-black tracking-wider text-sm">BIKIN AI</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 px-3 py-1.5 flex items-center gap-2">
+            <Wallet className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Saldo User</span>
+            <span className="text-xs font-black text-white font-mono">{characterBalance} CHARS</span>
+          </div>
+
+          <button className="bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider hover:border-amber-500/50 transition-all active:scale-95">
+            ðŸ›’ Isi Ulang Saldo
+          </button>
+
+          <button className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-200 hover:border-amber-500/50 transition-all active:scale-95">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[10px] font-black text-slate-950 border-2 border-slate-800 shadow-lg">
+            AR
+          </div>
+        </div>
       </div>
 
-      {/* 4-Column Horizontal Directory Grid */}
-      <div className="w-full flex-1 grid grid-cols-4 gap-3 overflow-hidden h-full max-h-[calc(100vh-95px)] bg-slate-950">
-        {KLASTER_URUTAN.map((klaster) => {
-          const items = fiturNusantara.filter(
-            (item) => item.cat === klaster.cat,
-          );
-          return (
-            <div
-              key={klaster.cat}
-              className="flex flex-col min-h-0 overflow-hidden"
-            >
-              {/* Column header ribbon banner */}
-              <div
-                className={`shrink-0 rounded-t-lg px-3 py-1.5 ${klaster.ribbon}`}
-              >
-                <h2 className="text-[11px] font-black uppercase tracking-wider">
-                  {klaster.label}
-                </h2>
-              </div>
-
-              {/* Feature cards listed vertically downwards */}
-              <div className="flex-1 overflow-y-auto space-y-1.5 mt-1.5 pr-0.5 min-h-0">
-                {items.map((item) => (
+      <div className="w-full flex-1 grid grid-cols-4 gap-3 p-3 overflow-hidden h-full max-h-[calc(100vh-65px)] bg-slate-950">
+        {CATEGORIES.map((kat) => (
+          <div key={kat} className="flex flex-col min-h-0">
+            <div className={`shrink-0 rounded-t-lg border-b px-3 py-2 text-center ${CATEGORY_COLORS[kat] || "bg-slate-800 text-slate-300 border-slate-700"}`}>
+              <h2 className="text-[11px] font-black uppercase tracking-wider">{kat}</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-1.5 p-2 min-h-0">
+              {fiturNusantara
+                .filter((item) => item.cat === kat)
+                .map((item) => (
                   <button
                     key={item.id}
                     onClick={() => {
                       setSelectedFitur(item.id);
                       setAiResponse("");
                       setPromptInput("");
+                      setErrorMessage(null);
+                      setIsLoading(false);
                     }}
-                    className="w-full text-left p-2 bg-slate-900/40 border border-slate-800/80 rounded-xl hover:border-amber-500/50 hover:bg-slate-900 transition-all cursor-pointer group shadow-md hover:shadow-lg hover:shadow-amber-500/5 active:scale-[0.98]"
+                    className="w-full text-left p-2 rounded-xl bg-slate-900/40 border border-slate-800 hover:border-amber-500/50 cursor-pointer transition-all group"
                   >
-                    <h3 className="text-xs font-bold group-hover:text-amber-400 transition-colors truncate">
-                      {item.nama}
-                    </h3>
-                    <p className="text-[10px] text-slate-400 leading-tight">
-                      {item.desc}
-                    </p>
+                    <h3 className="text-xs font-bold text-slate-200 group-hover:text-amber-400 transition-colors">{item.nama}</h3>
+                    <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{item.desc}</p>
                   </button>
                 ))}
-              </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
+
+
 
