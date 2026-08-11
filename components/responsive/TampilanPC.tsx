@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -9,49 +8,137 @@ interface FiturNusantara {
   nama: string;
   desc: string;
   cat: string;
-}
-
-interface ChatMessage {
-  role: "user" | "ai";
-  content: string;
+  contoh: string;
 }
 
 interface ResponsiveDashboardProps {
   maxInputChars?: number;
 }
 
+/* ========================================================================
+ * 4-COLUMN HORIZONTAL DIRECTORY — Fitur AI Nusantara Catalogue
+ * ====================================================================== */
 const fiturNusantara: FiturNusantara[] = [
-  { id: "gen-rpp", nama: "⚡ Gen RPP", desc: "Buat RPP Merdeka lengkap, guru, asesmen, dan rubrik.", cat: "GURU" },
-  { id: "buat-soal", nama: "📝 Buat Soal", desc: "Buat soal HOTS pilihan ganda dan esai lengkap.", cat: "GURU" },
-  { id: "koreksi-tugas", nama: "🛡️ Koreksi Tugas", desc: "Beri feedback tugas siswa secara objektif.", cat: "GURU" },
-  { id: "bahan-ajar", nama: "📚 Bahan Ajar", desc: "Produksi materi ajar menarik dan mudah dipahami.", cat: "GURU" },
-  { id: "bedah-jurnal", nama: "⚖️ Bedah Jurnal", desc: "Ringkas latar belakang, metode, dan hasil jurnal akademis.", cat: "MAHASISWA" },
-  { id: "rangkum-buku", nama: "📖 Rangkum Buku", desc: "Buat ringkasan bab buku yang padat dan mudah dipahami.", cat: "MAHASISWA" },
-  { id: "kerangka-skripsi", nama: "🎓 Kerangka Skripsi", desc: "Buat outline skripsi bab 1-5 dengan judul dan arahan riset.", cat: "MAHASISWA" },
-  { id: "tiktok-viral", nama: "🔥 TikTok Viral", desc: "Buat skrip video jualan 30-60 detik dengan hook mematikan.", cat: "UMKM" },
-  { id: "caption-ig", nama: "🛍️ Caption IG", desc: "Tulis caption Instagram jualan persuasif dengan hashtag.", cat: "UMKM" },
-  { id: "ide-bisnis", nama: "📊 Ide Bisnis", desc: "Analisis tren pasar lokal dan rekomendasi ide UMKM modal kecil.", cat: "UMKM" },
-  { id: "bahasa-formal", nama: "💼 Bahasa Formal", desc: "Ubah teks bisnis kasar menjadi bahasa formal korporat.", cat: "UMKM" },
+  {
+    id: "gen-rpp",
+    nama: "⚡ Gen RPP",
+    desc: "Buat RPP Merdeka lengkap, guru, asesmen, dan rubrik.",
+    cat: "GURU",
+    contoh: "Buatkan RPP Matematika kelas 7 tentang aljabar dengan model pembelajaran PBL.",
+  },
+  {
+    id: "buat-soal",
+    nama: "📝 Buat Soal",
+    desc: "Buat soal HOTS pilihan ganda dan esai lengkap.",
+    cat: "GURU",
+    contoh: "Buatkan 5 soal HOTS pilihan ganda tentang fotosintesis untuk kelas 8.",
+  },
+  {
+    id: "koreksi-tugas",
+    nama: "🛡️ Koreksi Tugas",
+    desc: "Beri feedback tugas siswa secara objektif.",
+    cat: "GURU",
+    contoh: "Koreksi esai siswa tentang sejarah proklamasi dan beri nilai objektif.",
+  },
+  {
+    id: "bahan-ajar",
+    nama: "📚 Bahan Ajar",
+    desc: "Produksi materi ajar menarik dan mudah dipahami.",
+    cat: "GURU",
+    contoh: "Susun bahan ajar singkat tentang sistem tata surya untuk kelas 6 SD.",
+  },
+  {
+    id: "asisten-skripsi",
+    nama: "🎓 Asisten Skripsi",
+    desc: "Bantu susun kerangka, bab, dan arahan riset skripsi.",
+    cat: "MAHASISWA",
+    contoh: "Susun kerangka skripsi bab 1-5 tentang pengaruh media sosial terhadap minat baca.",
+  },
+  {
+    id: "ringkas-buku",
+    nama: "📖 Ringkas Buku",
+    desc: "Buat ringkasan bab buku yang padat dan mudah dipahami.",
+    cat: "MAHASISWA",
+    contoh: "Rangkum bab 3 buku tentang metode penelitian kualitatif secara padat.",
+  },
+  {
+    id: "parafrase-teks",
+    nama: "✍️ Parafrase Teks",
+    desc: "Tulis ulang teks akademis dengan gaya berbeda.",
+    cat: "MAHASISWA",
+    contoh: "Parafrase paragraf akademis berikut agar lebih mudah dipahami tanpa mengubah makna.",
+  },
+  {
+    id: "caption-tiktok",
+    nama: "🔥 Caption TikTok",
+    desc: "Buat skrip video jualan 30-60 detik dengan hook mematikan.",
+    cat: "UMKM",
+    contoh: "Buat skrip video TikTok 30 detik promosi kopi lokal dengan hook yang kuat.",
+  },
+  {
+    id: "strategi-bisnis",
+    nama: "📊 Strategi Bisnis",
+    desc: "Analisis tren pasar dan rekomendasi ide UMKM modal kecil.",
+    cat: "UMKM",
+    contoh: "Analisis SWOT untuk usaha katering rumahan di kota kecil.",
+  },
+  {
+    id: "copywriting-brosur",
+    nama: "📣 Copywriting Brosur",
+    desc: "Tulis teks brosur produk persuasif yang menjual.",
+    cat: "UMKM",
+    contoh: "Tulis teks brosur persuasif untuk produk keripik singkong sambal matah.",
+  },
+  {
+    id: "audio-mp3",
+    nama: "🎧 Audio MP3 Manusia Luwes",
+    desc: "Tulis narasi suara natural yang luwes dan enak didengar.",
+    cat: "UMUM",
+    contoh: "Tulis narasi suara yang luwes dan natural untuk iklan radio 30 detik.",
+  },
+  {
+    id: "generator-propaganda",
+    nama: "📢 Generator Propaganda Konten",
+    desc: "Bantu produksi konten promosi dan publikasi massa.",
+    cat: "UMUM",
+    contoh: "Susun materi publikasi kampanye produk untuk media massa dan komunitas.",
+  },
 ];
 
+const KLASTER_URUTAN: { cat: string; label: string; ribbon: string }[] = [
+  {
+    cat: "GURU",
+    label: "★ KLASTER GURU",
+    ribbon: "bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950",
+  },
+  {
+    cat: "MAHASISWA",
+    label: "★ KLASTER MAHASISWA",
+    ribbon: "bg-gradient-to-r from-sky-500 to-blue-600 text-white",
+  },
+  {
+    cat: "UMKM",
+    label: "★ KLASTER UMKM",
+    ribbon: "bg-gradient-to-r from-emerald-500 to-green-600 text-white",
+  },
+  {
+    cat: "UMUM",
+    label: "★ KLASTER UMUM",
+    ribbon: "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white",
+  },
+];
+
+
 export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardProps) {
-  const [activeTab, setActiveTab] = useState("GURU");
   const [selectedFitur, setSelectedFitur] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [promptInput, setPromptInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const selectedFiturData = fiturNusantara.find((item) => item.id === selectedFitur) || null;
-
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, aiResponse]);
+  const selectedFiturData =
+    fiturNusantara.find((item) => item.id === selectedFitur) || null;
 
   useEffect(() => {
     return () => {
@@ -61,26 +148,14 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
     };
   }, []);
 
-  const handleBackToHome = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    setSelectedFitur(null);
-    setMessages([]);
-    setAiResponse("");
-    setErrorMessage(null);
-    setIsLoading(false);
-    setPromptInput("");
-  };
-
+  /* ====================================================================
+   * 3. STREAM V2 PIPELINE TARGET (handleGenerateText)
+   * ================================================================== */
   const handleGenerateText = async () => {
     const trimmedInput = promptInput.trim();
     if (!trimmedInput || !selectedFitur || isLoading) return;
 
-    const userMessage: ChatMessage = { role: "user", content: trimmedInput };
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    setPromptInput("");
+    // Reset text outputs & toggle status loops
     setAiResponse("");
     setIsLoading(true);
     setErrorMessage(null);
@@ -89,10 +164,11 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      const response = await fetch("/api/generate", {
+      // POST to brand new v2 backend route
+      const response = await fetch("/api/v2/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmedInput, feature: selectedFitur, featureId: activeTab }),
+        body: JSON.stringify({ message: promptInput, feature: selectedFitur }),
         signal: controller.signal,
       });
 
@@ -123,13 +199,13 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
       }
 
       let buffer = "";
-      let accumulated = "";
 
+      // while-loop stream reader -> progressive token append
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value);
+        buffer += decoder.decode(value, { stream: true });
         const linesArr = buffer.split("\n");
         buffer = linesArr.pop() || "";
 
@@ -141,29 +217,26 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
           try {
             const data = JSON.parse(dataStr);
             if (data.type === "token" && typeof data.text === "string") {
-              accumulated += data.text;
-              setAiResponse(accumulated);
+              setAiResponse((prev) => prev + data.text);
             }
           } catch {
             // ignore malformed JSON
           }
         }
       }
-
-      setMessages((prev) => [...prev, { role: "ai", content: accumulated }]);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setIsLoading(false);
         abortControllerRef.current = null;
         return;
       }
-      const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan saat menghubungi AI.";
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat menghubungi AI.";
       setErrorMessage(errorMsg);
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", content: `⚠️ Error: ${errorMsg}` },
-      ]);
     } finally {
+      // Turn off loading upon stream completion
       setIsLoading(false);
       abortControllerRef.current = null;
     }
@@ -176,213 +249,179 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
     }
   };
 
-  const handleCopyText = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      alert("✅ Teks berhasil disalin ke clipboard!");
-    } catch {
-      alert("❌ Gagal menyalin teks. Silakan salin manual.");
-    }
-  };
-
   const handleExportWord = (text: string) => {
-    const htmlContent = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-          <meta charset="utf-8">
-          <title>${selectedFiturData?.nama || "Ekspor AI"}</title>
-          <style>
-            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; line-height: 1.6; color: #1a1a1a; }
-            h1 { color: #b45309; border-bottom: 3px solid #f59e0b; padding-bottom: 12px; }
-            p { margin-bottom: 16px; white-space: pre-wrap; }
-          </style>
-        </head>
-        <body>
-          <h1>${selectedFiturData?.nama || "Hasil AI Nusantara"}</h1>
-          <p>${text.replace(/\n/g, "<br/>")}</p>
-          <hr/>
-          <p style="font-size: 11px; color: #888;">Dihasilkan oleh BIKIN AI - Platform Nusantara pada ${new Date().toLocaleString("id-ID")}</p>
-        </body>
-      </html>
-    `;
-
-    const blob = new Blob(["\ufeff", htmlContent], { type: "application/msword" });
+    if (!text) return;
+    const safeText = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>BIKIN AI - ${selectedFiturData?.nama ?? "Output"}</title></head><body style="font-family:Calibri, sans-serif; font-size:12pt;">${safeText.replace(/\n/g, "<br/>")}</body></html>`;
+    const blob = new Blob(["\ufeff", html], {
+      type: "application/msword",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${selectedFiturData?.id || "hasil-ai"}-${new Date().toISOString().slice(0, 10)}.doc`;
+    link.download = `BIKIN-AI-${selectedFiturData?.id ?? "output"}.doc`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  const getLastAIResponse = (): string => {
-    const aiMessages = messages.filter((msg) => msg.role === "ai");
-    if (aiMessages.length === 0) return "";
-    return aiMessages[aiMessages.length - 1].content;
-  };
-
+  /* ====================================================================
+   * 2. INSIDE INTERIOR FLOW — THE HORIZONTAL 2-COLUMN SPLIT DESK
+   * ================================================================== */
   if (selectedFitur && selectedFiturData) {
     return (
       <div className="w-full h-screen max-h-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col">
-        {/* Chat Header */}
-        <div className="w-full bg-slate-900/80 border-b border-slate-800 backdrop-blur-sm shrink-0">
-          <div className="w-full px-3 py-2 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <button
-                onClick={handleBackToHome}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 transition-all active:scale-95 shrink-0"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                BACK TO HOME
-              </button>
-              <div className="min-w-0">
-                <h1 className="text-xs font-black text-amber-400 truncate">
-                  {selectedFiturData.nama}
-                </h1>
-                <p className="text-[9px] font-mono text-slate-500 uppercase tracking-wider truncate">
-                  Klaster {selectedFiturData.cat} • AI Nusantara
-                </p>
-              </div>
+        {/* Workspace Top Ribbon Header */}
+        <div className="w-full shrink-0 bg-slate-900/80 border-b border-slate-800 backdrop-blur-sm">
+          <div className="w-full px-4 py-2.5 flex items-center justify-between gap-3">
+            <button
+              onClick={() => {
+                setSelectedFitur(null);
+                setAiResponse("");
+                setPromptInput("");
+                setErrorMessage(null);
+                setIsLoading(false);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 transition-all active:scale-95 shrink-0"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              ⬅ KEMBALI KE BERANDA
+            </button>
+            <div className="min-w-0 flex items-center gap-2 flex-1 justify-center">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+              <h1 className="text-xs font-black text-amber-400 truncate">
+                {selectedFiturData.nama}
+              </h1>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider hidden sm:block">
-                AI Active
+            <div className="shrink-0">
+              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                Klaster {selectedFiturData.cat} • AI Active
               </span>
             </div>
           </div>
         </div>
 
-        {/* Chat Bubbles Stream Area */}
-        <div className="flex-1 w-full px-3 py-3 overflow-y-auto">
-          <div className="space-y-3">
-            {messages.length === 0 && !isLoading && (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-2 shadow-lg shadow-amber-500/20">
-                  <Sparkles className="w-5 h-5 text-white" />
+        {/* Interior Workspace Desk — locked to 1 frame height */}
+        <div className="w-full h-full flex flex-col max-h-[calc(100vh-80px)] overflow-hidden p-3 pt-2">
+          <div className="grid grid-cols-12 gap-3 flex-1 min-h-0">
+            {/* LEFT DESK SIDE — Input Form (span-5 / 40%) */}
+            <div className="col-span-5 flex flex-col gap-3 min-h-0">
+              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shrink-0">
+                <div>
+                  <h2 className="text-sm font-bold text-white">
+                    {selectedFiturData.nama}
+                  </h2>
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    {selectedFiturData.desc}
+                  </p>
                 </div>
-                <h2 className="text-sm font-bold text-white mb-1">
-                  {selectedFiturData.nama}
-                </h2>
-                <p className="text-[10px] text-slate-400 max-w-md mb-3">
-                  {selectedFiturData.desc}
-                </p>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 max-w-md text-left">
-                  <p className="text-[9px] font-mono text-slate-500 mb-1">💡 CONTOH PERINTAH:</p>
+                <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                  <p className="text-[9px] font-mono text-slate-500 mb-1">
+                    💡 PILIHAN PERINTAH:
+                  </p>
                   <p className="text-[10px] text-slate-300 leading-relaxed">
-                    {selectedFiturData.id === "gen-rpp" && "Buatkan RPP Matematika kelas 7 tentang aljabar dengan model pembelajaran PBL."}
-                    {selectedFiturData.id === "buat-soal" && "Buatkan 5 soal HOTS pilihan ganda tentang fotosintesis untuk kelas 8."}
-                    {selectedFiturData.id === "koreksi-tugas" && "Berikut tugas siswa saya: [tempel teks tugas]. Tolong koreksi dan beri nilai."}
-                    {selectedFiturData.id === "bahan-ajar" && "Buatkan bahan ajar tentang sistem tata surya untuk siswa SD kelas 6."}
-                    {selectedFiturData.id === "bedah-jurnal" && "Bedah jurnal ini: [tempel abstrak jurnal]. Fokus pada metodologi dan temuan."}
-                    {selectedFiturData.id === "rangkum-buku" && "Rangkumkan bab 3 buku 'Laskar Pelangi' secara padat."}
-                    {selectedFiturData.id === "kerangka-skripsi" && "Buatkan kerangka skripsi tentang pengaruh media sosial terhadap minat belajar siswa."}
-                    {selectedFiturData.id === "tiktok-viral" && "Buatkan skrip TikTok 45 detik untuk jualan produk skincare lokal dengan hook mematikan."}
-                    {selectedFiturData.id === "caption-ig" && "Buatkan caption Instagram untuk produk keripik singkong dengan teknik AIDA."}
-                    {selectedFiturData.id === "ide-bisnis" && "Kasih saya 5 ide bisnis UMKM modal di bawah 1 juta untuk anak muda di kota."}
-                    {selectedFiturData.id === "bahasa-formal" && "Ubah kalimat ini menjadi bahasa formal: 'Gue mau tanya soal harga barangnya dong'."}
+                    {selectedFiturData.contoh}
                   </p>
                 </div>
               </div>
-            )}
 
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[85%] md:max-w-[75%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
-                    msg.role === "user"
-                      ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-br-md shadow-lg shadow-amber-500/10"
-                      : "bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-md"
-                  }`}
-                >
-                  {msg.content}
+              <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col flex-1 min-h-0">
+                <textarea
+                  value={promptInput}
+                  onChange={(e) =>
+                    setPromptInput(e.target.value.slice(0, maxInputChars))
+                  }
+                  maxLength={maxInputChars}
+                  onKeyDown={handleKeyDown}
+                  placeholder={`Tulis perintah untuk ${selectedFiturData.nama}... (maks ${maxInputChars} karakter)`}
+                  className="w-full flex-1 bg-transparent px-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none resize-none"
+                />
+                <div className="flex items-center justify-between px-3 py-1.5 border-t border-slate-800 shrink-0">
+                  <span
+                    className={`text-[9px] font-mono ${
+                      promptInput.length >= Math.max(0, maxInputChars - 50)
+                        ? "text-amber-400"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {promptInput.length} / {maxInputChars}
+                  </span>
+                  <button
+                    onClick={handleGenerateText}
+                    disabled={!promptInput.trim() || isLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-black uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg shadow-amber-500/20"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Send className="w-3 h-3" />
+                    )}
+                    GENERATE / MULAI BIKIN
+                  </button>
                 </div>
               </div>
-            ))}
+            </div>
 
-            {isLoading && aiResponse && (
-              <div className="flex justify-start">
-                <div className="max-w-[85%] md:max-w-[75%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-md">
-                  {aiResponse}
-                  <span className="inline-block w-1.5 h-3 bg-amber-400 ml-1 animate-pulse" />
+
+            {/* RIGHT DESK SIDE — Jendela Gelap Output (span-7 / 60%) */}
+            <div className="col-span-7 flex flex-col min-h-0">
+              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col h-full overflow-hidden">
+                <div className="flex items-center gap-2 mb-2 shrink-0">
+                  <span className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="w-3 h-3 rounded-full bg-amber-500" />
+                  <span className="w-3 h-3 rounded-full bg-green-500" />
+                  <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider ml-1">
+                    Terminal AI — Output
+                  </span>
+                </div>
+                <div className="flex-1 overflow-y-auto pr-1">
+                  {isLoading && !aiResponse && (
+                    <div className="flex items-center gap-2 text-slate-400 text-xs">
+                      <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
+                      AI sedang mengetik...
+                    </div>
+                  )}
+                  {aiResponse && (
+                    <div className="text-xs leading-relaxed whitespace-pre-wrap text-slate-100 font-mono">
+                      {aiResponse}
+                    </div>
+                  )}
+                  {!isLoading && !aiResponse && !errorMessage && (
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      Menunggu perintah... jalankan GENERATE untuk memulai.
+                    </p>
+                  )}
+                  {errorMessage && (
+                    <div className="px-3 py-2 rounded-lg bg-red-950/50 border border-red-900 text-red-400 text-[10px] font-mono">
+                      ⚠️ {errorMessage}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
 
-            {isLoading && !aiResponse && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 text-xs">
-                  <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                  AI sedang mengetik...
-                </div>
-              </div>
-            )}
-
-            {errorMessage && (
-              <div className="flex justify-center">
-                <div className="px-3 py-1.5 rounded-lg bg-red-950/50 border border-red-900 text-red-400 text-[10px] font-mono">
-                  ⚠️ {errorMessage}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons Below AI Response */}
-            {aiResponse && !isLoading && (
-              <div className="flex flex-wrap items-center gap-1.5 justify-end mt-1">
+              {/* 4. BIND ACTION MACROS — COPY TEXT HOOK */}
+              <div className="mt-2 flex items-center gap-1.5 shrink-0">
                 <button
-                  onClick={() => { navigator.clipboard.writeText(aiResponse); }}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 transition-all active:scale-95"
+                  onClick={() => {
+                    navigator.clipboard.writeText(aiResponse);
+                  }}
+                  disabled={!aiResponse || isLoading}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 transition-all active:scale-95 disabled:opacity-40"
                 >
                   <Copy className="w-3 h-3" />
                   📋 Salin Cepat
                 </button>
                 <button
-                  onClick={() => handleExportWord(getLastAIResponse())}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 border border-blue-500 text-[10px] font-mono font-bold text-white transition-all active:scale-95"
+                  onClick={() => handleExportWord(aiResponse)}
+                  disabled={!aiResponse || isLoading}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 border border-blue-500 text-[10px] font-mono font-bold text-white transition-all active:scale-95 disabled:opacity-40"
                 >
                   <FileText className="w-3 h-3" />
                   📄 Ekspor ke MS Word
-                </button>
-              </div>
-            )}
-
-            <div ref={chatEndRef} />
-          </div>
-        </div>
-
-        {/* Floating Centered Bottom Input */}
-        <div className="w-full px-3 pb-3 pt-1 shrink-0">
-          <div className="w-full max-w-3xl mx-auto">
-            <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
-              <textarea
-                value={promptInput}
-                onChange={(e) => setPromptInput(e.target.value.slice(0, maxInputChars))}
-                maxLength={maxInputChars}
-                onKeyDown={handleKeyDown}
-                placeholder={`Tulis perintah untuk ${selectedFiturData.nama}... (maks ${maxInputChars} karakter)`}
-                rows={2}
-                className="w-full bg-transparent px-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none resize-none"
-              />
-              <div className="flex items-center justify-between px-3 py-1.5 border-t border-slate-800">
-                <span className={`text-[9px] font-mono ${promptInput.length >= Math.max(0, maxInputChars - 50) ? "text-amber-400" : "text-slate-500"}`}>
-                  {promptInput.length} / {maxInputChars}
-                </span>
-                <button
-                  onClick={handleGenerateText}
-                  disabled={!promptInput.trim() || isLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-black uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg shadow-amber-500/20"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Send className="w-3 h-3" />
-                  )}
-                  MULAI BIKIN
                 </button>
               </div>
             </div>
@@ -392,6 +431,10 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
     );
   }
 
+
+  /* ====================================================================
+   * 1. 4-COLUMN HORIZONTAL DIRECTORY GRID FRAMEWORK
+   * ================================================================== */
   return (
     <div className="w-full h-screen max-h-screen overflow-hidden bg-slate-950 text-slate-100 p-3 flex flex-col">
       {/* Spanduk Selamat Datang Mini */}
@@ -405,59 +448,62 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
               👋 Selamat Datang di BIKIN AI
             </h1>
             <p className="text-[11px] text-slate-400 leading-tight truncate">
-              Pilih salah satu dari <span className="text-amber-400 font-semibold">11 fitur AI Nusantara</span> di bawah. Klik kartu fitur untuk membuka ruang chat AI secara langsung!
+              Pilih salah satu dari{" "}
+              <span className="text-amber-400 font-semibold">
+                {fiturNusantara.length} fitur AI Nusantara
+              </span>{" "}
+              di bawah. Klik kartu fitur untuk membuka antarmuka generator AI!
             </p>
           </div>
         </div>
       </div>
 
-      <div className="w-full flex-1 min-h-0 flex flex-col">
-        <h2 className="text-xs font-bold uppercase tracking-wider mb-2 text-slate-400 shrink-0">
-          Menu Utama Platform AI: untuk Sekolah & Bisnis Lokal
-        </h2>
-
-        {/* Tombol Klaster Tabs */}
-        <div className="flex flex-wrap gap-1.5 mb-2 border-b border-slate-800 pb-2 shrink-0">
-          {["GURU", "MAHASISWA", "UMKM"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition-all ${
-                activeTab === tab
-                  ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
-                  : "bg-slate-900 text-slate-400 hover:bg-slate-800"
-              }`}
+      {/* 4-Column Horizontal Directory Grid */}
+      <div className="w-full flex-1 grid grid-cols-4 gap-3 mt-1 overflow-hidden h-full max-h-[calc(100vh-80px)]">
+        {KLASTER_URUTAN.map((klaster) => {
+          const items = fiturNusantara.filter(
+            (item) => item.cat === klaster.cat,
+          );
+          return (
+            <div
+              key={klaster.cat}
+              className="flex flex-col min-h-0 overflow-hidden"
             >
-              ★ KLASTER {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Grid 11 Fitur Nusantara - Compact */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 overflow-y-auto min-h-0 pb-1">
-          {fiturNusantara
-            .filter((item) => item.cat === activeTab)
-            .map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setSelectedFitur(item.id)}
-                className="text-left p-3 rounded-xl bg-slate-900/40 border border-slate-800/60 hover:border-amber-500/50 hover:bg-slate-900 transition-all cursor-pointer group shadow-md hover:shadow-lg hover:shadow-amber-500/5 active:scale-[0.98]"
+              {/* Column header ribbon banner */}
+              <div
+                className={`shrink-0 rounded-t-lg px-3 py-1.5 ${klaster.ribbon}`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="text-xs font-bold mb-1 group-hover:text-amber-400 transition-colors truncate">
+                <h2 className="text-[11px] font-black uppercase tracking-wider">
+                  {klaster.label}
+                </h2>
+              </div>
+
+              {/* Feature cards listed vertically downwards */}
+              <div className="flex-1 overflow-y-auto space-y-1.5 mt-1.5 pr-0.5 min-h-0">
+                {items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedFitur(item.id);
+                      setAiResponse("");
+                      setPromptInput("");
+                    }}
+                    className="w-full text-left p-2 bg-slate-900/40 border border-slate-800/80 rounded-xl hover:border-amber-500/50 hover:bg-slate-900 transition-all cursor-pointer group shadow-md hover:shadow-lg hover:shadow-amber-500/5 active:scale-[0.98]"
+                  >
+                    <h3 className="text-xs font-bold group-hover:text-amber-400 transition-colors truncate">
                       {item.nama}
                     </h3>
-                    <p className="text-[11px] text-slate-400 leading-normal">{item.desc}</p>
-                  </div>
-                  <div className="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 group-hover:bg-amber-500/10 group-hover:border-amber-500/30 transition-all">
-                    <Send className="w-3 h-3 text-slate-500 group-hover:text-amber-400 transition-colors" />
-                  </div>
-                </div>
-              </button>
-            ))}
-        </div>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      {item.desc}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
+
