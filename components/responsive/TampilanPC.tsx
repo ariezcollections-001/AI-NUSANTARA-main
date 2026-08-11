@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Send, Copy, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Copy, FileText, Sparkles, Loader2 } from "lucide-react";
 
 interface FiturNusantara {
   id: string;
