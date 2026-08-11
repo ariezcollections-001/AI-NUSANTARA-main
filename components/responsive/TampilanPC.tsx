@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -37,10 +38,9 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
   const [activeTab, setActiveTab] = useState("GURU");
   const [selectedFitur, setSelectedFitur] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingText, setStreamingText] = useState("");
+  const [promptInput, setPromptInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -51,7 +51,7 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, streamingText]);
+  }, [messages, aiResponse]);
 
   useEffect(() => {
     return () => {
@@ -67,39 +67,41 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
     }
     setSelectedFitur(null);
     setMessages([]);
-    setStreamingText("");
+    setAiResponse("");
     setErrorMessage(null);
-    setIsStreaming(false);
     setIsLoading(false);
-    setInputText("");
+    setPromptInput("");
   };
 
-  const handleSendMessage = async () => {
-    const trimmedInput = inputText.trim();
-    if (!trimmedInput || !selectedFitur || isStreaming) return;
+  const handleGenerateText = async () => {
+    const trimmedInput = promptInput.trim();
+    if (!trimmedInput || !selectedFitur || isLoading) return;
 
     const userMessage: ChatMessage = { role: "user", content: trimmedInput };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
-    setInputText("");
+    setPromptInput("");
+    setAiResponse("");
     setIsLoading(true);
     setErrorMessage(null);
-    setStreamingText("");
 
     try {
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      const response = await fetch(
-        `/api/ai/process?featureId=${encodeURIComponent(selectedFitur)}&userInput=${encodeURIComponent(trimmedInput)}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-        }
-      );
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmedInput, feature: selectedFitur, featureId: activeTab }),
+        signal: controller.signal,
+      });
+
+      if (response.status === 401 || response.status === 405) {
+        alert("Akses ditolak atau metode tidak diizinkan.");
+        setIsLoading(false);
+        abortControllerRef.current = null;
+        return;
+      }
 
       if (!response.ok) {
         let errorMsg = "Gagal memproses permintaan.";
@@ -114,36 +116,45 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
         throw new Error(errorMsg);
       }
 
-      const contentType = response.headers.get("Content-Type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-        const reply = data?.output || data?.data?.reply || "Tidak ada respons dari AI.";
-        setMessages((prev) => [...prev, { role: "ai", content: reply }]);
-      } else {
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("Streaming tidak didukung oleh browser ini.");
-        }
-
-        const decoder = new TextDecoder();
-        let accumulatedText = "";
-        setIsStreaming(true);
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          accumulatedText += chunk;
-          setStreamingText(accumulatedText);
-        }
-
-        setMessages((prev) => [...prev, { role: "ai", content: accumulatedText }]);
-        setStreamingText("");
-        setIsStreaming(false);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      if (!reader) {
+        throw new Error("Streaming tidak didukung oleh browser ini.");
       }
+
+      let buffer = "";
+      let accumulated = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value);
+        const linesArr = buffer.split("\n");
+        buffer = linesArr.pop() || "";
+
+        for (const line of linesArr) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data:")) continue;
+          const dataStr = trimmed.slice(5).trim();
+          if (!dataStr) continue;
+          try {
+            const data = JSON.parse(dataStr);
+            if (data.type === "token" && typeof data.text === "string") {
+              accumulated += data.text;
+              setAiResponse(accumulated);
+            }
+          } catch {
+            // ignore malformed JSON
+          }
+        }
+      }
+
+      setMessages((prev) => [...prev, { role: "ai", content: accumulated }]);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
+        setIsLoading(false);
+        abortControllerRef.current = null;
         return;
       }
       const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan saat menghubungi AI.";
@@ -154,8 +165,6 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
       ]);
     } finally {
       setIsLoading(false);
-      setIsStreaming(false);
-      setStreamingText("");
       abortControllerRef.current = null;
     }
   };
@@ -163,7 +172,7 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleGenerateText();
     }
   };
 
@@ -296,16 +305,16 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
               </div>
             ))}
 
-            {isStreaming && streamingText && (
+            {isLoading && aiResponse && (
               <div className="flex justify-start">
                 <div className="max-w-[85%] md:max-w-[75%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-md">
-                  {streamingText}
+                  {aiResponse}
                   <span className="inline-block w-1.5 h-3 bg-amber-400 ml-1 animate-pulse" />
                 </div>
               </div>
             )}
 
-            {isLoading && !isStreaming && (
+            {isLoading && !aiResponse && (
               <div className="flex justify-start">
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 text-xs">
                   <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
@@ -323,10 +332,10 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
             )}
 
             {/* Action Buttons Below AI Response */}
-            {getLastAIResponse() && !isStreaming && !isLoading && (
+            {aiResponse && !isLoading && (
               <div className="flex flex-wrap items-center gap-1.5 justify-end mt-1">
                 <button
-                  onClick={() => handleCopyText(getLastAIResponse())}
+                  onClick={() => { navigator.clipboard.writeText(aiResponse); }}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 transition-all active:scale-95"
                 >
                   <Copy className="w-3 h-3" />
@@ -351,8 +360,8 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
           <div className="w-full max-w-3xl mx-auto">
             <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
               <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value.slice(0, maxInputChars))}
+                value={promptInput}
+                onChange={(e) => setPromptInput(e.target.value.slice(0, maxInputChars))}
                 maxLength={maxInputChars}
                 onKeyDown={handleKeyDown}
                 placeholder={`Tulis perintah untuk ${selectedFiturData.nama}... (maks ${maxInputChars} karakter)`}
@@ -360,20 +369,20 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
                 className="w-full bg-transparent px-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none resize-none"
               />
               <div className="flex items-center justify-between px-3 py-1.5 border-t border-slate-800">
-                <span className={`text-[9px] font-mono ${inputText.length >= Math.max(0, maxInputChars - 50) ? "text-amber-400" : "text-slate-500"}`}>
-                  {inputText.length} / {maxInputChars}
+                <span className={`text-[9px] font-mono ${promptInput.length >= Math.max(0, maxInputChars - 50) ? "text-amber-400" : "text-slate-500"}`}>
+                  {promptInput.length} / {maxInputChars}
                 </span>
                 <button
-                  onClick={handleSendMessage}
-                  disabled={!inputText.trim() || isStreaming || isLoading}
+                  onClick={handleGenerateText}
+                  disabled={!promptInput.trim() || isLoading}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-black uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg shadow-amber-500/20"
                 >
-                  {isStreaming || isLoading ? (
+                  {isLoading ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
                     <Send className="w-3 h-3" />
                   )}
-                  Kirim
+                  MULAI BIKIN
                 </button>
               </div>
             </div>
