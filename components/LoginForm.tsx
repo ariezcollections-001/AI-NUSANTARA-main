@@ -27,6 +27,19 @@ export default function LoginForm() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
+
+    // Safety net: if a PKCE auth code lands on the root/login page instead of
+    // /api/auth/callback (e.g. a magic link whose redirect fell through to the
+    // Site URL), forward it to the canonical callback handler ON THIS ORIGIN
+    // so localhost stays localhost and vercel stays vercel.
+    const code = params.get("code");
+    if (code) {
+      window.location.replace(
+        `/api/auth/callback?${params.toString()}`,
+      );
+      return;
+    }
+
     const errorParam = params.get("error");
     const errorDescription = params.get("error_description");
     if (errorParam) {
@@ -60,9 +73,15 @@ export default function LoginForm() {
   const handleGoogleLogin = async () => {
     try {
       const currentOrigin = window.location.origin;
-      const { error } = await supabase.auth.signInWithOAuth({
+            const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: currentOrigin + "/api/auth/callback" },
+        options: {
+          redirectTo: currentOrigin + "/api/auth/callback",
+          // Selalu tampilkan pemilih akun Google agar tidak pakai akun Google yang
+          // tersimpan lama. Mencegah state PKCE/authorize reuse yang berujung pada
+          // "State has already been used" -> fallback ke Site URL (Vercel).
+          queryParams: { prompt: "select_account" },
+        },
       });
       if (error) {
         setError(error.message || "Login Google gagal. Coba lagi.");
@@ -79,6 +98,9 @@ export default function LoginForm() {
       </div>
     );
   }
+
+  const passwordInputClassName =
+    "w-full rounded-xl border border-slate-800 bg-slate-950 py-3 pl-10 pr-10 text-sm text-white outline-none placeholder:text-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4">
@@ -101,12 +123,13 @@ export default function LoginForm() {
           <form onSubmit={handleLoginManual} className="grid gap-5">
             {/* Email Field */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <label htmlFor="email" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
+                  id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -119,24 +142,26 @@ export default function LoginForm() {
 
             {/* Password Field */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <label htmlFor="password" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Kata Sandi
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="0 0 0 0 0 0 0 0"
+                  placeholder="Masukkan kata sandi"
+                  autoComplete="current-password"
                   required
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 py-3 pl-10 pr-10 text-sm text-white outline-none placeholder:text-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
+                  className={passwordInputClassName}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-950"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

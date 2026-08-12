@@ -1,4 +1,6 @@
-"use client";
+const fs = require("fs");
+const path = "components/responsive/TampilanPC.tsx";
+const content = `"use client";
 
 import React, { useState, useRef } from "react";
 import { ArrowLeft, Send, Copy, FileText, Sparkles, Loader2, RefreshCw, Wallet } from "lucide-react";
@@ -97,7 +99,7 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        const frames = buffer.split("\n\n");
+        const frames = buffer.split("\\n\\n");
         buffer = frames.pop() ?? "";
 
         for (const frame of frames) {
@@ -156,11 +158,11 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
   };
 
   const handleExportWord = (text: string) => {
-    const htmlContent = `
+    const htmlContent = \`
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <title>${selectedFiturData?.nama || "Hasil AI Nusantara"}</title>
+          <title>\${selectedFiturData?.nama || "Hasil AI Nusantara"}</title>
           <style>
             body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; line-height: 1.6; color: #1a1a1a; }
             h1 { color: #b45309; border-bottom: 3px solid #f59e0b; padding-bottom: 12px; }
@@ -168,19 +170,19 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
           </style>
         </head>
         <body>
-          <h1>${selectedFiturData?.nama || "Hasil AI Nusantara"}</h1>
-          <p>${text.replace(/\n/g, "<br/>")}</p>
+          <h1>\${selectedFiturData?.nama || "Hasil AI Nusantara"}</h1>
+          <p>\${text.replace(/\\n/g, "<br/>")}</p>
           <hr/>
-          <p style="font-size: 11px; color: #888;">Dihasilkan oleh BIKIN AI - Platform Nusantara pada ${new Date().toLocaleString("id-ID")}</p>
+          <p style="font-size: 11px; color: #888;">Dihasilkan oleh BIKIN AI - Platform Nusantara pada \${new Date().toLocaleString("id-ID")}</p>
         </body>
       </html>
-    `;
+    \`;
 
-    const blob = new Blob(["\ufeff", htmlContent], { type: "application/msword" });
+    const blob = new Blob(["\\ufeff", htmlContent], { type: "application/msword" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${selectedFiturData?.id || "hasil-ai"}-${new Date().toISOString().slice(0, 10)}.doc`;
+    link.download = \`\${selectedFiturData?.id || "hasil-ai"}-\${new Date().toISOString().slice(0, 10)}.doc\`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -347,7 +349,7 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
 
           return (
             <div key={kat} className="flex flex-col min-h-0">
-              <div className={`shrink-0 rounded-t-lg border-b px-3 py-2 text-center ${headerClass}`}>
+              <div className={\`shrink-0 rounded-t-lg border-b px-3 py-2 text-center \${headerClass}\`}>
                 <h2 className="text-[11px] font-black uppercase tracking-wider">{kat}</h2>
               </div>
               <div className="flex-1 overflow-y-auto space-y-1.5 p-2 min-h-0">
@@ -381,3 +383,6 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
 
 
 
+`;
+fs.writeFileSync(path, content.replace(/\n/g, "\r\n"));
+console.log("File written to", path);

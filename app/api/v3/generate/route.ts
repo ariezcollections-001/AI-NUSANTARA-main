@@ -37,6 +37,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/url";
 
 export const runtime = "edge";
 
@@ -272,7 +273,7 @@ export async function POST(request: Request) {
       signal: request.signal,
       user,
       currentBalance,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://ai-nusantara-main.vercel.app",
+      appUrl: getAppUrl(request),
     });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);

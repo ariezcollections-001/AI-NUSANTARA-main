@@ -49,6 +49,47 @@ Buka [http://localhost:3000](http://localhost:3000).
 
 ## Struktur Folder
 
+
+## Konfigurasi URL Redirect (Penting — lokal vs Vercel)
+
+Supabase menentukan host link konfirmasi email berdasarkan pengaturan di dashboard
+**Supabase Dashboard → Authentication → URL Configuration**. Supabase akan
+**mengabaikan** `redirect_to` dari aplikasi jika URL tersebut tidak ada di daftar
+**Redirect URLs**. Akibatnya, saat uji lokal, bisa terlempar ke domain Vercel.
+
+Kode aplikasi sudah otomatis menyesuaikan origin lewat `getAppUrl()` di
+`lib/url.ts` (localhost saat dev, domain Vercel saat produksi). Yang perlu Anda
+lakukan **sekali** di dashboard Supabase:
+
+1. **Redirect URLs** — pastikan berisi **semua** origin yang Anda pakai:
+   ```
+   http://localhost:3000/**
+   https://ai-nusantara-main.vercel.app/**
+   ```
+2. **Site URL** — bisa diarahkan ke produksi (`https://ai-nusantara-main.vercel.app`);
+   selama `redirect_to` lokal sudah masuk allowlist, uji lokal tetap di localhost.
+
+### Verifikasi cepat
+
+Jalankan script untuk mengecek config (memerlukan Personal Access Token Supabase
+untuk membaca pengaturan dari dashboard):
+
+```bash
+# hanya cek lokal (tanpa Supabase API)
+node scripts/check-redirect.js
+
+# cek lengkap termasuk Site URL + Redirect URLs dari Supabase
+export SUPABASE_ACCESS_TOKEN=<personal-access-token>
+node scripts/check-redirect.js
+```
+
+> Personal Access Token dibuat di https://supabase.com/dashboard/account/tokens
+> (bukan anon key / service role key).
+
+**Catatan:** email verifikasi yang sudah terkirim sebelumnya tetap memakai URL
+lama. Setelah mengubah pengaturan, daftar akun baru atau klik "kirim ulang
+verifikasi", lalu pastikan host link emailnya `http://localhost:3000` saat uji lokal.
+
 ```
 app/           → Halaman & API routes (App Router)
   api/         → Backend API endpoints

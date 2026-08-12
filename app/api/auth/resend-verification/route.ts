@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAppUrl } from "@/lib/url";
 
 export async function POST(request: Request) {
   try {
@@ -13,8 +14,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Build app URL from request to ensure correct domain in production
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ??     process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+    // Resolve app URL dynamically from the request origin so local testing
+    // redirects to localhost and production stays on the Vercel domain.
+    const appUrl = getAppUrl(request);
     const supabase = await createAdminClient();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

@@ -1,0 +1,42 @@
+const fs = require('fs');
+const targetPath = 'write_tampilanpc.js';
+
+// Build file content line by line to avoid template literal issues
+const lines = [];
+lines.push('const part1 = `const fs = require("fs");');
+lines.push('const path = "components/responsive/TampilanPC.tsx";');
+lines.push('const content = `"use client";');
+lines.push('');
+lines.push('import React, { useState, useRef, useEffect } from "react";');
+lines.push('import { ArrowLeft, Send, Copy, FileText, Sparkles, Loader2, RefreshCw, Wallet } from "lucide-react";');
+lines.push('');
+lines.push('interface FiturNusantara {');
+lines.push('  id: string;');
+lines.push('  nama: string;');
+lines.push('  desc: string;');
+lines.push('  cat: string;');
+lines.push('  contoh: string;');
+lines.push('}');
+lines.push('');
+lines.push('interface ResponsiveDashboardProps {');
+lines.push('  maxInputChars?: number;');
+lines.push('}');
+lines.push('');
+lines.push('const fiturNusantara = [');
+lines.push('  { id: "gen-rpp", nama: "⚡ Gen RPP", desc: "Buat RPP Merdeka lengkap, guru, asesmen, dan rubrik.", cat: "GURU", contoh: "Buatkan RPP Matematika kelas 7 tentang aljabar dengan model pembelajaran PBL." },');
+lines.push('  { id: "buat-soal", nama: "📝 Buat Soal", desc: "Buat soal HOTS pilihan ganda dan esai lengkap.", cat: "GURU", contoh: "Buatkan 5 soal HOTS pilihan ganda tentang fotosintesis untuk kelas 8." },');
+lines.push('  { id: "koreksi-tugas", nama: "🛡️ Koreksi Tugas", desc: "Beri feedback tugas siswa secara objektif.", cat: "GURU", contoh: "Koreksi esai siswa tentang perjuangan kemerdekaan dan beri nilai objektif." },');
+lines.push('  { id: "bahan-ajar", nama: "📚 Bahan Ajar", desc: "Produksi materi ajar menarik dan mudah dipahami.", cat: "GURU", contoh: "Susun bahan ajar tentang sistem tata surya untuk kelas 6 SD." },');
+lines.push('  { id: "bedah-jurnal", nama: "⚖️ Bedah Jurnal", desc: "Ringkas latar belakang, metode, dan hasil jurnal akademis.", cat: "MAHASISWA", contoh: "Bedah jurnal tentang pengaruh sosial media terhadap hasil belajar siswa." },');
+lines.push('  { id: "rangkum-buku", nama: "📖 Rangkum Buku", desc: "Buat ringkasan bab buku yang padat dan mudah dipahami.", cat: "MAHASISWA", contoh: "Rangkum bab 4 buku Psikologi Pendidikan tentang teori belajar kognitif." },');
+lines.push('  { id: "kerangka-skripsi", nama: "🎓 Kerangka Skripsi", desc: "Buat outline skripsi bab 1-5 dengan judul dan arahan riset.", cat: "MAHASISWA", contoh: "Buat kerangka skripsi tentang analisis kepuasan pelanggan PT XYZ." },');
+lines.push('  { id: "tiktok-viral", nama: "🔥 TikTok Viral", desc: "Buat skrip video jualan 30-60 detik dengan hook mematikan.", cat: "UMKM", contoh: "Buat skrip video TikTok untuk jualan kopi sachet dengan harga 5rb." },');
+lines.push('  { id: "caption-ig", nama: "🛍️ Caption IG", desc: "Tulis caption Instagram jualan persuasif dengan hashtag.", cat: "UMKM", contoh: "Buat 5 caption Instagram untuk promosi baju batik akhir tahun." },');
+lines.push('  { id: "ide-bisnis", nama: "📊 Ide Bisnis", desc: "Analisis tren pasar lokal dan rekomendasi ide UMKM modal kecil.", cat: "UMKM", contoh: "Berikan 3 ide bisnis modal 5 juta untuk kalangan milenial di kota kecil." },');
+lines.push('  { id: "bahasa-formal", nama: "💼 Bahasa Formal", desc: "Ubah teks bisnis kasar menjadi bahasa formal korporat.", cat: "UMKM", contoh: "Ubah pesan WhatsApp \'Mau nanya soal harga barangnya\' menjadi bahasa formal." },');
+lines.push('  { id: "audio-mp3", nama: "🎵 Audio MP3 Manusia Luwes", desc: "Buat skrip narasi audio dengan nuansa suara manusia alami dan heartfelt.", cat: "UMUM", contoh: "Buatkan naskah narasi audio promosi untuk produk lokal dengan gaya bicara santai." },');
+lines.push('  { id: "generator-propaganda", nama: "📣 Generator Propaganda Konten", desc: "Rancang materi persuasif dan konten propaganda yang kuat dan menarik.", cat: "UMUM", contoh: "Buatkan 3 varian konten propaganda untuk kampanye anti-narkoba di kalangan remaja." },');
+lines.push('];');
+
+fs.writeFileSync(targetPath, lines.join('\n'));
+console.log('Part 1 done');

@@ -70,7 +70,7 @@ export default function RegisterPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
         },
       });
 

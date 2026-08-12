@@ -22,15 +22,36 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient();
-    
-    // Build app URL from request to ensure correct domain in production
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
+
+    // Resolve the app URL dynamically from the request origin/host so local
+    // testing redirects to localhost and production stays on the Vercel domain.
+    let appUrl =
+      request.headers.get("origin") ||
+      (request.headers.get("host")?.includes("localhost")
+        ? `http://${request.headers.get("host")}`
+        : `https://${request.headers.get("host")}`) ||
+      "http://localhost:3000";
+
+    // Defender: selama `next dev`, paksa localhost supaya redirect_to yang
+    // dikirim ke Supabase dijamin localhost (tidak mungkin nyasar ke Vercel).
+    if (process.env.NODE_ENV === "development" && !appUrl.includes("localhost")) {
+      appUrl = "http://localhost:3000";
+    }
+
+    console.log(
+      "[REGISTER DEBUG] origin:",
+      request.headers.get("origin"),
+      "host:",
+      request.headers.get("host"),
+      "final appUrl:",
+      appUrl,
+    );
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${appUrl}/login`,
+        emailRedirectTo: `${appUrl}/api/auth/callback`,
       },
     });
 

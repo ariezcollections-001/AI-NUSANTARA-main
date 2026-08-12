@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/url";
 
 async function verifyCaptcha(captchaToken: string | undefined) {
   const secret = process.env.CLOUDFLARE_TURNSTILE_SECRET || process.env.RECAPTCHA_SECRET_KEY;
@@ -64,10 +65,18 @@ export async function POST(request: Request) {
 
   const supabase = await createClient();
 
+  // Resolve the app URL from the request origin so the OTP/magic-link email
+  // redirects to localhost in dev and the Vercel domain in production —
+  // never silently to the Supabase Site URL (which would leak the prod host).
+  const appUrl = getAppUrl(request);
+
   if (email) {
     const response = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true },
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${appUrl}/api/auth/callback`,
+      },
     });
     if (response.error) {
       return NextResponse.json({ error: response.error.message }, { status: 500 });
