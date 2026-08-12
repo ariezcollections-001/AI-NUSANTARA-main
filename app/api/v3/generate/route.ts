@@ -52,8 +52,14 @@ const DEFAULT_FEATURE_INSTRUCTION =
   "mengarang fakta. Jika informasi tidak lengkap, nyatakan dengan jujur. " +
   "Berikan langkah praktis konkret bila relevan.";
 
-/* Per-feature system prompts — aligned to the 12 fiturNusantara cards. */
+/*
+ * Per-feature system prompts — keyed by the EXACT `id` emitted by the
+ * `fiturNusantara` menu in components/responsive/*.tsx. All 12 directory
+ * cards (GURU / MAHASISWA / UMKM / UMUM) resolve to a tailored prompt, so
+ * none of them silently falls back to the DEFAULT instruction.
+ */
 const FEATURE_INSTRUCTIONS: Record<string, string> = {
+  /* ---- GURU ---- */
   "gen-rpp":
     "Bertindaklah sebagai Konsultan Kurikulum Merdeka Kemendikbud Ristek. Buat dokumen RPP/Modul Ajar super lengkap dan sistematis, mencakup Tujuan Pembelajaran, Langkah Kegiatan Alur MERDEKA, dan Rubrik Asesmen.",
   "buat-soal":
@@ -62,6 +68,25 @@ const FEATURE_INSTRUCTIONS: Record<string, string> = {
     "Analisis karya tugas siswa secara objektif, beri umpan balik konstruktif, nilai adil, dan saran perbaikan yang spesifik.",
   "bahan-ajar":
     "Produksi materi bahan ajar teks yang menarik, eduktif, dan mudah dipahami, dengan contoh konkret dan poin kunci yang disusun rapi.",
+  /* ---- MAHASISWA ---- */
+  "bedah-jurnal":
+    "Bertindaklah sebagai Profesor Akademis. Bedah dan rangkum jurnal ilmiah ini menjadi ringkasan metodologi, temuan kunci, dan celah penelitian (research gap), lalu berikan implikasi praktisnya.",
+  "rangkum-buku":
+    "Rangkum bab buku secara padat, komprehensif, dan mudah dipahami, mengekstrak temuan dan poin kunci utama.",
+  "kerangka-skripsi":
+    "Bantu susun kerangka skripsi: judul, abstrak, pendahuluan, tinjauan pustaka, metodologi, serta bab 1-5 lengkap poin bahasan.",
+  /* ---- UMKM / UMUM ---- */
+  "tiktok-viral":
+    "Bertindaklah sebagai Scriptwriter TikTok & Reels handal Indonesia. Buat skrip video 30-60 detik dengan hook mematikan di 3 detik, storytelling persuasif, dan call-to-action jualan.",
+  "caption-ig":
+    "Buat caption Instagram yang estetik dan persuasif untuk konten jualan, gunakan teknik copywriting AIDA, dan lengkapi dengan hashtag yang relevan.",
+  "ide-bisnis":
+    "Analisis tren pasar lokal Indonesia dan berikan ide bisnis UMKM modal kecil untung besar lengkap analisis SWOT singkat dan rencana aksi praktis.",
+  "bahasa-formal":
+    "Ubah gaya bahasa teks draf kasar menjadi bahasa formal korporat atau surat resmi yang profesional, tanpa mengubah makna, gagasan, atau temuan aslinya.",
+  "generator-propaganda":
+    "Bantu produksi konten promosi dan publikasi massa yang konsisten, menarik, dan selaras dengan pesan merek.",
+  /* ---- Legacy/alias keys retained for API compatibility (harmless extras) ---- */
   "asisten-skripsi":
     "Bantu susun kerangka skripsi: judul, abstrak, pendahuluan, tinjauan pustaka, metodologi, serta bab 1-5 lengkap poin bahasan.",
   "ringkas-buku":
@@ -76,8 +101,6 @@ const FEATURE_INSTRUCTIONS: Record<string, string> = {
     "Tulis teks brosur produk yang persuasif, menggunakan teknik copywriting AIDA, dan lengkapi dengan headline yang menonjol.",
   "audio-mp3":
     "Tulis narasi suara yang luwes dan natural, cocok untuk audio MP3 manusia luwes, dengan alur cerita yang mengalir.",
-  "generator-propaganda":
-    "Bantu produksi konten promosi dan publikasi massa yang konsisten, menarik, dan selaras dengan pesan merek.",
 };
 
 interface GenerateRequestBody {
@@ -243,6 +266,22 @@ export async function POST(request: Request) {
   }
   if (currentBalance <= 0) {
     return NextResponse.json({ error: "Saldo karakter Anda tidak mencukupi." }, { status: 403 });
+  }
+  // Emergency balance gate: if the prompt's input characters ALONE already
+  // exceed the available balance, reject before any tokens are streamed so no
+  // provider cost (or balance deduction) is ever incurred.
+  if (message.length > currentBalance) {
+    return NextResponse.json(
+      {
+        error:
+          "Panjang prompt melebihi saldo karakter Anda. Sisa saldo " +
+          currentBalance +
+          " karakter, tetapi prompt Anda berisi " +
+          message.length +
+          " karakter. Perpendek prompt atau tambah saldo terlebih dahulu.",
+      },
+      { status: 402 },
+    );
   }
 
   /* 4. Resolve provider + upstream key. */
