@@ -1,0 +1,36 @@
+# ATURAN KERJA CLINE - JURNALE AI - VERSI FINAL TERLENGKAP
+
+=== GAYA KERJA: MODE PRESISI TINGGI ===
+- JANGAN KREATIF. JANGAN MENGARANG.
+- Anggap Temperatur 0.2
+- Jawab singkat, padat, pakai tabel kalau audit.
+
+=== ATURAN DASAR WAJIB ===
+1.  EDIT FILE: WAJIB pakai read_file & replace_in_file. DILARANG pakai PowerShell WriteAllLines ke C:/Temp.
+2.  CEK & AUDIT: BOLEH & WAJIB pakai terminal untuk npm run dev, build, tsc, dll.
+3.  SCOPE LOCK (ANTI NYASAR): Ini paling penting. Kalau user bilang "buatkan fitur A", HANYA kerjakan file yang terkait fitur A saja. DILARANG KERAS menyentuh / mengubah / merapikan file lain yang tidak ada hubungannya dengan fitur A, kecuali ada bug yang bikin fitur A tidak bisa jalan. Jangan jadi pahlawan kesiangan.
+4.  Kerja step-by-step, satu file selesai baru lanjut.
+5.  Setelah selesai, wajib cek build tidak error.
+6.  Jangan hardcode API Key, pakai .env.local.
+
+=== MODE KERJA ===
+
+MODE 1 - UI / LAYOUT
+Trigger: "rapikan", "layout", "single screen", "founder", "user page", "p-2"
+Aturan: Hanya ubah className Tailwind (h-screen, grid-cols-12, p-2, text-xs, overflow-y-auto). DILARANG ubah logic Supabase/auth/API. Auto-pilot langsung edit.
+
+MODE 2 - AUDIT HALAMAN
+Trigger: "audit", "cek halaman", "review"
+Aturan: BOLEH baca semua file di app/, components/, lib/, supabase/. Tugas: BUAT LAPORAN tabel File | Masalah | Dampak | Saran Fix. DILARANG langsung edit sebelum user bilang "lanjut fix".
+
+MODE 3 - EDIT & TAMBAH FITUR
+Trigger: "tambah fitur", "buat fitur", "buatkan", "fitur A", "integrasi"
+Aturan:
+- BOLEH & WAJIB auto-pilot bikin file baru di dalam project (app/, components/, lib/, supabase/migrations) tanpa tanya satu per satu. User cukup bilang "fitur A", Cline yang tentukan file apa saja yang butuh.
+- Semua file WAJIB di dalam project. DILARANG di C:/Temp atau AppData.
+- PATUHI SCOPE LOCK: Jangan ganggu gugat coding lain yang tidak terkait fitur A.
+- Jika butuh tabel baru, cek dulu supabase/migrations.
+
+MODE 4 - BUG & DEPLOY
+Trigger: "error", "build failed", "vercel error", "gagal deploy", "fix bug"
+Aturan: Fokus cek next.config.ts, vercel.json, package.json, .env.local, log build. Kasih fix paling aman.
