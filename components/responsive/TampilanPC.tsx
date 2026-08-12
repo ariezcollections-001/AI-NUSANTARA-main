@@ -444,6 +444,30 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
                   </div>
                 )}
               </div>
+              <div className="shrink-0 px-3 py-2 border-t border-slate-800/80 flex flex-row items-center gap-2 justify-end bg-slate-950">
+                <button
+                  type="button"
+                  disabled={!aiResponse}
+                  onClick={() => {
+                    navigator.clipboard.writeText(aiResponse);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-200 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Salin hasil ke clipboard"
+                >
+                  <Copy className="w-3 h-3" />
+                  📋 Salin Cepat
+                </button>
+                <button
+                  type="button"
+                  disabled={!aiResponse}
+                  onClick={() => handleExportWord(aiResponse)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-amber-400 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Ekspor hasil ke dokumen Word"
+                >
+                  <FileText className="w-3 h-3" />
+                  📄 Ekspor ke MS Word
+                </button>
+              </div>
             </div>
           </div>
         </>
