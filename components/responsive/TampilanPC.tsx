@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useDashboardLive } from "@/components/DashboardLiveContext";
 import {
   ArrowLeft,
   Send,
@@ -10,6 +12,11 @@ import {
   Loader2,
   RefreshCw,
   Wallet,
+  ChevronDown,
+  Settings,
+  History,
+  LogOut,
+  AlertTriangle,
 } from "lucide-react";
 
 interface FiturNusantara {
@@ -144,14 +151,33 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 
-export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardProps) {
+export default function TampilanPC({
+  maxInputChars = 500,
+}: ResponsiveDashboardProps) {
+  const router = useRouter();
+  const {
+    characterBalance,
+    platformName,
+    userEmail,
+    isMaintenance,
+    onRefresh,
+    onLogout,
+    onDeleteAccount,
+  } = useDashboardLive();
   const [selectedFitur, setSelectedFitur] = useState<string | null>(null);
   const [promptInput, setPromptInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [characterBalance, setCharacterBalance] = useState(0);
+  const [localBalance, setLocalBalance] = useState(0);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const getInitials = (email: string) => {
+    if (!email) return "U";
+    const name = email.split("@")[0];
+    return name.slice(0, 2).toUpperCase();
+  };
 
   const selectedFiturData =
     fiturNusantara.find((item) => item.id === selectedFitur) || null;
@@ -238,7 +264,7 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
                 payload.monetization &&
                 payload.monetization.balance_updated
               ) {
-                setCharacterBalance(payload.monetization.remaining_balance);
+                setLocalBalance(payload.monetization.remaining_balance);
               }
               setIsLoading(false);
               abortControllerRef.current = null;
@@ -322,25 +348,119 @@ export default function TampilanPC({ maxInputChars = 500 }: ResponsiveDashboardP
 
   return (
     <div className="w-full h-screen max-h-screen overflow-hidden bg-slate-950 text-slate-100 p-3 flex flex-col gap-2">
-      {/* Top Header Ribbon - pitch-black premium theme, no fixed/sticky */}
-      <div className="w-full bg-slate-950 text-slate-100 border-b border-slate-800/80 px-4 py-2 flex flex-row items-center justify-between">
+      {/* Top Header Ribbon - unified pitch-black premium bar, no fixed/sticky, wired to live auth props */}
+      <div className="w-full bg-slate-950 text-slate-100 border-b border-slate-800/80 pb-2 flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-white font-black tracking-wider text-sm">BIKIN AI</span>
+          <span className="text-white font-black tracking-wider text-sm">
+            {platformName || "BIKIN AI"}
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 px-3 py-1.5 flex items-center gap-2">
             <Wallet className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Saldo User</span>
-            <span className="text-xs font-black text-white font-mono">{characterBalance} CHARS</span>
+            <span className="text-xs font-black text-white font-mono">
+              {(characterBalance > 0 ? characterBalance : localBalance).toLocaleString("id-ID")} CHARS
+            </span>
           </div>
-          <button type="button" className="bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider hover:border-amber-500/50 transition-all active:scale-95">
-            💰 Isi Ulang Saldo
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/checkout")}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+            title="ISI ULANG SALDO / BELI PAKET"
+          >
+            🛒 ISI ULANG SALDO
           </button>
-          <button type="button" className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-200 hover:border-amber-500/50 transition-all active:scale-95">
+          <button
+            type="button"
+            onClick={onRefresh}
+            title="Refresh Status"
+            className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-200 hover:border-amber-500/50 transition-all active:scale-95"
+          >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[10px] font-black text-slate-950 border-2 border-slate-800 shadow-lg">
-            AR
+          {/* Avatar Profile Dropdown - wired to live auth context */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowProfileDropdown((v) => !v)}
+              className="flex items-center gap-1.5 rounded-full bg-slate-900/60 border border-slate-800 p-1 pl-1 pr-1.5 text-slate-200 hover:border-amber-500/50 transition-all"
+              title="Menu Akun"
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[10px] font-black text-slate-950">
+                {getInitials(userEmail || "user@email.com")}
+              </div>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {showProfileDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowProfileDropdown(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-slate-800 bg-slate-900 shadow-[0_8px_30px_rgba(0,0,0,0.6)] z-50 overflow-hidden">
+                  <div className="p-4 border-b border-slate-800">
+                    {isMaintenance ? (
+                      <p className="text-[10px] font-black uppercase text-red-400 mb-1">
+                        ⚠️ Maintenance Mode
+                      </p>
+                    ) : null}
+                    <p className="text-xs font-mono text-slate-400 truncate">
+                      {userEmail || "user@email.com"}
+                    </p>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        router.push("/dashboard/settings");
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      ⚙️ Pengaturan Akun
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        router.push("/dashboard/transactions");
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                    >
+                      <History className="w-3.5 h-3.5" />
+                      📊 Riwayat Transaksi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        onLogout?.();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-red-400 hover:bg-red-950/40 transition-colors"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      🚪 Keluar (Logout)
+                    </button>
+                    <div className="border-t border-slate-800 pt-1 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          onDeleteAccount?.();
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-red-500 hover:bg-red-950/60 transition-colors"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        🗑️ Hapus Akun Selamanya
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
