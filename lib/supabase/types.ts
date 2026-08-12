@@ -27,6 +27,13 @@ export interface AiSetting {
   seo_description: string | null;
 }
 
+export interface Founder {
+  id: string;
+  email: string;
+  role: "founder";
+  created_at: string;
+}
+
 export interface FounderConfig {
   id: number;
   key_name: string;
@@ -70,6 +77,11 @@ export interface Database {
         Row: AiSetting;
         Insert: Omit<AiSetting, "id"> & { id?: number };
         Update: Partial<Omit<AiSetting, "id">>;
+      };
+      founder: {
+        Row: Founder;
+        Insert: Omit<Founder, "created_at"> & { created_at?: string };
+        Update: Partial<Omit<Founder, "id">>;
       };
       founder_config: {
         Row: FounderConfig;

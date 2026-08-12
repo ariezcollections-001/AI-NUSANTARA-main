@@ -129,6 +129,16 @@ export default function FounderDashboard() {
             if (key_name === 'price_per_1k' || key_name === 'package_price_rupiah') setPrice(String(key_value));
             if (key_name === 'gemini_api_key') setGeminiKey(String(key_value));
             if (key_name === 'openrouter_api_key') setOpenRouterKey(String(key_value));
+            // ⚠️ IMPORTANT: PERSIST to backend real API so changes survive reload & reflect for all users.
+            try {
+              await fetch('/api/founder/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key_name, key_value: String(key_value) }),
+              });
+            } catch (e) {
+              // ignore backend errors — local already saved
+            }
             return { ok: true, data: { key_name, key_value } };
     } catch (error) {
             const err = error instanceof Error ? error.message : String(error);
@@ -256,40 +266,50 @@ export default function FounderDashboard() {
     alert('API key telah dihapus dari Vault.');
   }
 
-  // Overwrite fetching: use local in-memory mock data only
-  function initLocalUsersAndFeatures() {
+  // Load real dashboard data from backend API (users & features).
+  // Falls back to local mock data only when the API is unreachable.
+  async function loadDashboardData() {
+    // --- Users: fetch from backend real API first ---
     try {
-            const storedUsers = localStorage.getItem('founder_mock_users');
-            if (storedUsers) {
-              setUsers(JSON.parse(storedUsers));
-            } else {
-              setUsers(MOCK_USERS);
-              try { localStorage.setItem('founder_mock_users', JSON.stringify(MOCK_USERS)); } catch {}
-            }
-
-            const storedFeatures = localStorage.getItem('founder_mock_features');
-            if (storedFeatures) {
-              setFeatures(JSON.parse(storedFeatures));
-            } else {
-              const defaultFeatures: Feature[] = [
-                { id: 1, feature_slug: 'gen-rpp', feature_name: 'Gen RPP', system_prompt: 'Instruksi RPP...', temperature: 0.2, is_active: true },
-                { id: 2, feature_slug: 'buat-soal', feature_name: 'Buat Soal', system_prompt: 'Instruksi buat soal...', temperature: 0.3, is_active: true },
-                { id: 3, feature_slug: 'koreksi-tugas', feature_name: 'Koreksi Tugas', system_prompt: 'Instruksi koreksi...', temperature: 0.2, is_active: true },
-                { id: 4, feature_slug: 'bahan-ajar', feature_name: 'Bahan Ajar', system_prompt: 'Instruksi bahan ajar...', temperature: 0.2, is_active: true },
-                { id: 5, feature_slug: 'tiktok-viral', feature_name: 'TikTok Viral', system_prompt: 'Instruksi tiktok...', temperature: 0.6, is_active: true },
-                { id: 6, feature_slug: 'caption-ig', feature_name: 'Caption IG', system_prompt: 'Instruksi caption...', temperature: 0.6, is_active: true },
-                { id: 7, feature_slug: 'ide-bisnis', feature_name: 'Ide Bisnis', system_prompt: 'Instruksi ide bisnis...', temperature: 0.4, is_active: true },
-                { id: 8, feature_slug: 'bahasa-formal', feature_name: 'Bahasa Formal', system_prompt: 'Instruksi bahasa formal...', temperature: 0.2, is_active: true },
-                { id: 9, feature_slug: 'bedah-jurnal', feature_name: 'Bedah Jurnal', system_prompt: 'Instruksi bedah jurnal...', temperature: 0.2, is_active: true },
-                { id: 10, feature_slug: 'rangkum-buku', feature_name: 'Rangkum Buku', system_prompt: 'Instruksi rangkum buku...', temperature: 0.2, is_active: true },
-                { id: 11, feature_slug: 'kerangka-skripsi', feature_name: 'Kerangka Skripsi', system_prompt: 'Instruksi kerangka skripsi...', temperature: 0.2, is_active: true },
-              ];
-              setFeatures(defaultFeatures);
-              try { localStorage.setItem('founder_mock_features', JSON.stringify(defaultFeatures)); } catch {}
-            }
+      const usersRes = await fetch('/api/founder/users', { cache: 'no-store' });
+      const usersData = await usersRes.json();
+      if (usersRes.ok && Array.isArray(usersData.users)) {
+        const loadedUsers = usersData.users as User[];
+        setUsers(loadedUsers);
+        try { localStorage.setItem('founder_mock_users', JSON.stringify(loadedUsers)); } catch {}
+      } else {
+        throw new Error(usersData?.error || 'users API failed');
+      }
     } catch (e) {
-            setUsers(MOCK_USERS);
-            setFeatures([]);
+      // Fallback: local mock only
+      try {
+        const storedUsers = localStorage.getItem('founder_mock_users');
+        if (storedUsers) setUsers(JSON.parse(storedUsers));
+        else setUsers(MOCK_USERS);
+      } catch {
+        setUsers(MOCK_USERS);
+      }
+    }
+
+    // --- Features: fetch from backend real API first ---
+    try {
+      const featRes = await fetch('/api/founder/features', { cache: 'no-store' });
+      const featData = await featRes.json();
+      if (featRes.ok && Array.isArray(featData.features)) {
+        const loadedFeatures = featData.features as Feature[];
+        setFeatures(loadedFeatures);
+        try { localStorage.setItem('founder_mock_features', JSON.stringify(loadedFeatures)); } catch {}
+      } else {
+        throw new Error(featData?.error || 'features API failed');
+      }
+    } catch (e) {
+      // Fallback: local mock only
+      try {
+        const storedFeatures = localStorage.getItem('founder_mock_features');
+        if (storedFeatures) setFeatures(JSON.parse(storedFeatures));
+      } catch {
+        setFeatures([]);
+      }
     }
   }
 
@@ -333,9 +353,11 @@ export default function FounderDashboard() {
 
     protectFounderPanel();
 
-    // initialize fully from localStorage/mock only — safe-mode
+    // initialize: fetch real data from backend API, fallback to local mock
     loadLocalConfigs();
-    initLocalUsersAndFeatures();
+    void loadDashboardData().then(() => {
+      refreshLiveUsersLocal();
+    });
     loadFounderProfile();
     refreshLiveUsersLocal();
     const iv = setInterval(() => {
