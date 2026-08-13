@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getVaultKeys } from "@/lib/aiVault";
 
 const requestHistory: Record<string, number[]> = {};
 
@@ -71,17 +72,30 @@ let kran2KeyLoaded = false;
 
 async function loadKran1Keys(): Promise<KranKey[]> {
   try {
-    const rawKeys = await getFounderConfig("gemini_api_keys_free");
-    if (!rawKeys || rawKeys.trim() === "") return [];
-    
-    const parsed = JSON.parse(rawKeys) as string[];
-    return parsed
-      .filter((k) => k && k.trim().length > 0)
-      .map((key) => ({
-        provider: "gemini" as const,
-        key: key.trim(),
-        isPaid: false,
-      }));
+    // 🔴 Vault ("KOLAM TOKEN GLOBAL") adalah sumber utama kunci gratisan.
+    const vault = await getVaultKeys();
+    let legacyRaw = await getFounderConfig("gemini_api_keys_free");
+    let legacy: string[] = [];
+    try {
+      if (legacyRaw && legacyRaw.trim() !== "") legacy = JSON.parse(legacyRaw) as string[];
+      if (!Array.isArray(legacy)) legacy = [];
+    } catch {
+      legacy = [];
+    }
+
+    // Gabungan Vault + legacy free keys, dedupe & valid.
+    const merged = Array.from(
+      new Set(
+        [...vault.gemini, ...legacy].map((k) => k.trim()).filter((k) => k.length > 0),
+      ),
+    );
+    if (merged.length === 0) return [];
+
+    return merged.map((key) => ({
+      provider: "gemini" as const,
+      key,
+      isPaid: false,
+    }));
   } catch {
     return [];
   }
@@ -147,6 +161,17 @@ async function findBestApiKey() {
     return {
       provider: "gemini" as const,
       key: geminiKey,
+      isPaid: false,
+    };
+  }
+
+    // 🔴 Fallback OpenRouter: pakai Vault terlebih dahulu, lalu legacy config.
+  const vault = await getVaultKeys();
+  const vaultOpenRouter = vault.openrouter.find((k) => k.length > 10);
+  if (vaultOpenRouter) {
+    return {
+      provider: "openrouter" as const,
+      key: vaultOpenRouter,
       isPaid: false,
     };
   }
@@ -589,8 +614,8 @@ export async function PUT(request: Request) {
         { onConflict: "key_name" }
       );
 
-      // Reset cache
-      kran1Keys = merged.map((k) => ({ provider: "gemini" as const, key: k, isPaid: false }));
+            // Reset cache (Vault + legacy free keys)
+      kran1Keys = await loadKran1Keys();
       kran1RotationIndex = 0;
 
       return NextResponse.json({ 

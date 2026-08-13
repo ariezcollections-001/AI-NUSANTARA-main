@@ -38,6 +38,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/url";
+import { getVaultKeys } from "@/lib/aiVault";
 
 export const runtime = "edge";
 
@@ -284,13 +285,27 @@ export async function POST(request: Request) {
     );
   }
 
-  /* 4. Resolve provider + upstream key. */
+    /* 4. Resolve provider + upstream key. */
   const { provider, modelName } = resolveProvider(model);
+
+  // 🔴 Resolve upstream keys from Founder Vault (Supabase founder_config via admin)
+  //    — single source of truth, survivals refresh/logout, shared on Vercel.
+  //    Env vars dipakai hanya sebagai fallback terakhir.
+  const vault = await getVaultKeys();
+  const geminiKey =
+    vault.gemini.find((k) => k.length > 10) ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GEMINI_API_KEY ||
+    "";
+  const openRouterKey =
+    vault.openrouter.find((k) => k.length > 10) ||
+    process.env.OPENROUTER_API_KEY ||
+    "";
 
   try {
     if (provider === "gemini") {
       return await streamFromGemini({
-        apiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GEMINI_API_KEY ?? "",
+        apiKey: geminiKey,
         modelName,
         systemInstruction: buildSystemInstruction(feature, message, user.email ?? ""),
         message,
@@ -303,7 +318,7 @@ export async function POST(request: Request) {
     }
 
     return await streamFromOpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY ?? "",
+      apiKey: openRouterKey,
       modelName,
       systemInstruction: buildSystemInstruction(feature, message, user.email ?? ""),
       message,

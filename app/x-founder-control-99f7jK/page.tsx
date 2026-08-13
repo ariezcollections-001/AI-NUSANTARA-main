@@ -155,6 +155,22 @@ export default function FounderDashboard() {
 
   // 🔴 LOAD PRODUCTION CONFIG FROM CLOUD (Supabase founder_config) — source of truth
   async function loadCloudConfigs() {
+    // Muat Vault langsung dari server route (service-role, bebas RLS) agar selalu
+    // identik dengan apa yang tersimpan di DB — di localhost maupun Vercel.
+    try {
+      const vres = await fetch('/api/founder/config?key=vault_keys');
+      const vdata = await vres.json();
+      if (vres.ok && vdata?.ok && vdata.data?.key_value) {
+        const parsed = JSON.parse(vdata.data.key_value);
+        if (parsed && typeof parsed === 'object') {
+          setVaultKeys({
+            gemini: Array.isArray(parsed.gemini) ? parsed.gemini : [],
+            openrouter: Array.isArray(parsed.openrouter) ? parsed.openrouter : [],
+          });
+        }
+      }
+    } catch { /* ignore — client fallback below */ }
+
     try {
       const { data, error } = await supabase
         .from("founder_config")
@@ -205,24 +221,30 @@ export default function FounderDashboard() {
     }
   }
 
-  function saveVaultKeys(next: { gemini: string[]; openrouter: string[] }) {
-    try {
+    async function saveVaultKeys(next: { gemini: string[]; openrouter: string[] }) {
       setVaultKeys(next);
-      localStorage.setItem('founder_keys_gemini', JSON.stringify(next.gemini));
-      localStorage.setItem('founder_keys_openrouter', JSON.stringify(next.openrouter));
-      // 🔴 Persist to Supabase vault ledger
-      try {
-        void supabase.from('founder_config').upsert(
-          { key_name: 'vault_keys', key_value: JSON.stringify(next) },
-          { onConflict: 'key_name' }
-        );
-      } catch {
-        // ignore — local already saved
+      // Cache lokal (baca cepat sebelum cloud resolve)
+      try { localStorage.setItem('founder_keys_gemini', JSON.stringify(next.gemini)); } catch { /* ignore */ }
+      try { localStorage.setItem('founder_keys_openrouter', JSON.stringify(next.openrouter)); } catch { /* ignore */ }
+      try { localStorage.setItem('founder_config_vault_keys', JSON.stringify(next)); } catch { /* ignore */ }
+
+      // 🔴 Persist ke founder_config via SERVER API (admin/client service-role).
+      //    Ini SATU-SATUNYA jalur tulis yang valid: melewati RLS (posting lewat
+      //    route server yang memakai service_role), sehingga tersimpan permanen
+      //    melewati refresh/logout dan identik di localhost maupun Vercel.
+      //    Kami TIDAK lagi menulis lewat client `supabase.from(...)` karena
+      //    dikunci RLS `is_founder()` dan bisa gagal diam-diam.
+      const res = await fetch('/api/founder/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key_name: 'vault_keys', key_value: JSON.stringify(next) }),
+      });
+      let data: { ok?: boolean; error?: string } = {};
+      try { data = await res.json(); } catch { /* ignore */ }
+      if (!res.ok || data?.ok !== true) {
+        throw new Error('Vault gagal tersimpan ke cloud: ' + (data?.error || `HTTP ${res.status}`));
       }
-    } catch {
-      // ignore
     }
-  }
 
   function maskKey(key: string) {
     if (!key) return '—';
@@ -269,31 +291,43 @@ export default function FounderDashboard() {
     }
 
 
-  function addVaultKey() {
+    async function addVaultKey() {
     if (!newVaultKey.trim()) return alert('Masukkan API key terlebih dahulu.');
     const next = { ...vaultKeys };
     if (newVaultType === 'gemini') next.gemini = [...next.gemini, newVaultKey.trim()];
     else next.openrouter = [...next.openrouter, newVaultKey.trim()];
-    saveVaultKeys(next);
-    setNewVaultKey('');
-    alert('API key baru berhasil ditambahkan ke Vault.');
+    try {
+      await saveVaultKeys(next);
+      setNewVaultKey('');
+      alert('API key baru berhasil ditambahkan ke Vault.');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Gagal menyimpan API key ke cloud.');
+    }
   }
 
-  function updateVaultKey(type: 'gemini' | 'openrouter', index: number, value: string) {
+    async function updateVaultKey(type: 'gemini' | 'openrouter', index: number, value: string) {
     const next = { ...vaultKeys };
     if (type === 'gemini') next.gemini[index] = value;
     else next.openrouter[index] = value;
-    saveVaultKeys(next);
-    setEditingKey(null);
-    alert('API key berhasil diperbarui.');
+    try {
+      await saveVaultKeys(next);
+      setEditingKey(null);
+      alert('API key berhasil diperbarui.');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Gagal memperbarui API key di cloud.');
+    }
   }
 
-  function deleteVaultKey(type: 'gemini' | 'openrouter', index: number) {
+    async function deleteVaultKey(type: 'gemini' | 'openrouter', index: number) {
     const next = { ...vaultKeys };
     if (type === 'gemini') next.gemini = next.gemini.filter((_, i) => i !== index);
     else next.openrouter = next.openrouter.filter((_, i) => i !== index);
-    saveVaultKeys(next);
-    alert('API key telah dihapus dari Vault.');
+    try {
+      await saveVaultKeys(next);
+      alert('API key telah dihapus dari Vault.');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Gagal menghapus API key dari cloud.');
+    }
   }
 
   // Load real dashboard data from backend API (users & features).
