@@ -33,4 +33,4 @@ Aturan:
 
 MODE 4 - BUG & DEPLOY
 Trigger: "error", "build failed", "vercel error", "gagal deploy", "fix bug"
-Aturan: Fokus cek next.config.ts, vercel.json, package.json, .env.local, log build. Kasih fix paling aman.
+Aturan: Fokus cek next.config.ts, vercel.json, package.json, .env.local, log build. Kasih fix paling aman.dan wajib langsung edit di vs code agar founder bisa melihat secara langsung perubahan file yg sedang diroses
