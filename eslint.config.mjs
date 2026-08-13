@@ -9,6 +9,24 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const eslintConfig = [...compat.extends("next/core-web-vitals", "next/typescript")];
+const eslintConfig = [
+  {
+    // 🔴 FIX: skrip dev/utility di root (bukan sumber aplikasi) memakai API
+    // Node (`require`, `process`, `__dirname`). Pada fase `next build`, lint
+    // mensyokurkan melint semua *.js/*.mjs termasuk skrip ini → aturan
+    // `@typescript-eslint/no-require-imports` & `no-undef` jadi ERROR
+    // (3 error di Vercel). Di-ignore agar build lint phase & `next lint`
+    // CLI konsisten dan bebas error.
+    ignores: [
+      "checkstatus.js",
+      "create_write_script.js",
+      "write_tampilanpc.js",
+      "verify_vault_live.mjs",
+      "scripts/**",
+      "_*.*",
+    ],
+  },
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+];
 
 export default eslintConfig;
