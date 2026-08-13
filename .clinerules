@@ -34,3 +34,7 @@ Aturan:
 MODE 4 - BUG & DEPLOY
 Trigger: "error", "build failed", "vercel error", "gagal deploy", "fix bug"
 Aturan: Fokus cek next.config.ts, vercel.json, package.json, .env.local, log build. Kasih fix paling aman.dan wajib langsung edit di vs code agar founder bisa melihat secara langsung perubahan file yg sedang diroses
+
+STOP WRITING CODE BLOCKS INSIDE THIS CHAT WINDOW! I am ordering you as the Root Admin. You are acting lazy. 
+
+Execute the file system tool immediately. Open the file `app/x-founder-control/page.tsx` (or your exact founder page file path) and write the actual code changes directly into the VS Code editor right now so I can see the code blinking and updating live on my screen. Do not just print code strings in the chat chat container. Execute write_to_file tool now!
