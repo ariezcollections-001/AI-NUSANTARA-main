@@ -72,7 +72,10 @@ let kran2KeyLoaded = false;
 
 async function loadKran1Keys(): Promise<KranKey[]> {
   try {
-    // 🔴 Vault ("KOLAM TOKEN GLOBAL") adalah sumber utama kunci gratisan.
+    // 🔴 Vault ("KOLAM TOKEN GLOBAL") adalah sumber utama kunci GRATISAN —
+    // mencakup Gemini DAN OpenRouter gratis. Kunci berbayar (paidGemini)
+    // sudah dipisah dari vault.gemini di getVaultKeys(), jadi tidak pernah
+    // tercampur ke Kran 1 (gratis).
     const vault = await getVaultKeys();
     let legacyRaw = await getFounderConfig("gemini_api_keys_free");
     let legacy: string[] = [];
@@ -83,19 +86,34 @@ async function loadKran1Keys(): Promise<KranKey[]> {
       legacy = [];
     }
 
-    // Gabungan Vault + legacy free keys, dedupe & valid.
-    const merged = Array.from(
+    // Gabungan key GRATIS Gemini (Vault + legacy), dedupe & valid.
+    const mergedGemini = Array.from(
       new Set(
         [...vault.gemini, ...legacy].map((k) => k.trim()).filter((k) => k.length > 0),
       ),
     );
-    if (merged.length === 0) return [];
 
-    return merged.map((key) => ({
-      provider: "gemini" as const,
-      key,
-      isPaid: false,
-    }));
+    // 🔁 OPENROUTER GRATIS juga masuk Kran 1 → gratis benar-benar bergilir
+    // antara Gemini dan OpenRouter (transparan ke user).
+    const mergedOpenRouter = Array.from(
+      new Set(vault.openrouter.map((k) => k.trim()).filter((k) => k.length > 0)),
+    );
+
+    if (mergedGemini.length === 0 && mergedOpenRouter.length === 0) return [];
+
+    const keys: KranKey[] = [
+      ...mergedGemini.map((key) => ({
+        provider: "gemini" as const,
+        key,
+        isPaid: false,
+      })),
+      ...mergedOpenRouter.map((key) => ({
+        provider: "openrouter" as const,
+        key,
+        isPaid: false,
+      })),
+    ];
+    return keys;
   } catch {
     return [];
   }
@@ -157,7 +175,7 @@ async function findBestApiKey() {
 
   // Fallback akhir: cek konfigurasi lama
   const geminiKey = await getFounderConfig("gemini_api_key");
-  if (geminiKey.startsWith("AQ")) {
+        if (geminiKey.startsWith("AQ_FALLBACK_")) {
     return {
       provider: "gemini" as const,
       key: geminiKey,
@@ -235,6 +253,9 @@ async function callAIApi(systemPrompt: string, provider: "gemini" | "openrouter"
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
+        // 🔁 Model default agar OpenRouter gratis tetap jalan di Kran 1;
+        // dapat ditimpa lewat founder_config "openrouter_model_default".
+        model: (await getFounderConfig("openrouter_model_default")) || "openai/gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: systemPrompt },
@@ -270,14 +291,36 @@ async function callAIApiWithFailover(systemPrompt: string, provider: "gemini" | 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const isRateLimit = errorMessage.includes("RATE_LIMIT_429");
-    
-    // Jika kran 1 kena rate limit, langsung switch ke kran 2
+
+    // 🔁 Jika key GRATIS kena rate-limit, JANGAN langsung lompat ke paid.
+    // Coba SEMUA key gratis lain (getNextKran1Key round-robin) dulu, baru
+    // fallback ke Kran 2 (berbayar). Ini mencegah paid terpicu saat key
+    // gratis lain masih mampu — sesuai keinginan Founder agar tagihan
+    // diminimalkan. Transparan ke user (tidak ada error di dashboard).
     if (isRateLimit && !isPaidKey) {
-      console.warn("Kran 1 rate limit detected, switching to Kran 2 (paid)...");
-      const kran2Key = await loadKran2Key();
-      if (kran2Key) {
+      // Coba beberapa key gratis lain (maksimal jumlah Kran 1).
+      const maxFreeTries = Math.max(1, kran1Keys.length);
+      for (let i = 0; i < maxFreeTries; i++) {
+        const nextFree = await getNextKran1Key();
+        if (!nextFree) break;
+        if (nextFree.key === apiKey) continue; // sudah dicoba
         try {
-          const result = await callAIApi(systemPrompt, kran2Key.provider, kran2Key.key);
+          const result = await callAIApi(systemPrompt, nextFree.provider, nextFree.key);
+          console.warn(`Kran 1 switched to next free key (${nextFree.provider}) - success`);
+          return result;
+        } catch (nextErr) {
+          const nm = nextErr instanceof Error ? nextErr.message : String(nextErr);
+          if (nm.includes("RATE_LIMIT_429")) continue; // coba key gratis berikutnya
+          throw nextErr; // error non-rate-limit → berhenti
+        }
+      }
+
+      // SEMUA key gratis gagal → baru fallback ke Kran 2 (berbayar).
+      console.warn("Semua Kran 1 (free) gagal, fallback ke Kran 2 (paid)...");
+      const kran2 = await loadKran2Key();
+      if (kran2) {
+        try {
+          const result = await callAIApi(systemPrompt, kran2.provider, kran2.key);
           console.warn("Kran 2 (paid) success - failover activated");
           return result;
         } catch (kran2Error) {
@@ -286,7 +329,7 @@ async function callAIApiWithFailover(systemPrompt: string, provider: "gemini" | 
         }
       }
     }
-    
+
     throw error;
   }
 }
@@ -596,7 +639,10 @@ export async function PUT(request: Request) {
     const { action, keys } = body;
 
     if (action === "add_keys" && Array.isArray(keys)) {
-      const validKeys = keys.filter((k: string) => k && k.trim().length > 0 && k.trim().startsWith("AIza"));
+            const validKeys = keys.filter((k: string) => {
+        const trimmed = (k ?? "").trim();
+        return trimmed.length > 0 && /^(AIza|AQ\.)/.test(trimmed);
+      });
       
       const existingRaw = await getFounderConfig("gemini_api_keys_free");
       let existing: string[] = [];

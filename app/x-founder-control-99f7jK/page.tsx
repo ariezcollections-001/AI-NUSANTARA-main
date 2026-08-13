@@ -47,6 +47,13 @@ export default function FounderDashboard() {
   const [newVaultType, setNewVaultType] = useState<"gemini" | "openrouter">("gemini");
   const [editingKey, setEditingKey] = useState<{ type: "gemini" | "openrouter"; index: number; value: string } | null>(null);
 
+  // 💳 KEY BERBAYAR (Cadangan) — disimpan TERPISAH dari kolom gratis agar tidak
+  // tercampur. Hanya dipakai bila SEMUA key gratis gagal (menghindari tagihan
+  // saat pengguna hanya sedikit).
+  const [paidGeminiKey, setPaidGeminiKey] = useState("");
+  const [paidOpenRouterKey, setPaidOpenRouterKey] = useState("");
+  const [paidSaving, setPaidSaving] = useState(false);
+
   // live users and credit guard state
   const [liveUsers, setLiveUsers] = useState<User[]>([]);
   const [creditPauseActive, _setCreditPauseActive] = useState(false);
@@ -186,6 +193,9 @@ export default function FounderDashboard() {
       if (map.price_per_1k !== undefined) setPrice(map.price_per_1k);
       if (map.gemini_api_key) setGeminiKey(map.gemini_api_key);
       if (map.openrouter_api_key) setOpenRouterKey(map.openrouter_api_key);
+      // 💳 Load key BERBAYAR (cadangan) — kolom terpisah dari gratis
+      if (map.gemini_api_key_paid) setPaidGeminiKey(map.gemini_api_key_paid);
+      if (map.openrouter_api_key_paid) setPaidOpenRouterKey(map.openrouter_api_key_paid);
 
       // Vault keys from cloud ledger
       if (map.vault_keys) {
@@ -327,6 +337,31 @@ export default function FounderDashboard() {
       alert('API key telah dihapus dari Vault.');
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Gagal menghapus API key dari cloud.');
+    }
+  }
+
+  // 💳 SIMPAN KEY BERBAYAR (Cadangan) — ke founder_config, kolom terpisah.
+  // Tidak pernah tercampur ke pool gratis. Dibaca backend Kran 2 sebagai
+  // failover terakhir jika semua key gratis gagal.
+  async function savePaidKeys() {
+    if (!paidGeminiKey.trim() && !paidOpenRouterKey.trim()) {
+      return alert('Masukkan setidaknya satu API key berbayar (Gemini atau OpenRouter).');
+    }
+    setPaidSaving(true);
+    try {
+      if (paidGeminiKey.trim()) {
+        await postConfig('gemini_api_key_paid', paidGeminiKey.trim());
+        try { localStorage.setItem('founder_config_gemini_api_key_paid', paidGeminiKey.trim()); } catch {}
+      }
+      if (paidOpenRouterKey.trim()) {
+        await postConfig('openrouter_api_key_paid', paidOpenRouterKey.trim());
+        try { localStorage.setItem('founder_config_openrouter_api_key_paid', paidOpenRouterKey.trim()); } catch {}
+      }
+      alert('✅ API key BERBAYAR (cadangan) berhasil disimpan terpisah. Hanya dipakai saat semua key gratis gagal.');
+    } catch (e) {
+      alert('Gagal menyimpan key berbayar: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setPaidSaving(false);
     }
   }
 
@@ -567,13 +602,30 @@ export default function FounderDashboard() {
           return;
         }
 
-        const { data: profileData, error: profileError } = await supabase
-          .from("founder")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle<{ role: string }>();
+        let okFounder = false;
+        // 1) Coba tabel `founder` (primer) — jika belum dibuat, lanjut ke users
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from("founder")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle<{ role: string }>();
+          if (!profileError && profileData?.role === "founder") okFounder = true;
+        } catch { /* tabel founder belum ada */ }
 
-        if (profileError || profileData?.role !== "founder") {
+        // 2) Fallback ke tabel `users` (role = founder)
+        if (!okFounder) {
+          try {
+            const { data: userProfile, error: userProfileError } = await supabase
+              .from("users")
+              .select("role")
+              .eq("id", user.id)
+              .maybeSingle<{ role: string }>();
+            if (!userProfileError && userProfile?.role === "founder") okFounder = true;
+          } catch { /* abaikan */ }
+        }
+
+        if (!okFounder) {
           router.push("/dashboard");
           return;
         }
@@ -1187,6 +1239,44 @@ export default function FounderDashboard() {
                       ))}
                       {vaultKeys.openrouter.length === 0 && <div className="text-xs text-slate-500">Belum ada OpenRouter key tersimpan.</div>}
                     </div>
+                  </div>
+                </div>
+
+                {/* 💳 KEY BERBAYAR (Cadangan) — kolom terpisah, TIDAK tercampur gratis */}
+                <div className="mt-4 bg-slate-900 p-4 rounded-3xl border border-amber-500/40">
+                  <div className="flex items-center gap-2 border-b border-amber-700/40 pb-2 mb-3">
+                    <span className="text-lg">💳</span>
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.3em] text-amber-400 font-bold">KEY BERBAYAR (CADANGAN)</div>
+                      <div className="text-[11px] text-slate-400">Kolom terpisah — hanya dipakai bila SEMUA key gratis gagal, agar tagihan diminimalkan.</div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm text-slate-300">Gemini Berbayar</label>
+                      <input
+                        value={paidGeminiKey}
+                        onChange={(e) => setPaidGeminiKey(e.target.value)}
+                        placeholder="Masukkan Gemini API key berbayar (cadangan)..."
+                        className="w-full mt-1 bg-slate-950 border border-slate-800 rounded p-3 text-sm text-slate-100 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-300">OpenRouter Berbayar</label>
+                      <input
+                        value={paidOpenRouterKey}
+                        onChange={(e) => setPaidOpenRouterKey(e.target.value)}
+                        placeholder="Masukkan OpenRouter API key berbayar (cadangan)..."
+                        className="w-full mt-1 bg-slate-950 border border-slate-800 rounded p-3 text-sm text-slate-100 font-mono"
+                      />
+                    </div>
+                    <button
+                      onClick={savePaidKeys}
+                      disabled={paidSaving}
+                      className="w-full py-3 bg-amber-500 text-slate-950 font-bold rounded-xl hover:bg-amber-600 transition-all disabled:opacity-50"
+                    >
+                      {paidSaving ? '💾 Menyimpan...' : '💾 SIMPAN KEY BERBAYAR (CADANGAN)'}
+                    </button>
                   </div>
                 </div>
 

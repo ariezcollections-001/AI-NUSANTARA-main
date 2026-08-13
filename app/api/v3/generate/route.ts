@@ -38,7 +38,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/url";
-import { getVaultKeys } from "@/lib/aiVault";
+import { getFreeKeyPool, getPaidKeyPool, blockKey, type KeyProvider, type RotatingKey } from "@/lib/aiVault";
 
 export const runtime = "edge";
 
@@ -224,7 +224,7 @@ function resolveProvider(model?: string): ResolvedModel {
   if (trimmed.toLowerCase().startsWith("openrouter/")) {
     return { provider: "openrouter", modelName: trimmed.slice("openrouter/".length) };
   }
-  return { provider: "gemini", modelName: trimmed ? trimmed : "gemini-1.5-flash" };
+      return { provider: "gemini", modelName: trimmed ? trimmed : "gemini-flash-lite-latest" };
 }
 
 function sseData(payload: Record<string, unknown>): Uint8Array {
@@ -285,40 +285,39 @@ export async function POST(request: Request) {
     );
   }
 
-    /* 4. Resolve provider + upstream key. */
+    /* 4. Resolve provider + rotasi key.
+   * 🔁 ROTATOR: pool GRATIS (Gemini + OpenRouter) dipakai dulu, round-robin.
+   *    PAID hanya dipakai bila SEMUA free exhausted, dan otomatis balik ke
+   *    free begitu free pulih. Transparan — dashboard user tidak terganggu. */
   const { provider, modelName } = resolveProvider(model);
 
-  // 🔴 Resolve upstream keys from Founder Vault (Supabase founder_config via admin)
-  //    — single source of truth, survivals refresh/logout, shared on Vercel.
-  //    Env vars dipakai hanya sebagai fallback terakhir.
-  const vault = await getVaultKeys();
-  const geminiKey =
-    vault.gemini.find((k) => k.length > 10) ||
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_GEMINI_API_KEY ||
-    "";
-  const openRouterKey =
-    vault.openrouter.find((k) => k.length > 10) ||
-    process.env.OPENROUTER_API_KEY ||
-    "";
+  // Kolam free (semua key gratis — kedua provider) + cadangan paid.
+  const freePool = await getFreeKeyPool();
+  const paidPool = await getPaidKeyPool();
+
+  // Urutkan kandidat: free dulu (provider asli request), lalu paid cadangan.
+  const forcedProvider: KeyProvider | null = provider === "gemini" ? "gemini" : provider === "openrouter" ? "openrouter" : null;
+  const candidates: RotatingKey[] = [
+    ...freePool.filter((c) => forcedProvider ? c.provider === forcedProvider : true),
+    ...paidPool,
+  ];
+
+  // Jaring pengaman: jika tidak ada key dari provider yang diminta, izinkan
+  // provider lain agar transparan ke user tetap jalan.
+  const effective = candidates.length
+    ? candidates
+    : [...freePool, ...paidPool];
+
+  if (effective.length === 0) {
+    return NextResponse.json(
+      { error: "Tidak ada API key AI yang tersedia di Vault Founder." },
+      { status: 503 },
+    );
+  }
 
   try {
-    if (provider === "gemini") {
-      return await streamFromGemini({
-        apiKey: geminiKey,
-        modelName,
-        systemInstruction: buildSystemInstruction(feature, message, user.email ?? ""),
-        message,
-        temperature,
-        maxTokens,
-        signal: request.signal,
-        user,
-        currentBalance,
-      });
-    }
-
-    return await streamFromOpenRouter({
-      apiKey: openRouterKey,
+    return await streamWithRotation({
+      keyPool: effective,
       modelName,
       systemInstruction: buildSystemInstruction(feature, message, user.email ?? ""),
       message,
@@ -335,10 +334,10 @@ export async function POST(request: Request) {
   }
 }
 
-/* Provider: Google Gemini (via @google/generative-ai SDK). */
+/* Provider: Google Gemini + OpenRouter (unified rotation). */
 
-interface GeminiDeps {
-  apiKey: string;
+interface RotationDeps {
+  keyPool: RotatingKey[];
   modelName: string;
   systemInstruction: string;
   message: string;
@@ -347,23 +346,23 @@ interface GeminiDeps {
   signal: AbortSignal;
   user: AuthenticatedUser;
   currentBalance: number;
+  appUrl: string;
 }
 
-async function streamFromGemini(deps: GeminiDeps): Promise<Response> {
-  const { apiKey, modelName, systemInstruction, message, temperature, maxTokens, signal, user, currentBalance } = deps;
-
-  if (!apiKey) {
-    return NextResponse.json({ error: "Kunci API Gemini belum dikonfigurasi di environment server." }, { status: 503 });
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: modelName });
-
-  const geminiStream = await model.generateContentStream({
-    systemInstruction,
-    contents: [{ role: "user", parts: [{ text: message }] }],
-    generationConfig: { temperature, maxOutputTokens: maxTokens, topP: 0.95 },
-  });
+/**
+ * 🔁 Unified streaming dengan rotasi key lintas-provider.
+ *
+ * Mencoba setiap key pada titik SETUP (tempat 401/429 biasanya muncul):
+ *   - Gemini  : `generateContentStream()` melempar pd saat dipanggil.
+ *   - OpenRouter : fetch REST -> cek status sebelum membuka stream.
+ * Bila satu key kena 401/429 -> `blockKey()` (cooldown 60s) lalu lanjut ke
+ * key berikutnya di pool (free dulu, paid cadangan). Transparan ke user.
+ */
+async function streamWithRotation(deps: RotationDeps): Promise<Response> {
+  const {
+    keyPool, modelName, systemInstruction, message,
+    temperature, maxTokens, signal, user, currentBalance, appUrl,
+  } = deps;
 
   const encoder = new TextEncoder();
   let closed = false;
@@ -374,34 +373,134 @@ async function streamFromGemini(deps: GeminiDeps): Promise<Response> {
   const eventStream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let outputCharacters = 0;
+      let lastError = "";
+
       try {
-        for await (const chunk of geminiStream.stream) {
+        // ── Coba setiap key sampai satu berhasil SETUP ─────────────────────
+        for (const candidate of keyPool) {
           if (signal.aborted) break;
-          const token = chunk.text();
-          if (token) {
-            outputCharacters += token.length;
-            if (!closed) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: token })}\n\n`));
+
+          try {
+            if (candidate.provider === "gemini") {
+              const genAI = new GoogleGenerativeAI(candidate.key);
+              const model = genAI.getGenerativeModel({ model: modelName });
+              const geminiStream = await model.generateContentStream({
+                systemInstruction,
+                contents: [{ role: "user", parts: [{ text: message }] }],
+                generationConfig: { temperature, maxOutputTokens: maxTokens, topP: 0.95 },
+              });
+
+              // Streaming sukses → kirim token + monetisasi
+              for await (const chunk of geminiStream.stream) {
+                if (signal.aborted) break;
+                const token = chunk.text();
+                if (token) {
+                  outputCharacters += token.length;
+                  if (!closed) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: token })}\n\n`));
+                }
+              }
+            } else {
+              // OpenRouter — OpenAI-compatible streaming REST
+              const orResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                signal,
+                headers: {
+                  Authorization: `Bearer ${candidate.key}`,
+                  "Content-Type": "application/json",
+                  "HTTP-Referer": appUrl,
+                  "X-Title": "AI-Nusantara v3 Engine",
+                },
+                body: JSON.stringify({
+                  model: modelName,
+                  stream: true,
+                  temperature,
+                  max_tokens: maxTokens,
+                  messages: [
+                    { role: "system", content: systemInstruction },
+                    { role: "user", content: message },
+                  ],
+                }),
+              });
+
+              if (orResponse.status === 401 || orResponse.status === 429) {
+                throw Object.assign(new Error(`OpenRouter ${orResponse.status}`), { status: orResponse.status });
+              }
+              if (!orResponse.ok) {
+                const errBody = await orResponse.text().catch(() => "");
+                throw new Error(`OpenRouter menolak (${orResponse.status}): ${errBody}`);
+              }
+
+              const reader = orResponse.body?.getReader();
+              if (!reader) throw new Error("OpenRouter tidak mendukung streaming.");
+              const decoder = new TextDecoder();
+              let buffer = "";
+              for (;;) {
+                if (signal.aborted) break;
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value ?? new Uint8Array(), { stream: true });
+                let frameEnd = buffer.indexOf("\n\n");
+                while (frameEnd >= 0) {
+                  const frame = buffer.slice(0, frameEnd).trim();
+                  buffer = buffer.slice(frameEnd + 2);
+                  frameEnd = buffer.indexOf("\n\n");
+                  if (!frame.startsWith("data:")) continue;
+                  const dataStr = frame.slice(5).trim();
+                  if (dataStr === "[DONE]") continue;
+                  try {
+                    const payload = JSON.parse(dataStr) as {
+                      choices?: Array<{ delta?: { content?: string } }>;
+                    };
+                    const delta = payload?.choices?.[0]?.delta?.content;
+                    if (typeof delta === "string" && delta) {
+                      outputCharacters += delta.length;
+                      if (!closed) controller.enqueue(sseData({ text: delta }));
+                    }
+                  } catch {
+                    /* abaikan frame SSE rusak */
+                  }
+                }
+              }
+              reader.releaseLock?.();
+            }
+
+            // ── Berhasil → deduksi saldo + done frame ──────────────────
+            if (!closed && !signal.aborted) {
+              const inputCharacters = message.length;
+              const totalDeducted = inputCharacters + outputCharacters;
+              const remaining = await deductCharacterBalance(user.id, totalDeducted, currentBalance);
+              const monetization: MonetizationResult = {
+                input_characters: inputCharacters,
+                output_characters: outputCharacters,
+                total_deducted: totalDeducted,
+                previous_balance: currentBalance,
+                remaining_balance: remaining ?? currentBalance,
+                balance_updated: remaining !== null,
+              };
+              controller.enqueue(sseData({ type: "done", monetization }));
+            }
+            return; // selesai — hentikan pencarian key
+
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            const status =
+              (err as { status?: number })?.status ||
+              (/401/.test(errMsg) ? 401 : /429|rate.?limit|quota/i.test(errMsg) ? 429 : 0);
+
+            if (status === 401 || status === 429) {
+              blockKey(candidate.provider, candidate.key);
+              lastError = `Key ${candidate.provider} ditolak (${status}) — dicoba key berikutnya`;
+              continue; // lanjut ke key berikutnya di pool
+            }
+            // Error non-rate-limit: hentikan loop, lapor ke user
+            lastError = errMsg;
+            break;
           }
         }
 
+        // Semua key gagal → kirim error frame
         if (!closed && !signal.aborted) {
-          const inputCharacters = message.length;
-          const totalDeducted = inputCharacters + outputCharacters;
-          const remaining = await deductCharacterBalance(user.id, totalDeducted, currentBalance);
-          const monetization: MonetizationResult = {
-            input_characters: inputCharacters,
-            output_characters: outputCharacters,
-            total_deducted: totalDeducted,
-            previous_balance: currentBalance,
-            remaining_balance: remaining ?? currentBalance,
-            balance_updated: remaining !== null,
-          };
-          controller.enqueue(sseData({ type: "done", monetization }));
-        }
-      } catch (err) {
-        if (!closed && !signal.aborted) {
-          const msg = err instanceof Error ? err.message : String(err);
-          controller.enqueue(sseData({ type: "error", error: msg }));
+          controller.enqueue(sseData({ type: "error", error: lastError || "Semua API key AI gagal." }));
         }
       } finally {
         signal.removeEventListener("abort", abortHandler);
