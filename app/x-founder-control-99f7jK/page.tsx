@@ -90,6 +90,12 @@ export default function FounderDashboard() {
   const [liveUsers, setLiveUsers] = useState<User[]>([]);
   const [creditPauseActive, _setCreditPauseActive] = useState(false);
 
+  // 🔴 REAL-TIME METRICS (Supabase live pipelines)
+  const [totalAccounts, setTotalAccounts] = useState<number>(0);
+  const [liveSessionCount, setLiveSessionCount] = useState<number>(0);
+  const [openTicketCount, setOpenTicketCount] = useState<number>(0);
+  const [totalOmzet, setTotalOmzet] = useState<number>(0);
+
   // 💬 Live Chat CS Room state
   const [showChatCSModal, setShowChatCSModal] = useState(false);
   const [chatTickets] = useState<ChatTicket[]>(MOCK_CHAT_TICKETS);
@@ -166,6 +172,9 @@ export default function FounderDashboard() {
             if (storedGeminiKeys) setVaultKeys((prev) => ({ ...prev, gemini: JSON.parse(storedGeminiKeys) }));
             if (storedOpenRouterKeys) setVaultKeys((prev) => ({ ...prev, openrouter: JSON.parse(storedOpenRouterKeys) }));
 
+            // 🔴 LOAD CONFIG FROM CLOUD (Supabase founder_config) — real production source of truth
+            void loadCloudConfigs();
+
             // Load config hub values from localStorage
             const keys = ['package_pemula_price', 'package_pemula_chars', 'package_pro_price', 'package_pro_chars', 'package_founder_price', 'package_founder_chars', 'max_input_chars', 'qris_enabled', 'platform_name', 'platform_logo', 'seo_hashtags'];
             setConfigHub((prev) => {
@@ -184,11 +193,72 @@ export default function FounderDashboard() {
     }
   }
 
+  // 🔴 LOAD PRODUCTION CONFIG FROM CLOUD (Supabase founder_config) — source of truth
+  async function loadCloudConfigs() {
+    try {
+      const { data, error } = await supabase
+        .from("founder_config")
+        .select("key_name,key_value");
+      if (error || !Array.isArray(data)) return;
+      const map: Record<string, string> = {};
+      (data as Array<{ key_name: string; key_value: string | null }>).forEach((row) => {
+        if (row?.key_name) map[row.key_name] = row.key_value ?? "";
+      });
+
+      if (map.global_maintenance_mode !== undefined) setMaintenance(map.global_maintenance_mode === "true");
+      if (map.free_quota !== undefined) setQuota(map.free_quota);
+      if (map.price_per_1k !== undefined) setPrice(map.price_per_1k);
+      if (map.gemini_api_key) setGeminiKey(map.gemini_api_key);
+      if (map.openrouter_api_key) setOpenRouterKey(map.openrouter_api_key);
+
+      // Vault keys from cloud ledger
+      if (map.vault_keys) {
+        try {
+          const parsed = JSON.parse(map.vault_keys);
+          if (parsed && typeof parsed === "object") {
+            setVaultKeys({
+              gemini: Array.isArray(parsed.gemini) ? parsed.gemini : [],
+              openrouter: Array.isArray(parsed.openrouter) ? parsed.openrouter : [],
+            });
+          }
+        } catch {
+          // ignore malformed vault data
+        }
+      }
+
+      // Config hub values from cloud
+      const hubKeys = [
+        "package_pemula_price", "package_pemula_chars", "package_pro_price",
+        "package_pro_chars", "package_founder_price", "package_founder_chars",
+        "max_input_chars", "qris_enabled", "platform_name", "platform_logo", "seo_hashtags",
+      ];
+      setConfigHub((prev) => {
+        const next = { ...prev };
+        hubKeys.forEach((k) => {
+          if (map[k] !== undefined) (next as Record<string, string>)[k] = map[k];
+        });
+        return next;
+      });
+      if (map.platform_logo) setLogoPreview(map.platform_logo);
+    } catch {
+      // ignore — fall back to localStorage
+    }
+  }
+
   function saveVaultKeys(next: { gemini: string[]; openrouter: string[] }) {
     try {
       setVaultKeys(next);
       localStorage.setItem('founder_keys_gemini', JSON.stringify(next.gemini));
       localStorage.setItem('founder_keys_openrouter', JSON.stringify(next.openrouter));
+      // 🔴 Persist to Supabase vault ledger
+      try {
+        void supabase.from('founder_config').upsert(
+          { key_name: 'vault_keys', key_value: JSON.stringify(next) },
+          { onConflict: 'key_name' }
+        );
+      } catch {
+        // ignore — local already saved
+      }
     } catch {
       // ignore
     }
@@ -327,6 +397,136 @@ export default function FounderDashboard() {
     }
   }
 
+  // 🔴 REAL-TIME METRICS: total akun, tiket aktif, omzet (Supabase live query)
+  async function loadRealtimeMetrics() {
+    try {
+      // 1) TOTAL AKUN — count all rows in users table
+      const { count: accountCount, error: accountError } = await supabase
+        .from("users")
+        .select("*", { count: "exact", head: true });
+      if (!accountError) setTotalAccounts(Number(accountCount) || 0);
+
+      // 2) TIKET AKTIF — count open/unresolved support_tickets
+      const { count: ticketCount, error: ticketError } = await supabase
+        .from("support_tickets")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["open", "unresolved"]);
+      if (!ticketError) setOpenTicketCount(Number(ticketCount) || 0);
+
+      // 3) TOTAL OMZET — sum successful transactions
+      const { data: txRows, error: txError } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("status", "success");
+      if (!txError && Array.isArray(txRows)) {
+        const sum = txRows.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+        setTotalOmzet(sum);
+      }
+    } catch {
+      // ignore — metrics stay at fallback values
+    }
+  }
+
+  // Format angka ke format Rupiah (tanpa desimal)
+  function formatRupiah(value: number): string {
+    const safe = Number(value) || 0;
+    const formatted = new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(safe);
+    return formatted.replace(/\s/g, "");
+  }
+
+  // 🔴 SUPABASE REALTIME CHANNELS — live presence + table subscriptions
+  useEffect(() => {
+    let active = true;
+    const channels: Array<ReturnType<typeof supabase.channel>> = [];
+
+    // Initial live load
+    void loadRealtimeMetrics();
+
+    // Presence channel (LIVE MONITOR): count connected device sessions
+    const presenceChannel = supabase.channel("presence:founder-monitor");
+    const syncPresence = () => {
+      if (!active) return;
+      const state = presenceChannel.presenceState();
+      const count = Object.keys(state || {}).length;
+      setLiveSessionCount(count);
+    };
+    presenceChannel
+      .on("presence", { event: "sync" }, syncPresence)
+      .on("presence", { event: "join" }, syncPresence)
+      .on("presence", { event: "leave" }, syncPresence)
+      .subscribe((status) => {
+        if (active && status === "SUBSCRIBED") {
+          void presenceChannel.track({ online_at: new Date().toISOString() });
+        }
+      });
+    channels.push(presenceChannel);
+
+    // users table subscription (recount total akun live)
+    const usersChannel = supabase
+      .channel("founder-users-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        () => {
+          if (!active) return;
+          void loadRealtimeMetrics();
+        }
+      )
+      .subscribe();
+    channels.push(usersChannel);
+
+    // support_tickets subscription (recount tiket live)
+    const ticketsChannel = supabase
+      .channel("founder-tickets-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "support_tickets" },
+        () => {
+          if (!active) return;
+          void loadRealtimeMetrics();
+        }
+      )
+      .subscribe();
+    channels.push(ticketsChannel);
+
+    // transactions subscription (omzet live)
+    const txChannel = supabase
+      .channel("founder-tx-changes")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "transactions" },
+        () => {
+          if (!active) return;
+          void loadRealtimeMetrics();
+        }
+      )
+      .subscribe();
+    channels.push(txChannel);
+
+    // Regular polling fallback (30s) in case realtime is unavailable
+    const iv = setInterval(() => {
+      if (!active) return;
+      void loadRealtimeMetrics();
+    }, 30000);
+
+    return () => {
+      active = false;
+      clearInterval(iv);
+      channels.forEach((c) => {
+        try {
+          void supabase.removeChannel(c);
+        } catch {
+          // ignore
+        }
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const protectFounderPanel = async () => {
       try {
@@ -405,27 +605,54 @@ export default function FounderDashboard() {
     const next = !maintenance;
     setMaintenance(next);
     await postConfig('global_maintenance_mode', next ? 'true' : 'false');
-    alert('Perubahan Global Maintenance Mode tersimpan (local).');
+    // 🔴 Native Supabase mutation — lock maintenance mode into cloud DB
+    try {
+      await supabase.from('founder_config').upsert(
+        { key_name: 'global_maintenance_mode', key_value: next ? 'true' : 'false' },
+        { onConflict: 'key_name' }
+      );
+      alert('Perubahan Global Maintenance Mode tersimpan ke cloud.');
+    } catch {
+      alert('Perubahan Global Maintenance Mode tersimpan (local).');
+    }
   }
 
   async function applyQuota() {
     const value = String(Number(quota) || 0);
     await postConfig('free_quota', value);
-    alert('Batas kuota berhasil diperbarui (local).');
+    // 🔴 Native Supabase mutation — lock kuota into cloud DB
+    try {
+      await supabase.from('founder_config').upsert(
+        { key_name: 'free_quota', key_value: value },
+        { onConflict: 'key_name' }
+      );
+      alert('Batas kuota berhasil diperbarui ke cloud.');
+    } catch {
+      alert('Batas kuota berhasil diperbarui (local).');
+    }
   }
 
   async function applyPrice() {
     const value = String(Number(price) || 0);
     await postConfig('price_per_1k', value);
-    alert('Harga paket berhasil diperbarui (local).');
+    // 🔴 Native Supabase mutation — lock harga into cloud DB
+    try {
+      await supabase.from('founder_config').upsert(
+        { key_name: 'price_per_1k', key_value: value },
+        { onConflict: 'key_name' }
+      );
+      alert('Harga paket berhasil diperbarui ke cloud.');
+    } catch {
+      alert('Harga paket berhasil diperbarui (local).');
+    }
   }
 
   async function applyKeys() {
     if (!geminiKey && !openRouterKey) return alert('Masukkan setidaknya satu API key untuk diperbarui.');
-    if (geminiKey) await postConfig('gemini_api_key', geminiKey);
-    if (openRouterKey) await postConfig('openrouter_api_key', openRouterKey);
+    if (geminiKey) { await postConfig('gemini_api_key', geminiKey); try { await supabase.from('founder_config').upsert({ key_name: 'gemini_api_key', key_value: geminiKey }, { onConflict: 'key_name' }); } catch {} }
+    if (openRouterKey) { await postConfig('openrouter_api_key', openRouterKey); try { await supabase.from('founder_config').upsert({ key_name: 'openrouter_api_key', key_value: openRouterKey }, { onConflict: 'key_name' }); } catch {} }
     setGeminiKey(''); setOpenRouterKey('');
-    alert('Kunci API berhasil diperbarui dan disimpan secara lokal.');
+    alert('Kunci API berhasil diperbarui dan disimpan ke cloud.');
   }
 
   async function performUserAction(action: string, userId: string, amount?: number) {
@@ -694,12 +921,12 @@ export default function FounderDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6">
           <button onClick={() => openModal('all')} className="group bg-slate-900 p-5 rounded-3xl border border-slate-800 hover:border-emerald-500 transition-all cursor-pointer text-left">
             <div className="text-xs uppercase tracking-[0.3em] text-emerald-400">📊 TOTAL AKUN TERDAFTAR</div>
-            <div className="mt-3 text-4xl font-bold text-slate-100 animate-pulse">{activeUsers.length}</div>
+            <div className="mt-3 text-4xl font-bold text-slate-100 animate-pulse">{totalAccounts || activeUsers.length}</div>
             <div className="mt-2 text-xs text-slate-500">Klik untuk melihat semua akun dan interaksi manajemen real-time.</div>
           </button>
           <button onClick={() => openModal('live')} className="group bg-slate-900 p-5 rounded-3xl border border-slate-800 hover:border-sky-500 transition-all cursor-pointer text-left">
             <div className="text-xs uppercase tracking-[0.3em] text-sky-400">🟢 LIVE MONITOR</div>
-            <div className="mt-3 text-4xl font-bold text-emerald-300 animate-pulse">{onlineUsers.length} USER</div>
+            <div className="mt-3 text-4xl font-bold text-emerald-300 animate-pulse">{liveSessionCount || onlineUsers.length} USER</div>
             <div className="mt-2 text-xs text-slate-500">Klik untuk melihat siapa yang aktif dalam 5 menit terakhir.</div>
           </button>
         </div>
@@ -796,7 +1023,7 @@ export default function FounderDashboard() {
               <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4">
                 <div>
                   <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Live Monitor Online</div>
-                  <div className="text-lg font-bold text-white">{onlineUsers.length} User Aktif</div>
+                  <div className="text-lg font-bold text-white">{liveSessionCount || onlineUsers.length} User Aktif</div>
                 </div>
                 <button onClick={() => setShowLiveMonitorModal(false)} className="text-slate-300 hover:text-white">Tutup</button>
               </div>
@@ -1031,7 +1258,7 @@ export default function FounderDashboard() {
           <div className="flex items-center gap-2 border-b border-cyan-800 pb-3">
             <span className="text-xl">💬</span>
             <h3 className="text-md font-bold tracking-wide text-cyan-300">RUANG KENDALI LIVE CHAT CS</h3>
-            <span className="ml-auto text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full">{chatTickets.length} Tiket Aktif</span>
+            <span className="ml-auto text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full">{openTicketCount} Tiket Aktif</span>
           </div>
           <p className="text-sm text-slate-400">Klik untuk membuka panel Live Chat CS. Pantau tiket aduan user, lihat riwayat chat, dan ambil alih secara manual.</p>
           <div className="flex justify-end">
@@ -1354,7 +1581,7 @@ export default function FounderDashboard() {
           <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-2 shadow-xl">
             <div className="text-2xl">💰</div>
             <h2 className="text-sm font-medium text-slate-400">Total Omzet Live (QRIS)</h2>
-            <p className="text-2xl font-bold text-emerald-400 pt-2 font-mono">Rp134.500.000</p>
+            <p className="text-2xl font-bold text-emerald-400 pt-2 font-mono">{formatRupiah(totalOmzet)}</p>
             <p className="text-[10px] text-slate-500 font-mono">Auto-Sync dengan Midtrans</p>
           </div>
 

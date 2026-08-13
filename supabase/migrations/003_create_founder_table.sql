@@ -24,6 +24,13 @@ CREATE INDEX IF NOT EXISTS idx_founder_role  ON public.founder (role);
 
 -- ----------------------------------------------------------------------------
 -- UPDATE: is_founder() — cek BOTH users table AND founder table
+--
+-- PERBAIKAN AUDIT: sebelumnya query asli menulis:
+--     SELECT 1 FROM auth.users WHERE id = auth.uid() AND role = 'founder'
+--   Padahal kolom `role` TIDAK ADA di `auth.users` — kolom tsb ada di
+--   `public.users`. Akibatnya fungsi ini selalu ERROR saat dipanggil oleh
+--   policy RLS manapun, sehingga dashboard founder / akses autentikasi
+--   menjadi rusak total. Diperbaiki menjadi `public.users`.
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.is_founder()
 RETURNS BOOLEAN
@@ -33,7 +40,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM auth.users
+    SELECT 1 FROM public.users
     WHERE id = auth.uid() AND role = 'founder'
   )
   OR EXISTS (

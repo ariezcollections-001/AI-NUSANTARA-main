@@ -10,24 +10,6 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- -----------------------------------------------------------------------------
--- HELPER: cek apakah user saat ini adalah founder
--- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.is_founder()
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.users
-    WHERE id = auth.uid()
-      AND role = 'founder'
-  );
-$$;
-
--- -----------------------------------------------------------------------------
 -- TABLE: users
 -- Profil pengguna terhubung ke auth.users (Supabase Auth)
 -- -----------------------------------------------------------------------------
@@ -45,6 +27,26 @@ COMMENT ON TABLE public.users IS 'Profil pengguna AI-NUSANTARA dengan saldo kara
 
 CREATE INDEX IF NOT EXISTS idx_users_role ON public.users (role);
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users (email);
+
+-- -----------------------------------------------------------------------------
+-- HELPER: cek apakah user saat ini adalah founder
+-- (Ditempatkan SETELAH tabel users dibuat — fungsi ini memvalidasi isi body
+--  saat CREATE FUNCTION, sehingga tabel users harus sudah ada terlebih dahulu.)
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.is_founder()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.users
+    WHERE id = auth.uid()
+      AND role = 'founder'
+  );
+$$;
 
 -- -----------------------------------------------------------------------------
 -- TABLE: ai_settings
@@ -344,7 +346,7 @@ INSERT INTO public.founder_config (key_name, key_value) VALUES
   ('adsense_script',                ''),
   ('broadcast_banner',              ''),
   ('referral_bonus_characters',     '50000')
-ON CONFLICT (key_name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- SEED DATA — Paket Top-Up Default (MASTER_PLAN.md)
@@ -353,7 +355,7 @@ INSERT INTO public.pricing_packages (package_name, price, character_amount, is_v
   ('Paket Pemula',     15000,  100000, TRUE),
   ('Paket Produktif',  35000,  300000, TRUE),
   ('Paket Bisnis',     75000,  800000, TRUE)
-ON CONFLICT (package_name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- SEED DATA — 11 Fitur AI Nusantara
@@ -447,7 +449,7 @@ INSERT INTO public.ai_settings (feature_slug, feature_name, system_prompt, tempe
   'Generator Teks Iklan FB/Google/TikTok Ads | AI-NUSANTARA',
   'Buat teks iklan digital CTR tinggi untuk FB Ads, Google Ads, TikTok Ads dengan AI-NUSANTARA.'
 )
-ON CONFLICT (feature_slug) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- GRANTS — izinkan akses schema public untuk role Supabase standar
