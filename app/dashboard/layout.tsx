@@ -221,6 +221,38 @@ export default function DashboardLayout({
     return () => { active = false; clearInterval(iv); };
   }, []);
 
+  // 🔴 SALDO REAL-TIME: dengarkan event dari komponen generate agar saldo
+  // langsung berkurang di UI user tanpa perlu reload halaman.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<number>).detail;
+      if (typeof detail === "number" && detail >= 0) {
+        setCharacterBalance(detail);
+        try { localStorage.setItem("ai_nusantara_balance", String(detail)); } catch {}
+      } else {
+        // Refresh dari DB sebagai sumber kebenaran.
+        const refresh = async () => {
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user?.id) return;
+          const { data: row } = await supabase
+            .from("users")
+            .select("character_balance")
+            .eq("id", user.id)
+            .maybeSingle<{ character_balance: number }>();
+          if (row?.character_balance != null) {
+            const b = Number(row.character_balance) || 0;
+            setCharacterBalance(b);
+            try { localStorage.setItem("ai_nusantara_balance", String(b)); } catch {}
+          }
+        };
+        void refresh();
+      }
+    };
+    window.addEventListener("ai-balance-updated", handler);
+    return () => window.removeEventListener("ai-balance-updated", handler);
+  }, []);
+
 
   const handleRefreshStatus = () => {
     window.location.reload();

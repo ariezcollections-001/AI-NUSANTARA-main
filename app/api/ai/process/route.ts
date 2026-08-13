@@ -565,6 +565,28 @@ export async function GET(request: Request) {
 
     const email = userEmail || user.email || "anon@ai-nusantara.local";
     const systemPrompt = buildSystemPrompt(featureId, userInput, email);
+
+    // 🔴 BACA SALDO REAL dari DB (bukan cache) — agar cek & deduksi konsisten.
+    const userRecord = await supabase
+      .from("users")
+      .select("character_balance")
+      .eq("id", user.id)
+      .single();
+    const userData = userRecord.data as { character_balance?: number } | null;
+    const currentBalance = Number(userData?.character_balance ?? 0) || 0;
+
+    // Emergency gate: jika input saja sudah melebihi saldo → tolak sebelum AI.
+    if (userInput.length > currentBalance) {
+      return NextResponse.json(
+        {
+          error: "Saldo karakter Anda tidak mencukupi untuk memproses permintaan ini.",
+          current_balance: currentBalance,
+          required_input_characters: userInput.length,
+        },
+        { status: 402 },
+      );
+    }
+
     const apiKeyData = await findBestApiKey();
 
     let output = "";
@@ -585,10 +607,34 @@ export async function GET(request: Request) {
       output = `Fitur (${featureId}) diproses dalam mode fallback.\n\n${systemPrompt}`;
     }
 
+    // 🔴 Deduksi saldo REAL setelah AI selesai: input + output.
+    const inputCharacters = userInput.length;
+    const outputCharacters = (output || "").length;
+    const totalDeducted = inputCharacters + outputCharacters;
+
+    if (totalDeducted > currentBalance) {
+      return NextResponse.json(
+        {
+          error: "Saldo karakter Anda tidak mencukupi untuk memproses permintaan ini.",
+          current_balance: currentBalance,
+          required_characters: totalDeducted,
+        },
+        { status: 402 },
+      );
+    }
+
+    const remainingBalance = await updateUserBalanceIfNeeded(
+      user.id,
+      -totalDeducted,
+      currentBalance,
+    );
+
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        const words = output.split(" ");
+        // Saldo sudah didebit di DB di atas (remainingBalance). Stream tetap
+        // teks murni agar tidak tampil aneh di UI chat mobile/tablet/PC.
+        const words = (output || "").split(" ");
         for (let i = 0; i < words.length; i++) {
           const chunk = words[i] + (i < words.length - 1 ? " " : "");
           controller.enqueue(encoder.encode(chunk));
@@ -603,6 +649,8 @@ export async function GET(request: Request) {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-cache",
         "X-Accel-Buffering": "no",
+        // 🔴 Header saldo real pasca-generasi — dibaca frontend untuk refresh.
+        "X-Ai-Balance": String(remainingBalance),
       },
     });
   } catch {

@@ -141,6 +141,17 @@ export default function TampilanHP({ maxInputChars = 500 }: ResponsiveDashboardP
         setMessages((prev) => [...prev, { role: "ai", content: accumulatedText }]);
         setStreamingText("");
         setIsStreaming(false);
+
+        // 🔴 Refresh saldo real dari header backend (nilai DB pasca-deduksi).
+        const newBalance = response.headers.get("X-Ai-Balance");
+        if (newBalance && !Number.isNaN(Number(newBalance))) {
+          const b = Number(newBalance);
+          try {
+            localStorage.setItem("ai_nusantara_balance", String(b));
+          } catch { /* ignore */ }
+          // Pemicu agar layout/dashboard memperbarui tampilan saldo.
+          window.dispatchEvent(new CustomEvent("ai-balance-updated", { detail: b }));
+        }
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {

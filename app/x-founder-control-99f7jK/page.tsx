@@ -530,7 +530,7 @@ export default function FounderDashboard() {
     // presence channel yang hanya menghitung browser yang membuka halaman ini.
 
 
-    // users table subscription (recount total akun live)
+    // users table subscription (recount total akun live + refresh saldo user)
     const usersChannel = supabase
       .channel("founder-users-changes")
       .on(
@@ -539,6 +539,9 @@ export default function FounderDashboard() {
         () => {
           if (!active) return;
           void loadRealtimeMetrics();
+          // 🔴 Refresh daftar saldo user real (character_balance) dari DB,
+          // agar sisa saldo user terlihat real-time di panel founder.
+          void loadDashboardData().then(() => refreshLiveUsersLocal());
         }
       )
       .subscribe();
