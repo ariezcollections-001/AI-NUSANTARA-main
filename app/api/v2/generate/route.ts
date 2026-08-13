@@ -24,6 +24,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { resolveGeminiKey } from "@/lib/aiVault";
 
 export const runtime = "edge";
 
@@ -203,11 +204,8 @@ export async function POST(request: Request) {
       );
     }
 
-    /* ---- 4. Initialize Google Generative AI SDK context ---------------- */
-    const apiKey =
-      process.env.GEMINI_API_KEY ??
-      process.env.GOOGLE_GEMINI_API_KEY ??
-      "";
+        /* ---- 4. Initialize Google Generative AI SDK context ---------------- */
+    const apiKey = await resolveGeminiKey();
 
     if (!apiKey) {
       return NextResponse.json(

@@ -70,6 +70,49 @@ function isBlocked(provider: KeyProvider, key: string): boolean {
   return true;
 }
 
+/**
+ * 🔴 VALIDASI FORMAT kunci Gemini — memastikan hanya kunci valid (`AIza…`)
+ * yang dipakai. Menolak placeholder/stub `AQ.` (dev) & `AQ_FALLBACK_` agar
+ * server tak pernah mengirim key yang ditolak Google ke provider.
+ *
+ * Perbaikan akarnya: environment produksi (Vercel) tidak memiliki env var
+ * key, sehingga guard route legacy mengembalikan 503 berulang. Dengan
+ * validator ini, kunci produksi asli yang tersimpan di vault founder_config
+ * (kolom `gemini_api_key` / `gemini_api_keys_free`) menjadi sumber utama,
+ * dan env hanya dipakai bila benar-benar valid.
+ */
+export function isValidGeminiKey(k: unknown): boolean {
+  if (typeof k !== "string") return false;
+  const t = k.trim();
+  if (!t) return false;
+  // Kunci Gemini produksi Google selalu diawali "AIza" (panjang 39).
+  if (/^AQ(_FALLBACK_)?\./i.test(t)) return false;   // tolak stub dev
+  return /^AIza[A-Za-z0-9_-]{20,}$/i.test(t);
+}
+
+/**
+ * Sumber kunci Gemini tunggal — vault-first, fallback env hanya bila valid.
+ * Dipakai route legacy (`/api/generate`, `/api/v1`, `/api/v2`) agar 503
+ * "Kunci API Gemini belum dikonfigurasi" tidak lagi salah tembak saat key
+ * produksi memang ada di vault (tapi env prod belum di-set).
+ */
+export async function resolveGeminiKey(getter: () => Promise<VaultKeys> = getVaultKeys): Promise<string> {
+  try {
+    const vault = await getter();
+    const fromVault = vault.gemini.find(isValidGeminiKey);
+    if (fromVault) return fromVault.trim();
+  } catch {
+    /* jika vault tidak bisa dibaca, lanjut ke fallback env */
+  }
+  const envKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GEMINI_API_KEY ||
+    "";
+  return isValidGeminiKey(envKey) ? envKey.trim() : "";
+}
+
+
 /* Key berbayar hanya dari tempat eksplisit — TIDAK dari pool gratis. */
 function getPaidGeminiKeys(vault: VaultKeys): string[] {
   const paidEnv = (process.env.GEMINI_API_KEY_PAID || "").trim();
