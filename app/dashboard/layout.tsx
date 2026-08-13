@@ -141,28 +141,47 @@ export default function DashboardLayout({
         }
 
         try {
-          const persistedBalance = Number(
-            localStorage.getItem("ai_nusantara_balance") ?? NaN
-          );
-          if (!Number.isNaN(persistedBalance) && persistedBalance >= 0) {
-            setCharacterBalance(persistedBalance);
-          } else {
-            const stored = localStorage.getItem("founder_mock_users");
-            if (stored) {
-              try {
-                const users = JSON.parse(stored) as Array<{
-                  email?: string;
-                  id?: string;
-                  character_balance?: number;
-                }>;
-                if (
-                  users.length > 0 &&
-                  typeof users[0].character_balance === "number"
-                ) {
-                  setCharacterBalance(users[0].character_balance);
+          const supabase = createClient();
+          const nowISO = new Date().toISOString();
+          let fromDb = false;
+          // SOURCE-OF-TRUTH: baca karakter balance langsung dari DB
+          // (public.users.character_balance) agar selaras dengan yg dikelola Founder.
+          // Juga update last_seen = heartbeat presence real-time.
+          try {
+            await supabase
+              .from("users")
+              .update({ last_seen: nowISO })
+              .eq("id", user.id);
+            const { data: profileRow } = await supabase
+              .from("users")
+              .select("character_balance")
+              .eq("id", user.id)
+              .maybeSingle<{ character_balance: number }>();
+            if (profileRow?.character_balance != null) {
+              const realBalance = Number(profileRow.character_balance) || 0;
+              setCharacterBalance(realBalance);
+              fromDb = true;
+              try { localStorage.setItem("ai_nusantara_balance", String(realBalance)); } catch {}
+            }
+          } catch {
+            // fall through ke cache lokal di bawah
+          }
+          // Fallback visual bila DB belum responsif
+          if (!fromDb) {
+            const persistedBalance = Number(localStorage.getItem("ai_nusantara_balance") ?? NaN);
+            if (!Number.isNaN(persistedBalance) && persistedBalance >= 0) {
+              setCharacterBalance(persistedBalance);
+            } else {
+              const stored = localStorage.getItem("founder_mock_users");
+              if (stored) {
+                try {
+                  const users = JSON.parse(stored) as Array<{ character_balance?: number }>;
+                  if (users.length > 0 && typeof users[0].character_balance === "number") {
+                    setCharacterBalance(users[0].character_balance);
+                  }
+                } catch {
+                  // ignore parse errors
                 }
-              } catch {
-                // ignore parse errors
               }
             }
           }
@@ -177,7 +196,31 @@ export default function DashboardLayout({
       }
     };
     fetchUser();
-  }, [router]);
+    }, [router]);
+
+  // 💓 Heartbeat: update last_seen tiap user ke DB agar LIVE MONITOR founder akurat.
+  // Kolom last_seen diperluhi karena presence channel hanya menghitung browser
+  // yang membuka halaman founder (tidak merefleksikan user yang online di aplikasi).
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+    const tick = async () => {
+      if (!active) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        try {
+          await supabase
+            .from("users")
+            .update({ last_seen: new Date().toISOString() })
+            .eq("id", user.id);
+        } catch { /* ignore — presence bersifat dekoratif */ }
+      }
+    };
+    tick(); // initial ping saat mount
+    const iv = setInterval(tick, 30000); // refresh tiap 30s
+    return () => { active = false; clearInterval(iv); };
+  }, []);
+
 
   const handleRefreshStatus = () => {
     window.location.reload();

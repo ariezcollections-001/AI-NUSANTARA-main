@@ -29,9 +29,56 @@ export async function GET() {
 
   try {
     const admin = createAdminClient();
+
+    // ─────────────────────────────────────────────────────────────────────
+    // BACKFILL: sinkronkan user auth.users → public.users.
+    // Setelah reset database, public.users kosong padahal auth.users masih
+    // berisi user lama (trigger handle_new_user hanya berlaku utk signup baru).
+    // Di sini kita pastikan SEMUA user auth.users punya profil di public.users.
+    // ─────────────────────────────────────────────────────────────────────
+        try {
+      const { data: authUsersRes, error: listErr } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      if (!listErr && authUsersRes?.users?.length) {
+        const existing = await admin.from("users").select("id");
+        const existingIds = new Set((existing.data || []).map((r: { id: string }) => r.id));
+        const missing = authUsersRes.users.filter((u) => !existingIds.has(u.id));
+        if (missing.length > 0) {
+          const rows = missing.map((u) => ({
+            id: u.id,
+            email: u.email ?? "",
+            role: (u.user_metadata?.role as string) || "user",
+          }));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (admin.from("users") as any).upsert(rows, { onConflict: "id" });
+        }
+
+        // ── Sync last_seen dari auth.users.last_sign_in_at (real-time presence) ──
+        // Pastikan setiap user lama yang sudah login tercatat aktif di kolom last_seen.
+        try {
+          for (const u of authUsersRes.users) {
+            if (u.last_sign_in_at) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (admin.from("users") as any)
+                .update({ last_seen: u.last_sign_in_at })
+                .eq("id", u.id)
+                .is("last_seen", null);
+            }
+          }
+        } catch {
+          /* last_seen sync bersifat dekoratif — abaikan jika gagal */
+        }
+      }
+    } catch {
+      // backfill gagal — lanjut baca apa yg ada
+    }
+
+
     const usersResponse = await admin
       .from("users")
-      .select("id,email,role,character_balance,device_fingerprint,created_at");
+      .select("id,email,role,character_balance,last_seen,created_at");
+
+
+
 
     if (usersResponse.error) {
       throw usersResponse.error;

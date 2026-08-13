@@ -7,12 +7,7 @@ import ReleaseControlPanel from "@/components/ReleaseControlPanel";
 type User = { id: string; email?: string; role?: string; character_balance?: number; is_banned?: boolean; last_seen?: string | null; last_active?: string | null };
 type Feature = { id: number; feature_slug: string; feature_name: string; system_prompt: string; temperature?: number; is_active?: boolean; seo_title?: string | null; seo_description?: string | null };
 
-const MOCK_USERS: User[] = [
-  { id: 'user_mock_1', email: 'demo1@example.com', role: 'user', character_balance: 1200, is_banned: false, last_seen: new Date(Date.now() - 2 * 60 * 1000).toISOString() },
-  { id: 'user_mock_2', email: 'demo2@example.com', role: 'user', character_balance: 300, is_banned: false, last_seen: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
-];
-
-// Mock chat tickets for Live Chat CS Room
+// Chat ticket untuk Ruang Kendali Live Chat CS (dimuat dari tabel support_tickets)
 type ChatTicket = {
   id: string;
   userEmail: string;
@@ -21,40 +16,6 @@ type ChatTicket = {
   messages: Array<{ from: 'user' | 'ai' | 'founder'; text: string; time: string }>;
   chatHistory: Array<{ text: string; time: string; feature: string }>;
 };
-
-const MOCK_CHAT_TICKETS: ChatTicket[] = [
-  {
-    id: 'ticket_1',
-    userEmail: 'demo1@example.com',
-    subject: 'Kenapa AI saya berhenti di tengah?',
-    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    messages: [
-      { from: 'user', text: 'Halo, AI saya berhenti nulis di tengah. Kenapa ya?', time: '10:32' },
-      { from: 'ai', text: 'Maaf atas ketidaknyamanannya. Silakan coba refresh halaman dan pastikan koneksi internet stabil. Jika masih terjadi, kami akan bantu periksa.', time: '10:33' },
-    ],
-    chatHistory: [
-      { text: 'Buatkan saya RPP Matematika kelas 5', time: '10:30', feature: 'Gen RPP' },
-      { text: 'Tambahin soal cerita tentang pecahan', time: '10:31', feature: 'Buat Soal' },
-      { text: 'Koreksi jawaban tugas saya', time: '10:31', feature: 'Koreksi Tugas' },
-    ],
-  },
-  {
-    id: 'ticket_2',
-    userEmail: 'demo2@example.com',
-    subject: 'Saldo saya berkurang padahal tidak dipakai',
-    timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    messages: [
-      { from: 'user', text: 'Saldo saya berkurang 200 padahal saya tidak pakai fitur apapun', time: '10:15' },
-      { from: 'ai', text: 'Kami akan periksa riwayat penggunaan akun Anda. Sementara, tidak ada transaksi mencurigakan yang tercatat. Mohon tunggu investigasi lebih lanjut.', time: '10:16' },
-    ],
-    chatHistory: [
-      { text: 'Generate caption IG untuk produk skincare', time: '09:45', feature: 'Caption IG' },
-      { text: 'Buat ide bisnis kuliner', time: '09:50', feature: 'Ide Bisnis' },
-      { text: 'Halo?', time: '10:10', feature: '—' },
-      { text: 'Tes tes 123', time: '10:11', feature: '—' },
-    ],
-  },
-];
 
 export default function FounderDashboard() {
   const [maintenance, setMaintenance] = useState(false);
@@ -91,14 +52,13 @@ export default function FounderDashboard() {
   const [creditPauseActive, _setCreditPauseActive] = useState(false);
 
   // 🔴 REAL-TIME METRICS (Supabase live pipelines)
-  const [totalAccounts, setTotalAccounts] = useState<number>(0);
-  const [liveSessionCount, setLiveSessionCount] = useState<number>(0);
+    const [totalAccounts, setTotalAccounts] = useState<number>(0);
   const [openTicketCount, setOpenTicketCount] = useState<number>(0);
   const [totalOmzet, setTotalOmzet] = useState<number>(0);
 
-  // 💬 Live Chat CS Room state
+  // 💬 Live Chat CS Room state — dimuat dari tabel support_tickets (bukan mock)
   const [showChatCSModal, setShowChatCSModal] = useState(false);
-  const [chatTickets] = useState<ChatTicket[]>(MOCK_CHAT_TICKETS);
+  const [chatTickets, setChatTickets] = useState<ChatTicket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<ChatTicket | null>(null);
   const [manualOverride, setManualOverride] = useState(false);
   const [founderReply, setFounderReply] = useState("");
@@ -351,13 +311,13 @@ export default function FounderDashboard() {
         throw new Error(usersData?.error || 'users API failed');
       }
     } catch (e) {
-      // Fallback: local mock only
+      // Fallback bila API gagal — kosongkan (tidak lagi menampilkan akun mock demo)
       try {
         const storedUsers = localStorage.getItem('founder_mock_users');
         if (storedUsers) setUsers(JSON.parse(storedUsers));
-        else setUsers(MOCK_USERS);
+        else setUsers([]);
       } catch {
-        setUsers(MOCK_USERS);
+        setUsers([]);
       }
     }
 
@@ -406,6 +366,17 @@ export default function FounderDashboard() {
         .select("*", { count: "exact", head: true });
       if (!accountError) setTotalAccounts(Number(accountCount) || 0);
 
+      // 1b) USER ONLINE — hitung dari kolom last_seen (real-time presence via
+      //     heartbeat /app/dashboard/layout). Ini PENGGANTI presence channel
+      //     yang dulu hanya menghitung berapa browser yang membuka halaman founder.
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: liveRows, error: liveErr } = await supabase
+        .from("users")
+        .select("id,email,role,character_balance,last_seen")
+        .gte("last_seen", fiveMinAgo)
+        .order("last_seen", { ascending: false });
+      if (!liveErr && Array.isArray(liveRows)) setLiveUsers(liveRows as User[]);
+
       // 2) TIKET AKTIF — count open/unresolved support_tickets
       const { count: ticketCount, error: ticketError } = await supabase
         .from("support_tickets")
@@ -438,6 +409,44 @@ export default function FounderDashboard() {
     return formatted.replace(/\s/g, "");
   }
 
+  // 💬 MUAT TIKET CHAT CS dari tabel support_tickets (bukan mock)
+  async function loadChatTickets() {
+    try {
+      const { data, error } = await supabase
+        .from("support_tickets")
+        .select("id,user_email,subject,status,created_at,messages,chat_history")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!Array.isArray(data)) {
+        setChatTickets([]);
+        return;
+      }
+      const tickets: ChatTicket[] = (data as Array<{
+        id: string;
+        user_email: string;
+        subject: string;
+        status: string;
+        created_at: string;
+        messages: unknown;
+        chat_history: unknown;
+      }>).map((row) => ({
+        id: String(row.id),
+        userEmail: row.user_email,
+        subject: row.subject,
+        timestamp: row.created_at,
+        messages: Array.isArray(row.messages)
+          ? (row.messages as Array<{ from: "user" | "ai" | "founder"; text: string; time: string }>)
+          : [],
+        chatHistory: Array.isArray(row.chat_history)
+          ? (row.chat_history as Array<{ text: string; time: string; feature: string }>)
+          : [],
+      }));
+      setChatTickets(tickets);
+    } catch {
+      setChatTickets([]);
+    }
+  }
+
   // 🔴 SUPABASE REALTIME CHANNELS — live presence + table subscriptions
   useEffect(() => {
     let active = true;
@@ -445,25 +454,12 @@ export default function FounderDashboard() {
 
     // Initial live load
     void loadRealtimeMetrics();
+    void loadChatTickets();
 
-    // Presence channel (LIVE MONITOR): count connected device sessions
-    const presenceChannel = supabase.channel("presence:founder-monitor");
-    const syncPresence = () => {
-      if (!active) return;
-      const state = presenceChannel.presenceState();
-      const count = Object.keys(state || {}).length;
-      setLiveSessionCount(count);
-    };
-    presenceChannel
-      .on("presence", { event: "sync" }, syncPresence)
-      .on("presence", { event: "join" }, syncPresence)
-      .on("presence", { event: "leave" }, syncPresence)
-      .subscribe((status) => {
-        if (active && status === "SUBSCRIBED") {
-          void presenceChannel.track({ online_at: new Date().toISOString() });
-        }
-      });
-    channels.push(presenceChannel);
+        // LIVE MONITOR online dihitung oleh loadRealtimeMetrics() dari kolom
+    // last_seen di DB (real-time via heartbeat /app/dashboard/layout), bukan
+    // presence channel yang hanya menghitung browser yang membuka halaman ini.
+
 
     // users table subscription (recount total akun live)
     const usersChannel = supabase
@@ -479,7 +475,7 @@ export default function FounderDashboard() {
       .subscribe();
     channels.push(usersChannel);
 
-    // support_tickets subscription (recount tiket live)
+    // support_tickets subscription (recount tiket + refresh daftar live)
     const ticketsChannel = supabase
       .channel("founder-tickets-changes")
       .on(
@@ -488,6 +484,7 @@ export default function FounderDashboard() {
         () => {
           if (!active) return;
           void loadRealtimeMetrics();
+          void loadChatTickets();
         }
       )
       .subscribe();
@@ -559,10 +556,10 @@ export default function FounderDashboard() {
       refreshLiveUsersLocal();
     });
     loadFounderProfile();
-    refreshLiveUsersLocal();
+    void loadRealtimeMetrics();
     const iv = setInterval(() => {
-            refreshLiveUsersLocal();
-    }, 10000);
+          loadRealtimeMetrics();
+    }, 15000);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -805,8 +802,7 @@ export default function FounderDashboard() {
     setSelectedTicket(updated);
     setFounderReply('');
     // Update the ticket in the tickets list
-    const idx = chatTickets.findIndex((t) => t.id === selectedTicket.id);
-    if (idx !== -1) chatTickets[idx] = updated;
+    setChatTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     alert('✅ Balasan Founder terkirim!');
   }
 
@@ -926,7 +922,7 @@ export default function FounderDashboard() {
           </button>
           <button onClick={() => openModal('live')} className="group bg-slate-900 p-5 rounded-3xl border border-slate-800 hover:border-sky-500 transition-all cursor-pointer text-left">
             <div className="text-xs uppercase tracking-[0.3em] text-sky-400">🟢 LIVE MONITOR</div>
-            <div className="mt-3 text-4xl font-bold text-emerald-300 animate-pulse">{liveSessionCount || onlineUsers.length} USER</div>
+            <div className="mt-3 text-4xl font-bold text-emerald-300 animate-pulse">{onlineUsers.length} USER</div>
             <div className="mt-2 text-xs text-slate-500">Klik untuk melihat siapa yang aktif dalam 5 menit terakhir.</div>
           </button>
         </div>
@@ -1023,7 +1019,7 @@ export default function FounderDashboard() {
               <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4">
                 <div>
                   <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Live Monitor Online</div>
-                  <div className="text-lg font-bold text-white">{liveSessionCount || onlineUsers.length} User Aktif</div>
+                  <div className="text-lg font-bold text-white">{onlineUsers.length} User Aktif</div>
                 </div>
                 <button onClick={() => setShowLiveMonitorModal(false)} className="text-slate-300 hover:text-white">Tutup</button>
               </div>
