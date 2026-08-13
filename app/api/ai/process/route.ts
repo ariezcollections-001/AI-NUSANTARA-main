@@ -77,7 +77,7 @@ async function loadKran1Keys(): Promise<KranKey[]> {
     // sudah dipisah dari vault.gemini di getVaultKeys(), jadi tidak pernah
     // tercampur ke Kran 1 (gratis).
     const vault = await getVaultKeys();
-    let legacyRaw = await getFounderConfig("gemini_api_keys_free");
+    const legacyRaw = await getFounderConfig("gemini_api_keys_free");
     let legacy: string[] = [];
     try {
       if (legacyRaw && legacyRaw.trim() !== "") legacy = JSON.parse(legacyRaw) as string[];
