@@ -324,6 +324,7 @@ export default function AIWorkbench({
   const [fontSize, setFontSize] = useState(16);
   const [docZoom, setDocZoom] = useState(1);
   const [chatZoom, setChatZoom] = useState(1);
+  const [chatFontSize, setChatFontSize] = useState(11);
   const docZoomed = docZoom > 1.02;
   const chatZoomed = chatZoom > 1.02;
   const activeTemplates = FEATURE_TEMPLATES[featureId] ?? FALLBACK_TEMPLATES;
@@ -466,6 +467,8 @@ export default function AIWorkbench({
     setDocFont((p) => (p === "sans" ? "serif" : p === "serif" ? "mono" : "sans"));
   const bumpFont = (delta: number) =>
     setFontSize((p) => Math.min(44, Math.max(9, p + delta)));
+  const bumpChatFont = (delta: number) =>
+    setChatFontSize((p) => Math.min(22, Math.max(9, p + delta)));
   const docZoomIn = () => {
     setChatZoom(1);
     setDocZoom((p) => Math.min(1.8, Number((p + 0.2).toFixed(2))));
@@ -579,6 +582,23 @@ export default function AIWorkbench({
               >
                 🔍 Zoom −
               </button>
+              <span className="w-px h-4 bg-yellow-400/30" />
+              <button
+                type="button"
+                onClick={() => bumpChatFont(-1)}
+                className="px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black text-white transition-all active:scale-95"
+                title="Perkecil ukuran huruf chat"
+              >
+                A−
+              </button>
+              <button
+                type="button"
+                onClick={() => bumpChatFont(1)}
+                className="px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black text-white transition-all active:scale-95"
+                title="Perbesar ukuran huruf chat"
+              >
+                A+
+              </button>
             </div>
           </div>
 
@@ -630,6 +650,7 @@ export default function AIWorkbench({
                   </button>
                 )}
                 <div
+                  style={{ fontSize: chatFontSize }}
                   className={`max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed shadow whitespace-pre-wrap break-words ${
                     m.role === "user"
                       ? "rounded-br-sm border border-yellow-400/30 bg-black/40 text-white backdrop-blur"
