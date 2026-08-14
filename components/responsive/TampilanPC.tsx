@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useDashboardLive } from "@/components/DashboardLiveContext";
+import AIWorkbench from "@/components/workbench/AIWorkbench";
 import {
   ArrowLeft,
   Send,
@@ -476,120 +477,25 @@ export default function TampilanPC({
               <h2 className="text-sm font-black text-white truncate">{selectedFiturData.nama}</h2>
               <span className="text-[10px] text-slate-400 truncate">{selectedFiturData.desc}</span>
             </div>
-            <div className="shrink-0 w-8" />
-          </div>
-
-          <div className="w-full flex-1 grid grid-cols-2 gap-0 overflow-hidden min-h-0 bg-slate-950">
-            <div className="w-[40%] flex flex-col border-r border-slate-800 bg-slate-900/30 min-h-0">
-              <div className="shrink-0 px-3 py-2 border-b border-slate-800">
-                <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-300">Input Prompt</h3>
-              </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Masukkan instruksi Anda</label>
-                  <textarea
-                    value={promptInput}
-                    onChange={(e) => setPromptInput(e.target.value.slice(0, maxInputChars))}
-                    onKeyDown={handleKeyDown}
-                    placeholder={selectedFiturData.contoh ? "Contoh: " + selectedFiturData.contoh : "Ketik instruksi di sini..."}
-                    rows={10}
-                    className="w-full resize-none rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all"
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500">{promptInput.length} / {maxInputChars}</span>
-                    <span className="text-[10px] text-slate-500">Enter = kirim</span>
-                  </div>
-                </div>
-                <button type="button" onClick={handleGenerateText} disabled={!promptInput.trim() || isLoading} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg shadow-amber-500/20">
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Memproses...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Generate AI
-                    </>
-                  )}
-                </button>
-                {errorMessage && (
-                  <div className="rounded-xl bg-red-950/50 border border-red-800/50 p-3">
-                    <p className="text-[10px] font-bold text-red-400">Terjadi Kesalahan</p>
-                    <p className="text-[10px] text-red-300/80 mt-1 leading-relaxed">{errorMessage}</p>
-                  </div>
-                )}
-
-                {aiResponse && (
-                  <button type="button" onClick={() => handleExportWord(aiResponse)} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold uppercase tracking-wider text-slate-200 transition-all active:scale-95">
-                    <FileText className="w-4 h-4" />
-                    Export Word
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="w-[60%] flex flex-col bg-slate-950 min-h-0">
-              <div className="shrink-0 px-3 py-2 border-b border-slate-800 flex items-center justify-between">
-                <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-300">Output AI</h3>
-                {aiResponse && (
-                  <button type="button" onClick={() => handleCopyText(aiResponse)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-200 transition-all active:scale-95">
-                    <Copy className="w-3 h-3" />
-                    📋 Salin Cepat
-                  </button>
-                )}
-              </div>
-              <div className="flex-1 overflow-y-auto pr-1 min-h-0">
-                {isLoading && !aiResponse && (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="flex flex-col items-center gap-2 text-slate-500">
-                      <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-                      <span className="text-[10px] font-medium">Sedang memproses...</span>
-                    </div>
-                  </div>
-                )}
-
-                {aiResponse && (
-                  <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-4 m-3">
-                    <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-slate-200">{aiResponse}</pre>
-                  </div>
-                )}
-
-                {!aiResponse && !isLoading && (
-                  <div className="flex items-center justify-center h-full text-slate-600">
-                    <div className="text-center space-y-1">
-                      <Sparkles className="w-8 h-8 mx-auto opacity-30" />
-                      <p className="text-[10px] font-medium">Output akan muncul di sini...</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="shrink-0 px-3 py-2 border-t border-slate-800/80 flex flex-row items-center gap-2 justify-end bg-slate-950">
-                <button
-                  type="button"
-                  disabled={!aiResponse}
-                  onClick={() => {
-                    navigator.clipboard.writeText(aiResponse);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-200 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Salin hasil ke clipboard"
-                >
-                  <Copy className="w-3 h-3" />
-                  📋 Salin Cepat
-                </button>
-                <button
-                  type="button"
-                  disabled={!aiResponse}
-                  onClick={() => handleExportWord(aiResponse)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-amber-400 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Ekspor hasil ke dokumen Word"
-                >
-                  <FileText className="w-3 h-3" />
-                  📄 Ekspor ke MS Word
-                </button>
-              </div>
+            <div className="shrink-0 flex items-center gap-2 rounded-lg bg-slate-950 border border-slate-800 px-3 py-1.5">
+              <Wallet className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Saldo Token</span>
+              <span className="text-xs font-black text-white font-mono">
+                {(characterBalance > 0 ? characterBalance : localBalance).toLocaleString("id-ID")} CHARS
+              </span>
             </div>
           </div>
+
+          <div className="w-full flex-1 min-h-0 overflow-hidden">
+            <AIWorkbench
+              featureId={selectedFitur}
+              featureTitle={selectedFiturData.nama}
+              featureDesc={selectedFiturData.desc}
+              examplePrompt={selectedFiturData.contoh}
+              maxInputChars={maxInputChars}
+            />
+
+            </div>
         </>
       ) : (
         <div className="w-full flex-1 grid grid-cols-4 gap-3 overflow-hidden bg-slate-950 mt-1">
