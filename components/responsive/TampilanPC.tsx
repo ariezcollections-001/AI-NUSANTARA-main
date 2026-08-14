@@ -181,6 +181,7 @@ export default function TampilanPC({
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [appTheme, setAppTheme] = useState<"dark" | "light">("dark");
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [platformLogo, setPlatformLogo] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Muat fitur tersimpan dari sessionStorage SETELAH mount
@@ -191,6 +192,16 @@ export default function TampilanPC({
       if (saved && fiturNusantara.some((f) => f.id === saved)) {
         setSelectedFitur(saved);
       }
+    } catch {
+      /* abaikan */
+    }
+  }, []);
+
+  // Muat logo platform (hasil upload founder) SETELAH mount (hindari hydration mismatch)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("founder_config_platform_logo");
+      if (saved) setPlatformLogo(saved);
     } catch {
       /* abaikan */
     }
@@ -379,9 +390,22 @@ export default function TampilanPC({
       {/* Top Header Ribbon - unified pitch-black premium bar, no fixed/sticky, wired to live auth props */}
       <div className="w-full bg-black/40 text-white border-b border-yellow-400/30 pb-2 flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-white font-black tracking-wider text-sm">
-            {platformName || "BIKIN AI"}
-          </span>
+          {/* Kolom logo platform (dari upload founder) */}
+          <div className="w-9 h-9 shrink-0 rounded-lg border border-yellow-400/30 bg-black/40 flex items-center justify-center overflow-hidden">
+            {platformLogo ? (
+              <img src={platformLogo} alt="logo" className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-[8px] font-black text-amber-400">LOGO</span>
+            )}
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-amber-400 font-black tracking-wider text-sm">
+              {platformName || "BIKIN AI"}
+            </span>
+            <span className="text-[9px] font-bold text-white tracking-wide">
+              Platform AI Nusantara
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-black/40 border border-yellow-400/30 rounded-lg text-white px-3 py-1.5 flex items-center gap-2">
@@ -465,7 +489,7 @@ export default function TampilanPC({
                   className="fixed inset-0 z-40"
                   onClick={() => setShowProfileDropdown(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-yellow-400/30 bg-black/40 shadow-[0_8px_30px_rgba(0,0,0,0.8)] z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-yellow-400/30 bg-black shadow-[0_8px_30px_rgba(0,0,0,0.8)] z-50 overflow-hidden">
                   <div className="p-4 border-b border-slate-800">
                     {isMaintenance ? (
                       <p className="text-[10px] font-black uppercase text-red-400 mb-1">

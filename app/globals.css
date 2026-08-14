@@ -50,6 +50,7 @@ body {
 
 /* Panel / surface -> terang */
 [data-theme="light"] .bg-black\/40 { background-color: rgba(255, 255, 255, 0.9) !important; }
+[data-theme="light"] .bg-black { background-color: #ffffff !important; }
 [data-theme="light"] .bg-slate-800 { background-color: rgba(241, 245, 249, 0.92) !important; }
 [data-theme="light"] .bg-red-950\/40 { background-color: rgba(254, 226, 226, 0.9) !important; }
 [data-theme="light"] .bg-yellow-400\/30 { background-color: rgba(245, 158, 11, 0.15) !important; }

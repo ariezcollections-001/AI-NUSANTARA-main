@@ -30,6 +30,12 @@ interface ChatMessage {
   id: string;
   role: "user" | "ai";
   content: string;
+  ts?: number;
+}
+
+interface ChatSession {
+  date: string; // YYYY-MM-DD
+  messages: ChatMessage[];
 }
 
 interface SseFrame {
@@ -59,6 +65,34 @@ interface AIWorkbenchProps {
 
 const makeId = () =>
   Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+// Tanggal lokal YYYY-MM-DD
+const todayStr = () => {
+  const d = new Date();
+  return (
+    d.getFullYear() +
+    "-" +
+    String(d.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(d.getDate()).padStart(2, "0")
+  );
+};
+
+// Format tanggal menjadi "Senin, 14 Agustus 2026"
+const fmtDate = (iso: string) => {
+  try {
+    const d = new Date(iso + "T00:00:00");
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+};
 
 const FALLBACK_TEMPLATES: DocTemplate[] = [
   {
@@ -301,16 +335,12 @@ export default function AIWorkbench({
   maxInputChars = 4000,
 }: AIWorkbenchProps) {
   // --- SEKAT 1 : RUANG DISKUSI USER & AI ---
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem("bikinAI_chat_" + featureId);
-      return raw ? (JSON.parse(raw) as ChatMessage[]) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [history, setHistory] = useState<ChatSession[]>([]);
+  const [activeDate, setActiveDate] = useState<string>("");
   const [showHistory, setShowHistory] = useState(false);
+  const [checkedDates, setCheckedDates] = useState<string[]>([]);
+  const [confirmModal, setConfirmModal] = useState<"delete-checked" | "delete-all" | null>(null);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -340,27 +370,110 @@ export default function AIWorkbench({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  // Riwayat chat tersimpan PERMANEN per fitur (tidak hilang walau keluar-masuk)
-  // dan hanya terhapus jika user menekan tombol "Hapus Riwayat".
+  // ---- Muat riwayat (sessions per tanggal) SETELAH mount (hindari hydration mismatch) ----
+  useEffect(() => {
+    let sessions: ChatSession[] = [];
+    try {
+      const raw = localStorage.getItem("bikinAI_chat_history_" + featureId);
+      if (raw) {
+        const parsed = JSON.parse(raw) as ChatSession[];
+        if (Array.isArray(parsed)) sessions = parsed.filter((s) => s && s.date && Array.isArray(s.messages));
+      }
+    } catch {
+      sessions = [];
+    }
+    const today = todayStr();
+    // Migrasi riwayat lama (bikinAI_chat_<id>) menjadi sesi hari ini
+    if (sessions.length === 0) {
+      try {
+        const oldRaw = localStorage.getItem("bikinAI_chat_" + featureId);
+        if (oldRaw) {
+          const oldArr = JSON.parse(oldRaw) as ChatMessage[];
+          if (Array.isArray(oldArr) && oldArr.length) {
+            sessions.push({ date: today, messages: oldArr });
+          }
+        }
+      } catch { /* abaikan */ }
+    }
+    setHistory(sessions);
+    const todaySess = sessions.find((s) => s.date === today);
+    if (todaySess) {
+      setMessages(todaySess.messages);
+      setActiveDate(today);
+    } else if (sessions.length) {
+      const latest = sessions[sessions.length - 1];
+      setMessages(latest.messages);
+      setActiveDate(latest.date);
+    } else {
+      setActiveDate(today);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sinkronkan pesan aktif ke dalam sesi pada tanggal aktif
+  useEffect(() => {
+    if (!activeDate) return;
+    setHistory((prev) => {
+      const rest = prev.filter((s) => s.date !== activeDate);
+      return messages.length ? [...rest, { date: activeDate, messages }] : rest;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, activeDate]);
+
+  // Simpan riwayat ke localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      if (messages.length) {
-        localStorage.setItem("bikinAI_chat_" + featureId, JSON.stringify(messages));
+      if (history.length) {
+        localStorage.setItem("bikinAI_chat_history_" + featureId, JSON.stringify(history));
       } else {
-        localStorage.removeItem("bikinAI_chat_" + featureId);
+        localStorage.removeItem("bikinAI_chat_history_" + featureId);
       }
-    } catch {
-      /* abaikan */
-    }
-  }, [messages, featureId]);
+    } catch { /* abaikan */ }
+  }, [history, featureId]);
 
   const handleClearHistory = () => {
-    const ok = window.confirm(
-      "Hapus riwayat chat untuk fitur ini secara permanen?\n\n(Riwayat chat lain tidak akan terpengaruh.)",
-    );
-    if (!ok) return;
+    // Kosongkan ruang obrolan AKTIF saja (bukan menghapus seluruh riwayat)
     setMessages([]);
+    setShowHistory(false);
+  };
+
+  const loadSession = (date: string) => {
+    const sess = history.find((s) => s.date === date);
+    setActiveDate(date);
+    setMessages(sess ? sess.messages : []);
+    setShowHistory(false);
+  };
+
+  const toggleChecked = (date: string) => {
+    setCheckedDates((prev) =>
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
+    );
+  };
+
+  const handleDeleteChecked = () => {
+    const rem = new Set(checkedDates);
+    const next = history.filter((s) => !rem.has(s.date));
+    setHistory(next);
+    if (rem.has(activeDate)) {
+      // Tanggal aktif ikut terhapus -> pindah ke sesi terbaru yang tersisa
+      // (jangan reset ke hari ini + kosong, agar sesi lain tidak tertimpa)
+      const nextActive = next.length ? next[next.length - 1].date : todayStr();
+      const sess = next.find((s) => s.date === nextActive);
+      setActiveDate(nextActive);
+      setMessages(sess ? sess.messages : []);
+    }
+    setCheckedDates([]);
+    setConfirmModal(null);
+    setShowHistory(false);
+  };
+
+  const handleDeleteAll = () => {
+    setHistory([]);
+    setMessages([]);
+    setActiveDate(todayStr());
+    setCheckedDates([]);
+    setConfirmModal(null);
     setShowHistory(false);
   };
 
@@ -377,8 +490,8 @@ export default function AIWorkbench({
     setInputText(""); // AUTO-CLEAR kotak input.
     setChatError(null);
 
-    const userMsg: ChatMessage = { id: makeId(), role: "user", content: trimmed };
-    const aiMsg: ChatMessage = { id: makeId(), role: "ai", content: "" };
+    const userMsg: ChatMessage = { id: makeId(), role: "user", content: trimmed, ts: Date.now() };
+    const aiMsg: ChatMessage = { id: makeId(), role: "ai", content: "", ts: Date.now() };
     setMessages((prev) => [...prev, userMsg, aiMsg]);
     setIsLoading(true);
 
@@ -553,7 +666,7 @@ export default function AIWorkbench({
                 type="button"
                 onClick={() => setShowHistory((v) => !v)}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
-                title="Lihat riwayat chat tersimpan"
+                title="Lihat riwayat chat (per tanggal / pilih tanggal)"
               >
                 <History className="w-3 h-3" /> Riwayat
               </button>
@@ -561,7 +674,7 @@ export default function AIWorkbench({
                 type="button"
                 onClick={handleClearHistory}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg border border-red-500/40 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-red-300 transition-all active:scale-95"
-                title="Hapus riwayat chat secara permanen"
+                title="Kosongkan ruang obrolan aktif"
               >
                 <Trash2 className="w-3 h-3" /> Hapus
               </button>
@@ -602,26 +715,7 @@ export default function AIWorkbench({
             </div>
           </div>
 
-          {showHistory && (
-            <div className="shrink-0 max-h-40 overflow-y-auto border-b border-yellow-400/30 bg-black/40 p-2 space-y-1">
-              <div className="flex items-center justify-between px-1 pb-1">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">📜 Riwayat Chat Tersimpan</span>
-                <span className="text-[9px] font-mono text-slate-500">{messages.length} pesan</span>
-              </div>
-              {messages.length === 0 ? (
-                <p className="text-[9px] text-slate-500 px-1">Belum ada riwayat untuk fitur ini.</p>
-              ) : (
-                messages.map((m) => (
-                  <div key={m.id} className="text-[9px] leading-snug text-slate-300">
-                    <span className={`font-bold ${m.role === "user" ? "text-amber-400" : "text-slate-400"}`}>
-                      {m.role === "user" ? "Anda: " : "AI: "}
-                    </span>
-                    <span className="line-clamp-2">{m.content}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+          
 
           <div ref={chatScrollRef} className="flex-1 overflow-y-auto flex flex-col gap-2 p-3 min-h-0">
             {messages.length === 0 && (
@@ -639,16 +733,6 @@ export default function AIWorkbench({
                 key={m.id}
                 className={`flex items-end gap-1.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                {m.role === "ai" && m.content !== "" && (
-                  <button
-                    type="button"
-                    onClick={() => setDocText(m.content)}
-                    className="shrink-0 mb-0.5 p-1 rounded-xl border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-white hover:border-yellow-400/50 backdrop-blur transition-all active:scale-95"
-                    title="Salin balasan AI ini ke kertas dokumen kanan untuk diedit"
-                  >
-                    <ClipboardPaste className="w-3 h-3" />
-                  </button>
-                )}
                 <div
                   style={{ fontSize: chatFontSize }}
                   className={`max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed shadow whitespace-pre-wrap break-words ${
@@ -666,6 +750,16 @@ export default function AIWorkbench({
                     m.content
                   )}
                 </div>
+                {m.role === "ai" && m.content !== "" && (
+                  <button
+                    type="button"
+                    onClick={() => setDocText(m.content)}
+                    className="shrink-0 mb-0.5 p-1 rounded-xl border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-white hover:border-yellow-400/50 backdrop-blur transition-all active:scale-95"
+                    title="Salin balasan AI ini ke kertas dokumen kanan untuk diedit"
+                  >
+                    <ClipboardPaste className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -857,6 +951,120 @@ export default function AIWorkbench({
         </section>
       </div>
       </div>
+
+      {/* Modal Riwayat Chat (ukuran besar seperti zoom-in) */}
+      {showHistory && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setShowHistory(false)}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[82vh] rounded-2xl border border-yellow-400/30 bg-black/40 shadow-[0_8px_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 px-4 py-3 border-b border-yellow-400/30 flex items-center justify-between gap-2">
+              <h3 className="text-xs font-black uppercase tracking-widest text-amber-400">📜 Riwayat Chat</h3>
+              <button
+                type="button"
+                onClick={() => setShowHistory(false)}
+                className="px-2.5 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-white transition-all"
+              >
+                ✕ Tutup
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-1.5 min-h-0">
+              {history.length === 0 ? (
+                <p className="text-[11px] text-slate-400 text-center py-10">Belum ada riwayat chat untuk fitur ini.</p>
+              ) : (
+                [...history]
+                  .sort((a, b) => (a.date < b.date ? 1 : -1))
+                  .map((s) => (
+                    <div
+                      key={s.date}
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-2 transition-colors ${
+                        activeDate === s.date
+                          ? "border-yellow-400/40 bg-black/40"
+                          : "border-yellow-400/30 bg-black/40"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checkedDates.includes(s.date)}
+                        onChange={() => toggleChecked(s.date)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 accent-amber-500 cursor-pointer shrink-0"
+                        title="Tandai untuk dihapus"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => loadSession(s.date)}
+                        className="flex-1 text-left"
+                        title="Klik untuk menampilkan kembali pembahasan"
+                      >
+                        <span className="text-[11px] font-bold text-white">{fmtDate(s.date)}</span>
+                        <span className="block text-[9px] text-slate-400 mt-0.5">{s.messages.length} pesan</span>
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+            {history.length > 0 && (
+              <div className="shrink-0 px-4 py-3 border-t border-yellow-400/30 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal("delete-all")}
+                  className="px-3 py-2 rounded-lg border border-red-500/40 bg-red-950/40 text-red-300 text-[10px] font-black uppercase hover:bg-red-950/60 transition-all"
+                >
+                  Hapus Semua
+                </button>
+                <button
+                  type="button"
+                  disabled={checkedDates.length === 0}
+                  onClick={() => setConfirmModal("delete-checked")}
+                  className="px-3 py-2 rounded-lg border border-red-500/40 bg-red-950/40 text-red-300 text-[10px] font-black uppercase hover:bg-red-950/60 disabled:opacity-40 transition-all"
+                >
+                  Hapus ({checkedDates.length})
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus */}
+      {confirmModal && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setConfirmModal(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-yellow-400/30 bg-black/40 shadow-[0_8px_40px_rgba(0,0,0,0.8)] p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-bold text-white">
+              {confirmModal === "delete-all"
+                ? "Yakin ingin menghapus SEMUA riwayat chat fitur ini?"
+                : `Yakin ingin menghapus ${checkedDates.length} riwayat yang dicentang?`}
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-3 py-1.5 rounded-lg border border-yellow-400/30 text-white text-[10px] font-bold transition-all"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => (confirmModal === "delete-all" ? handleDeleteAll() : handleDeleteChecked())}
+                className="px-3 py-1.5 rounded-lg border border-red-500/50 bg-red-500/40 text-white text-[10px] font-bold transition-all"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
