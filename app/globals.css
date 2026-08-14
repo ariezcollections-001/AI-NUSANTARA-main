@@ -42,6 +42,8 @@ body {
 /* Aksen emas/hijau/merah -> versi lebih gelap agar terbaca di putih */
 [data-theme="light"] .text-amber-300,
 [data-theme="light"] .text-amber-400 { color: #d97706 !important; }
+/* Disclaimer: di mode putih (bg putih) teks kuning -> hitam agar kontras dibaca */
+[data-theme="light"] #ai-disclaimer { color: #111827 !important; }
 [data-theme="light"] .text-emerald-300,
 [data-theme="light"] .text-emerald-400 { color: #047857 !important; }
 [data-theme="light"] .text-red-300,
@@ -76,4 +78,22 @@ body {
 [data-theme="light"] .hover\:bg-red-950\/60:hover { background-color: rgba(254, 226, 226, 0.9) !important; }
 [data-theme="light"] .hover\:border-yellow-400\/50:hover,
 [data-theme="light"] .hover\:border-yellow-400\/60:hover { border-color: rgba(17, 24, 39, 0.5) !important; }
+
+/* ============================================================
+   EFEK "POP" + "MENYALA" (kuning) HOVER — hanya elemen yang BISA DIKLIK
+   (button & checkbox) di dalam dashboard (di bawah root [data-theme]).
+   - transform : menyembul naik & membesar (terpisah dari scale Tailwind v4)
+   - box-shadow : *glow* kuning saat disentuh
+   - :not(:active) agar efek tekan `active:scale-95` tetap berfungsi
+   ============================================================ */
+[data-theme="dark"] button:not(:disabled):not(:active):hover,
+[data-theme="light"] button:not(:disabled):not(:active):hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.9), 0 0 10px 5px rgba(251, 191, 36, 0.5);
+}
+[data-theme="dark"] input[type="checkbox"]:not(:disabled):hover,
+[data-theme="light"] input[type="checkbox"]:not(:disabled):hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.9);
+}
 

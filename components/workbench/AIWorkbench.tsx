@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   Send,
   Copy,
+  ChevronDown,
   FileText,
   Lock,
   Unlock,
@@ -349,6 +350,29 @@ export default function AIWorkbench({
 
   // --- SEKAT 2 : KERTAS DOKUMEN MURNI ---
   const [docText, setDocText] = useState("");
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const templatePickerRef = useRef<HTMLDivElement>(null);
+  // Tutup dropdown TEMPLATE saat klik di luar atau tekan Escape
+  useEffect(() => {
+    if (!showTemplatePicker) return;
+    const onDown = (e: MouseEvent) => {
+      if (
+        templatePickerRef.current &&
+        !templatePickerRef.current.contains(e.target as Node)
+      ) {
+        setShowTemplatePicker(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowTemplatePicker(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showTemplatePicker]);
   const [isLocked, setIsLocked] = useState(false);
   const [docFont, setDocFont] = useState<DocFont>("sans");
   const [fontSize, setFontSize] = useState(16);
@@ -602,6 +626,19 @@ export default function AIWorkbench({
       alert("❌ Gagal menyalin teks. Silakan salin manual.");
     }
   };
+  // RAPIKAN TEKS — normalisasi seluruh teks di kolom dokumen (hasil AI,
+  // hasil diskusi AI, maupun isi template yang sudah diedit oleh user) agar
+  // rapi & siap diekspor ke MS Word. Hapus spasi/jarak berulang & baris kosong.
+  const handleRapikan = () => {
+    const clean = (docText ?? "")
+      .replace(/\r\n/g, "\n") // CRLF -> LF
+      .replace(/[ \t]+$/gm, "") // buang trailing whitespace per baris
+      .replace(/^\s+/gm, "") // buang leading whitespace per baris
+      .replace(/[ ]{2,}/g, " ") // run spasi ganda -> 1 spasi
+      .replace(/\n{3,}/g, "\n\n") // 3+ baris kosong berturut-turut -> 1 baris kosong
+      .trim();
+    setDocText(clean);
+  };
   const handleExportWord = () => {
     const htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -798,6 +835,12 @@ export default function AIWorkbench({
               maxLength={maxInputChars}
               className="w-full h-16 resize-none rounded-xl border border-yellow-400/30 bg-black/40 p-2 text-xs text-white placeholder:text-slate-500/60 outline-none focus:border-yellow-400/60"
             />
+                        <p
+              id="ai-disclaimer"
+              className="text-center text-[9px] leading-snug text-amber-400/90 mt-1.5 px-1"
+            >
+              ⚠️ Disclaimer : AI dapat menghasilkan informasi yang tidak akurat. Mohon verifikasi kembali informasi dan dokumen yang dihasilkan.
+            </p>
             <div className="mt-1.5 flex flex-row items-center justify-between gap-2">
               <span className="text-[9px] font-mono text-slate-500">
                 {inputText.length} / {maxInputChars}
@@ -833,99 +876,149 @@ export default function AIWorkbench({
           }
           style={docZoomed ? { width: "86vw" } : undefined}
         >
-          {/* Panel tombol kontrol kertas */}
-          <div className="shrink-0 border-b border-yellow-400/30 bg-black/40 p-1.5 flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              onClick={handleBlank}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
-              title="Kosongkan kertas dokumen"
-            >
-              📄 Blank
-            </button>
-            {activeTemplates.map((t) => (
+          {/* Panel tombol kontrol kertas — 2 BARIS
+            B1: Blank | Template | Rapikan | Salin | Word
+            B2: Edit | Font | A+ | A- | Zoom+ | Zoom- */}
+          <div className="shrink-0 border-b border-yellow-400/30 bg-black/40 p-1.5 flex flex-col gap-1.5">
+            {/* Baris 1: BLANK | TEMPLATE | RAPIKAN TEKS | SALIN | EKSPOR MS.WORD */}
+            <div className="flex flex-wrap items-center gap-1">
               <button
-                key={t.id}
                 type="button"
-                onClick={() => handleTemplate(t)}
+                onClick={handleBlank}
                 className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
-                title={`Isi kertas dengan ${t.title}`}
+                title="Kosongkan kertas dokumen"
               >
-                📁 {t.label}
+                📄 Blank
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={toggleLock}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-all active:scale-95 text-[9px] font-black uppercase tracking-wider ${
-                isLocked
-                  ? "border-red-500/50 bg-red-950/40 text-red-300 hover:bg-red-900/40"
-                  : "border-yellow-400/30 bg-black/40 text-white hover:bg-black/60"
-              }`}
-              title="Kunci atau buka izin edit keyboard pada kertas"
-            >
-              {isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-              {isLocked ? "Gembok" : "Edit"}
-            </button>
-            <button
-              type="button"
-              onClick={cycleFont}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
-              title="Ubah gaya font kertas (Sans / Serif / Monospace)"
-            >
-              <Type className="w-3 h-3" /> {docFont}
-            </button>
-            <button
-              type="button"
-              onClick={() => bumpFont(1)}
-              className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black text-white transition-all active:scale-95"
-              title="Perbesar ukuran huruf"
-            >
-              A+
-            </button>
-            <button
-              type="button"
-              onClick={() => bumpFont(-1)}
-              className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black text-white transition-all active:scale-95"
-              title="Perkecil ukuran huruf"
-            >
-              A−
-            </button>
-            <button
-              type="button"
-              onClick={docZoomIn}
-              className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
-              title="Zoom In kolom dokumen (isi satu layar)"
-            >
-              🔍 Zoom +
-            </button>
-            <button
-              type="button"
-              onClick={docZoomOut}
-              className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-white transition-all active:scale-95"
-              title="Zoom Out kolom dokumen (kembali ke posisi semula)"
-            >
-              🔍 Zoom −
-            </button>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
-              title="Salin 100% teks dokumen ke clipboard"
-            >
-              <Copy className="w-3 h-3" /> Salin
-            </button>
-            <button
-              type="button"
-              onClick={handleExportWord}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95"
-              title="Unduh teks dokumen sebagai file Word .doc"
-            >
-              <FileText className="w-3 h-3" /> Word
-            </button>
-            <span className="ml-auto text-[9px] font-mono text-slate-500">
-              {Math.round(docZoom * 100)}% · {fontSize}px
-            </span>
+
+              {/* Tombol TEMPLATE tunggal — saat ditekan menyembul kolom pilihan template */}
+              <div ref={templatePickerRef} className="relative inline-block">
+                <button
+                  type="button"
+                  onClick={() => setShowTemplatePicker((v) => !v)}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95 ${showTemplatePicker ? "ring-2 ring-amber-400" : ""}`}
+                  title="Pilih template resmi untuk mengisi kertas dokumen"
+                >
+                  {showTemplatePicker ? "📂" : "📁"} TEMPLATE{" "}
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showTemplatePicker ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* Kolom pilihan template menyembul — diisi dari activeTemplates / FEATURE_TEMPLATES */}
+                {showTemplatePicker && (
+                  <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] max-h-72 overflow-y-auto rounded-xl border border-yellow-400/30 bg-[#030712] shadow-[0_8px_30px_rgba(0,0,0,0.8)]">
+                    {activeTemplates.length === 0 ? (
+                      <div className="px-3 py-2 text-[10px] text-slate-500">
+                        (belum ada template — akan diisi nanti)
+                      </div>
+                    ) : (
+                      activeTemplates.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            handleTemplate(t);
+                            setShowTemplatePicker(false);
+                          }}
+                          className="flex flex-col w-full text-left px-3 py-2 border-b border-transparent last:border-0 hover:bg-black/40 hover:border-yellow-400/30 text-[10px] text-slate-200 transition-all"
+                          title={`Isi kertas dengan: ${t.title}`}
+                        >
+                          <span className="font-black text-amber-300">{t.label}</span>
+                          <span className="text-slate-400">{t.title}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* RAPIKAN TEKS — bersihkan seluruh teks kolom dokumen, siap export Word */}
+              <button
+                type="button"
+                onClick={handleRapikan}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
+                title="Rapikan seluruh teks di kertas dokumen (hasil AI + diskusi + template) — siap export Word"
+              >
+                🧹 RAPIKAN TEKS
+              </button>
+
+              {/* SALIN */}
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
+                title="Salin 100% teks dokumen ke clipboard"
+              >
+                <Copy className="w-3 h-3" /> Salin
+              </button>
+
+              {/* EKSPOR MS.WORD */}
+              <button
+                type="button"
+                onClick={handleExportWord}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95"
+                title="Unduh teks dokumen sebagai file Word .doc"
+              >
+                <FileText className="w-3 h-3" /> Word
+              </button>
+            </div>
+            {/* Baris 2: EDIT | FONT | A+ | A- | ZOOM+ | ZOOM- */}
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={toggleLock}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-all active:scale-95 text-[9px] font-black uppercase tracking-wider ${
+                  isLocked
+                    ? "border-red-500/50 bg-red-950/40 text-red-300 hover:bg-red-900/40"
+                    : "border-yellow-400/30 bg-black/40 text-white hover:bg-black/60"
+                }`}
+                title="Kunci atau buka izin edit keyboard pada kertas"
+              >
+                {isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}{isLocked ? "Gembok" : "Edit"}
+              </button>
+              <button
+                type="button"
+                onClick={cycleFont}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
+                title="Ubah gaya font kertas (Sans / Serif / Monospace)"
+              >
+                <Type className="w-3 h-3" /> {docFont}
+              </button>
+              <button
+                type="button"
+                onClick={() => bumpFont(1)}
+                className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black text-white transition-all active:scale-95"
+                title="Perbesar ukuran huruf"
+              >
+                A+
+              </button>
+              <button
+                type="button"
+                onClick={() => bumpFont(-1)}
+                className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black text-white transition-all active:scale-95"
+                title="Perkecil ukuran huruf"
+              >
+                A−
+              </button>
+              <button
+                type="button"
+                onClick={docZoomIn}
+                className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
+                title="Zoom In kolom dokumen (isi satu layar)"
+              >
+                🔍 Zoom +
+              </button>
+              <button
+                type="button"
+                onClick={docZoomOut}
+                className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-white transition-all active:scale-95"
+                title="Zoom Out kolom dokumen (kembali ke posisi semula)"
+              >
+                🔍 Zoom −
+              </button>
+              <span className="ml-auto text-[9px] font-mono text-slate-500">
+                {Math.round(docZoom * 100)}% · {fontSize}px
+              </span>
+            </div>
           </div>
 
           {/* Kontainer kertas — tinggi terkunci kaku, gulung hanya di dalam sekat kanan */}
