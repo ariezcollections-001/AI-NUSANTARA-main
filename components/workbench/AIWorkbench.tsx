@@ -518,7 +518,7 @@ export default function AIWorkbench({
 
   return (
     <div className="relative w-full h-full max-h-full overflow-hidden">
-      <div className="w-full h-full bg-[#030712] p-3 flex flex-col gap-2">
+      <div className="w-full h-full bg-transparent p-3 flex flex-col gap-2">
       {(docZoomed || chatZoomed) && (
         <div
           className="fixed inset-0 z-40 bg-black/70"
@@ -537,19 +537,19 @@ export default function AIWorkbench({
           className={
             chatZoomed
               ? "fixed inset-0 z-50 m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-[#030712] p-3 rounded-2xl border border-slate-700/70 shadow-[0_25px_80px_rgba(0,0,0,0.65)]"
-              : "w-[45%] min-w-0 h-full flex flex-col rounded-2xl border border-slate-700/70 bg-slate-900/40 overflow-hidden"
+              : "w-[45%] min-w-0 h-full flex flex-col rounded-2xl border border-yellow-400/30 bg-black/40 overflow-hidden backdrop-blur-xl"
           }
           style={chatZoomed ? { width: "86vw" } : undefined}
         >
-          <div className="shrink-0 px-3 py-2 border-b border-slate-800 bg-slate-900/70 flex items-center justify-between gap-2">
+          <div className="shrink-0 px-3 py-2 border-b border-yellow-400/30 bg-black/40 flex items-center justify-between gap-2">
             <h2 className="text-[11px] font-black uppercase tracking-widest text-amber-400">
-              💬 Ruang Diskusi User & AI
+              💬 Ruang Diskusi
             </h2>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setShowHistory((v) => !v)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-wider text-slate-300 transition-all active:scale-95"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
                 title="Lihat riwayat chat tersimpan"
               >
                 <History className="w-3 h-3" /> Riwayat
@@ -557,16 +557,16 @@ export default function AIWorkbench({
               <button
                 type="button"
                 onClick={handleClearHistory}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-red-500/40 bg-red-950/40 hover:bg-red-900/40 text-[9px] font-black uppercase tracking-wider text-red-300 transition-all active:scale-95"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-red-500/40 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-red-300 transition-all active:scale-95"
                 title="Hapus riwayat chat secara permanen"
               >
                 <Trash2 className="w-3 h-3" /> Hapus
               </button>
-              <span className="w-px h-4 bg-slate-700" />
+              <span className="w-px h-4 bg-yellow-400/30" />
               <button
                 type="button"
                 onClick={chatZoomIn}
-                className="px-2 py-1 rounded-lg border border-emerald-700 bg-emerald-950/40 hover:bg-emerald-900/40 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
+                className="px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
                 title="Zoom In kolom chat (isi satu layar)"
               >
                 🔍 Zoom +
@@ -574,7 +574,7 @@ export default function AIWorkbench({
               <button
                 type="button"
                 onClick={chatZoomOut}
-                className="px-2 py-1 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase text-slate-200 transition-all active:scale-95"
+                className="px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-white transition-all active:scale-95"
                 title="Zoom Out kolom chat (kembali ke posisi semula)"
               >
                 🔍 Zoom −
@@ -583,7 +583,7 @@ export default function AIWorkbench({
           </div>
 
           {showHistory && (
-            <div className="shrink-0 max-h-40 overflow-y-auto border-b border-slate-800 bg-slate-950/80 p-2 space-y-1">
+            <div className="shrink-0 max-h-40 overflow-y-auto border-b border-yellow-400/30 bg-black/40 p-2 space-y-1">
               <div className="flex items-center justify-between px-1 pb-1">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">📜 Riwayat Chat Tersimpan</span>
                 <span className="text-[9px] font-mono text-slate-500">{messages.length} pesan</span>
@@ -623,7 +623,7 @@ export default function AIWorkbench({
                   <button
                     type="button"
                     onClick={() => setDocText(m.content)}
-                    className="shrink-0 mb-0.5 p-1 rounded-md border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all active:scale-95"
+                    className="shrink-0 mb-0.5 p-1 rounded-xl border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-white hover:border-yellow-400/50 backdrop-blur transition-all active:scale-95"
                     title="Salin balasan AI ini ke kertas dokumen kanan untuk diedit"
                   >
                     <ClipboardPaste className="w-3 h-3" />
@@ -632,8 +632,8 @@ export default function AIWorkbench({
                 <div
                   className={`max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed shadow whitespace-pre-wrap break-words ${
                     m.role === "user"
-                      ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-br-sm"
-                      : "rounded-bl-sm border border-slate-700 bg-slate-800 text-slate-100"
+                      ? "rounded-br-sm border border-yellow-400/30 bg-black/40 text-white backdrop-blur"
+                      : "rounded-bl-sm border border-yellow-400/30 bg-black/40 text-white backdrop-blur"
                   }`}
                 >
                   {m.role === "ai" && m.content === "" ? (
@@ -656,14 +656,14 @@ export default function AIWorkbench({
           )}
 
           {/* Kotak input + tombol GENERATE emas (auto-clear) */}
-          <div className="shrink-0 border-t border-slate-800 bg-slate-950 p-2">
+          <div className="shrink-0 border-t border-yellow-400/30 bg-black/40 p-2">
             {examplePrompt && (
               <button
                 type="button"
                 onClick={() => {
                   setInputText(examplePrompt);
                 }}
-                className="w-full mb-1.5 flex items-start gap-2 px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-left text-[9px] text-slate-300 transition-colors"
+                className="w-full mb-1.5 flex items-start gap-2 px-2.5 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-left text-[9px] text-white transition-colors"
                 title="Isi kotak input dengan contoh prompt khas fitur ini"
               >
                 <Sparkles className="w-3 h-3 mt-0.5 text-amber-400 shrink-0" />
@@ -681,7 +681,7 @@ export default function AIWorkbench({
                 examplePrompt ? "Atau ketik prompt sendiri di sini…" : "Ketik prompt / revisi dokumen di sini…"
               }
               maxLength={maxInputChars}
-              className="w-full h-16 resize-none rounded-xl border border-slate-700 bg-slate-900 p-2 text-xs text-slate-100 placeholder:text-slate-500 outline-none focus:border-amber-500/60"
+              className="w-full h-16 resize-none rounded-xl border border-yellow-400/30 bg-black/40 p-2 text-xs text-white placeholder:text-slate-500/60 outline-none focus:border-yellow-400/60"
             />
             <div className="mt-1.5 flex flex-row items-center justify-between gap-2">
               <span className="text-[9px] font-mono text-slate-500">
@@ -691,7 +691,7 @@ export default function AIWorkbench({
                 type="button"
                 onClick={() => handleGenerate()}
                 disabled={!inputText.trim() || isLoading}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl border border-yellow-400/40 bg-black/40 hover:bg-black/60 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-amber-300 shadow-lg shadow-yellow-400/20 transition-all active:scale-95"
               >
                 {isLoading ? (
                   <>
@@ -714,16 +714,16 @@ export default function AIWorkbench({
           className={
             docZoomed
               ? "fixed inset-0 z-50 m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-[#030712] p-3 rounded-2xl border border-slate-700/70 shadow-[0_25px_80px_rgba(0,0,0,0.65)]"
-              : "w-[55%] min-w-0 h-full flex flex-col rounded-2xl border border-slate-700/70 bg-slate-900/40 overflow-hidden"
+              : "w-[55%] min-w-0 h-full flex flex-col rounded-2xl border border-yellow-400/30 bg-black/40 overflow-hidden backdrop-blur-xl"
           }
           style={docZoomed ? { width: "86vw" } : undefined}
         >
           {/* Panel tombol kontrol kertas */}
-          <div className="shrink-0 border-b border-slate-800 bg-slate-900/70 p-1.5 flex flex-wrap items-center gap-1">
+          <div className="shrink-0 border-b border-yellow-400/30 bg-black/40 p-1.5 flex flex-wrap items-center gap-1">
             <button
               type="button"
               onClick={handleBlank}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-wider text-slate-200 transition-all active:scale-95"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
               title="Kosongkan kertas dokumen"
             >
               📄 Blank
@@ -733,7 +733,7 @@ export default function AIWorkbench({
                 key={t.id}
                 type="button"
                 onClick={() => handleTemplate(t)}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-wider text-slate-200 transition-all active:scale-95"
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
                 title={`Isi kertas dengan ${t.title}`}
               >
                 📁 {t.label}
@@ -745,7 +745,7 @@ export default function AIWorkbench({
               className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-all active:scale-95 text-[9px] font-black uppercase tracking-wider ${
                 isLocked
                   ? "border-red-500/50 bg-red-950/40 text-red-300 hover:bg-red-900/40"
-                  : "border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                  : "border-yellow-400/30 bg-black/40 text-white hover:bg-black/60"
               }`}
               title="Kunci atau buka izin edit keyboard pada kertas"
             >
@@ -755,7 +755,7 @@ export default function AIWorkbench({
             <button
               type="button"
               onClick={cycleFont}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-wider text-slate-200 transition-all active:scale-95"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
               title="Ubah gaya font kertas (Sans / Serif / Monospace)"
             >
               <Type className="w-3 h-3" /> {docFont}
@@ -763,7 +763,7 @@ export default function AIWorkbench({
             <button
               type="button"
               onClick={() => bumpFont(1)}
-              className="px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[10px] font-black text-slate-200 transition-all active:scale-95"
+              className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black text-white transition-all active:scale-95"
               title="Perbesar ukuran huruf"
             >
               A+
@@ -771,7 +771,7 @@ export default function AIWorkbench({
             <button
               type="button"
               onClick={() => bumpFont(-1)}
-              className="px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[10px] font-black text-slate-200 transition-all active:scale-95"
+              className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black text-white transition-all active:scale-95"
               title="Perkecil ukuran huruf"
             >
               A−
@@ -779,7 +779,7 @@ export default function AIWorkbench({
             <button
               type="button"
               onClick={docZoomIn}
-              className="px-2 py-1.5 rounded-lg border border-emerald-700 bg-emerald-950/40 hover:bg-emerald-900/40 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
+              className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
               title="Zoom In kolom dokumen (isi satu layar)"
             >
               🔍 Zoom +
@@ -787,7 +787,7 @@ export default function AIWorkbench({
             <button
               type="button"
               onClick={docZoomOut}
-              className="px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase text-slate-200 transition-all active:scale-95"
+              className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-white transition-all active:scale-95"
               title="Zoom Out kolom dokumen (kembali ke posisi semula)"
             >
               🔍 Zoom −
@@ -795,7 +795,7 @@ export default function AIWorkbench({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-wider text-slate-200 transition-all active:scale-95"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
               title="Salin 100% teks dokumen ke clipboard"
             >
               <Copy className="w-3 h-3" /> Salin
@@ -803,7 +803,7 @@ export default function AIWorkbench({
             <button
               type="button"
               onClick={handleExportWord}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-amber-600 bg-amber-950/40 hover:bg-amber-900/40 text-[9px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95"
               title="Unduh teks dokumen sebagai file Word .doc"
             >
               <FileText className="w-3 h-3" /> Word

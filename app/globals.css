@@ -3,12 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --app-bg: #030712;
+  --app-accent: #f59e0b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --app-bg: #030712;
+    --app-accent: #f59e0b;
   }
 }
 
@@ -17,3 +21,58 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ============================================================
+   TEMA LIGHT (PUTIH) — aktif saat [data-theme="light"]
+   Dipicu tombol tema di TampilanPC: bg utama putih + semua teks hitam.
+   ============================================================ */
+[data-theme="light"] {
+  --app-bg: #ffffff;
+}
+
+/* Teks utama -> hitam */
+[data-theme="light"] .text-white,
+[data-theme="light"] .text-slate-100 { color: #111827 !important; }
+[data-theme="light"] .text-slate-200 { color: #1f2937 !important; }
+[data-theme="light"] .text-slate-300 { color: #374151 !important; }
+[data-theme="light"] .text-slate-400 { color: #6b7280 !important; }
+[data-theme="light"] .text-slate-500 { color: #9ca3af !important; }
+[data-theme="light"] .text-slate-500\/60 { color: rgba(107, 114, 128, 0.6) !important; }
+
+/* Aksen emas/hijau/merah -> versi lebih gelap agar terbaca di putih */
+[data-theme="light"] .text-amber-300,
+[data-theme="light"] .text-amber-400 { color: #d97706 !important; }
+[data-theme="light"] .text-emerald-300,
+[data-theme="light"] .text-emerald-400 { color: #047857 !important; }
+[data-theme="light"] .text-red-300,
+[data-theme="light"] .text-red-400,
+[data-theme="light"] .text-red-500 { color: #dc2626 !important; }
+
+/* Panel / surface -> terang */
+[data-theme="light"] .bg-black\/40 { background-color: rgba(255, 255, 255, 0.9) !important; }
+[data-theme="light"] .bg-slate-800 { background-color: rgba(241, 245, 249, 0.92) !important; }
+[data-theme="light"] .bg-red-950\/40 { background-color: rgba(254, 226, 226, 0.9) !important; }
+[data-theme="light"] .bg-yellow-400\/30 { background-color: rgba(245, 158, 11, 0.15) !important; }
+[data-theme="light"] .bg-amber-500\/10 { background-color: rgba(245, 158, 11, 0.08) !important; }
+[data-theme="light"] .bg-emerald-500\/10 { background-color: rgba(16, 185, 129, 0.08) !important; }
+
+/* Garis/border -> netral gelap */
+[data-theme="light"] .border-yellow-400\/30,
+[data-theme="light"] .border-yellow-400\/40,
+[data-theme="light"] .border-amber-500\/30,
+[data-theme="light"] .border-emerald-500\/30,
+[data-theme="light"] .border-slate-700,
+[data-theme="light"] .border-slate-700\/70,
+[data-theme="light"] .border-slate-800 { border-color: rgba(17, 24, 39, 0.25) !important; }
+[data-theme="light"] .border-yellow-400\/60 { border-color: rgba(17, 24, 39, 0.5) !important; }
+[data-theme="light"] .border-red-500\/40 { border-color: rgba(220, 38, 38, 0.4) !important; }
+[data-theme="light"] .border-red-500\/50 { border-color: rgba(220, 38, 38, 0.5) !important; }
+
+/* Hover -> ringan */
+[data-theme="light"] .hover\:bg-black\/60:hover { background-color: rgba(17, 24, 39, 0.06) !important; }
+[data-theme="light"] .hover\:bg-red-900\/40:hover,
+[data-theme="light"] .hover\:bg-red-950\/40:hover,
+[data-theme="light"] .hover\:bg-red-950\/60:hover { background-color: rgba(254, 226, 226, 0.9) !important; }
+[data-theme="light"] .hover\:border-yellow-400\/50:hover,
+[data-theme="light"] .hover\:border-yellow-400\/60:hover { border-color: rgba(17, 24, 39, 0.5) !important; }
+

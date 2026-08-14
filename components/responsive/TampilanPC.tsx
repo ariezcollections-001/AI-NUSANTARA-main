@@ -186,6 +186,8 @@ export default function TampilanPC({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [localBalance, setLocalBalance] = useState(0);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [appTheme, setAppTheme] = useState<"dark" | "light">("dark");
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const getInitials = (email: string) => {
@@ -367,21 +369,59 @@ export default function TampilanPC({
   };
 
   return (
-    <div className="w-full h-screen max-h-screen overflow-hidden bg-slate-950 text-slate-100 p-3 flex flex-col gap-2">
+    <div className="w-full h-screen max-h-screen overflow-hidden bg-[var(--app-bg)] text-slate-100 p-3 flex flex-col gap-2" data-theme={appTheme}>
       {/* Top Header Ribbon - unified pitch-black premium bar, no fixed/sticky, wired to live auth props */}
-      <div className="w-full bg-slate-950 text-slate-100 border-b border-slate-800/80 pb-2 flex flex-row items-center justify-between">
+      <div className="w-full bg-black/40 text-white border-b border-yellow-400/30 pb-2 flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-white font-black tracking-wider text-sm">
             {platformName || "BIKIN AI"}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 px-3 py-1.5 flex items-center gap-2">
+          <div className="bg-black/40 border border-yellow-400/30 rounded-lg text-white px-3 py-1.5 flex items-center gap-2">
             <Wallet className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Saldo User</span>
             <span className="text-xs font-black text-white font-mono">
               {(characterBalance > 0 ? characterBalance : localBalance).toLocaleString("id-ID")} CHARS
             </span>
+          </div>
+          {/* Tombol pilih tema background (Hitam/Putih) */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowThemeMenu((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg bg-black/40 border border-yellow-400/30 px-2.5 py-1.5 text-white hover:border-yellow-400/60 transition-all active:scale-95"
+              title="Pilih Tema Background (Hitam/Putih)"
+            >
+              <span className="text-[10px] font-black uppercase tracking-wider">
+                {appTheme === "dark" ? "🌙 Hitam" : "☀️ Putih"}
+              </span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {showThemeMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowThemeMenu(false)} />
+                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-yellow-400/30 bg-black/40 shadow-[0_8px_30px_rgba(0,0,0,0.8)] z-50 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => { setAppTheme("dark"); setShowThemeMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-white hover:bg-slate-800 transition-colors"
+                  >
+                    🌙 Hitam
+                    {appTheme === "dark" && <span className="ml-auto text-amber-400">✓</span>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAppTheme("light"); setShowThemeMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-white hover:bg-slate-800 transition-colors"
+                  >
+                    ☀️ Putih
+                    {appTheme === "light" && <span className="ml-auto text-amber-400">✓</span>}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
           <button
             type="button"
@@ -395,7 +435,7 @@ export default function TampilanPC({
             type="button"
             onClick={onRefresh}
             title="Refresh Status"
-            className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-200 hover:border-amber-500/50 transition-all active:scale-95"
+            className="p-1.5 rounded-lg bg-black/40 border border-yellow-400/30 text-white hover:border-yellow-400/60 transition-all active:scale-95"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -404,7 +444,7 @@ export default function TampilanPC({
             <button
               type="button"
               onClick={() => setShowProfileDropdown((v) => !v)}
-              className="flex items-center gap-1.5 rounded-full bg-slate-900/60 border border-slate-800 p-1 pl-1 pr-1.5 text-slate-200 hover:border-amber-500/50 transition-all"
+              className="flex items-center gap-1.5 rounded-full bg-black/40 border border-yellow-400/30 p-1 pl-1 pr-1.5 text-white hover:border-yellow-400/60 transition-all"
               title="Menu Akun"
             >
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[10px] font-black text-slate-950">
@@ -419,7 +459,7 @@ export default function TampilanPC({
                   className="fixed inset-0 z-40"
                   onClick={() => setShowProfileDropdown(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-slate-800 bg-slate-900 shadow-[0_8px_30px_rgba(0,0,0,0.6)] z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-yellow-400/30 bg-black/40 shadow-[0_8px_30px_rgba(0,0,0,0.8)] z-50 overflow-hidden">
                   <div className="p-4 border-b border-slate-800">
                     {isMaintenance ? (
                       <p className="text-[10px] font-black uppercase text-red-400 mb-1">
@@ -437,7 +477,7 @@ export default function TampilanPC({
                         setShowProfileDropdown(false);
                         router.push("/dashboard/settings");
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-white hover:bg-black/60 border border-yellow-400/30 transition-colors"
                     >
                       <Settings className="w-3.5 h-3.5" />
                       ⚙️ Pengaturan Akun
@@ -448,7 +488,7 @@ export default function TampilanPC({
                         setShowProfileDropdown(false);
                         router.push("/dashboard/transactions");
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold text-white hover:bg-black/60 border border-yellow-400/30 transition-colors"
                     >
                       <History className="w-3.5 h-3.5" />
                       📊 Riwayat Transaksi
@@ -487,8 +527,8 @@ export default function TampilanPC({
 
       {selectedFitur && selectedFiturData ? (
         <>
-          <div className="shrink-0 flex items-center gap-3 px-4 py-2 bg-slate-900 border-b border-slate-800">
-            <button type="button" onClick={handleBackToHome} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-200 transition-all active:scale-95">
+          <div className="shrink-0 flex items-center gap-3 px-4 py-2 bg-black/40 border-b border-yellow-400/30">
+            <button type="button" onClick={handleBackToHome} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 hover:bg-black/60 border border-yellow-400/30 text-[10px] font-bold uppercase tracking-wider text-white transition-all active:scale-95">
               <ArrowLeft className="w-3 h-3" />
               Kembali
             </button>
@@ -496,7 +536,7 @@ export default function TampilanPC({
               <h2 className="text-sm font-black text-white truncate">{selectedFiturData.nama}</h2>
               <span className="text-[10px] text-slate-400 truncate">{selectedFiturData.desc}</span>
             </div>
-            <div className="shrink-0 flex items-center gap-2 rounded-lg bg-slate-950 border border-slate-800 px-3 py-1.5">
+            <div className="shrink-0 flex items-center gap-2 rounded-lg bg-black/40 border border-yellow-400/30 px-3 py-1.5">
               <Wallet className="w-3.5 h-3.5 text-amber-400" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Saldo Token</span>
               <span className="text-xs font-black text-white font-mono">
@@ -517,7 +557,7 @@ export default function TampilanPC({
             </div>
         </>
       ) : (
-        <div className="w-full flex-1 grid grid-cols-4 gap-3 overflow-hidden bg-slate-950 mt-1">
+        <div className="w-full flex-1 grid grid-cols-4 gap-3 overflow-hidden bg-[var(--app-bg)] mt-1">
           {CATEGORIES.map((kat) => {
             const headerClass =
               CATEGORY_COLORS[kat] ||
@@ -549,7 +589,7 @@ export default function TampilanPC({
                           setErrorMessage(null);
                           setIsLoading(false);
                         }}
-                        className="w-full text-left p-2 bg-slate-900/40 border border-slate-800 rounded-xl hover:border-amber-500/50 cursor-pointer transition-all group"
+                        className="w-full text-left p-2 bg-black/40 border border-yellow-400/30 rounded-xl hover:border-yellow-400/60 cursor-pointer transition-all group"
                       >
                         <h3 className="text-xs font-bold text-slate-200 group-hover:text-amber-400 transition-colors">
                           {item.nama}
