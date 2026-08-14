@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDashboardLive } from "@/components/DashboardLiveContext";
 import AIWorkbench from "@/components/workbench/AIWorkbench";
@@ -172,14 +172,7 @@ export default function TampilanPC({
     onLogout,
     onDeleteAccount,
   } = useDashboardLive();
-  const [selectedFitur, setSelectedFitur] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return sessionStorage.getItem("bikinAI_selectedFitur");
-    } catch {
-      return null;
-    }
-  });
+  const [selectedFitur, setSelectedFitur] = useState<string | null>(null);
   const [promptInput, setPromptInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
@@ -189,6 +182,19 @@ export default function TampilanPC({
   const [appTheme, setAppTheme] = useState<"dark" | "light">("dark");
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Muat fitur tersimpan dari sessionStorage SETELAH mount
+  // (hindari hydration mismatch: server & client awal render null -> grid)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("bikinAI_selectedFitur");
+      if (saved && fiturNusantara.some((f) => f.id === saved)) {
+        setSelectedFitur(saved);
+      }
+    } catch {
+      /* abaikan */
+    }
+  }, []);
 
   const getInitials = (email: string) => {
     if (!email) return "U";
@@ -380,7 +386,7 @@ export default function TampilanPC({
         <div className="flex items-center gap-3">
           <div className="bg-black/40 border border-yellow-400/30 rounded-lg text-white px-3 py-1.5 flex items-center gap-2">
             <Wallet className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Saldo User</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Saldo :</span>
             <span className="text-xs font-black text-white font-mono">
               {(characterBalance > 0 ? characterBalance : localBalance).toLocaleString("id-ID")} CHARS
             </span>
@@ -538,7 +544,7 @@ export default function TampilanPC({
             </div>
             <div className="shrink-0 flex items-center gap-2 rounded-lg bg-black/40 border border-yellow-400/30 px-3 py-1.5">
               <Wallet className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Saldo Token</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Saldo :</span>
               <span className="text-xs font-black text-white font-mono">
                 {(characterBalance > 0 ? characterBalance : localBalance).toLocaleString("id-ID")} CHARS
               </span>
