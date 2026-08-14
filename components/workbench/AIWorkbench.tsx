@@ -10,6 +10,9 @@ import {
   Type,
   Loader2,
   Sparkles,
+  History,
+  Trash2,
+  ClipboardPaste,
 } from "lucide-react";
 
 /* =====================================================================
@@ -298,7 +301,16 @@ export default function AIWorkbench({
   maxInputChars = 4000,
 }: AIWorkbenchProps) {
   // --- SEKAT 1 : RUANG DISKUSI USER & AI ---
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem("bikinAI_chat_" + featureId);
+      return raw ? (JSON.parse(raw) as ChatMessage[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showHistory, setShowHistory] = useState(false);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -326,6 +338,30 @@ export default function AIWorkbench({
     const el = chatScrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
+
+  // Riwayat chat tersimpan PERMANEN per fitur (tidak hilang walau keluar-masuk)
+  // dan hanya terhapus jika user menekan tombol "Hapus Riwayat".
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (messages.length) {
+        localStorage.setItem("bikinAI_chat_" + featureId, JSON.stringify(messages));
+      } else {
+        localStorage.removeItem("bikinAI_chat_" + featureId);
+      }
+    } catch {
+      /* abaikan */
+    }
+  }, [messages, featureId]);
+
+  const handleClearHistory = () => {
+    const ok = window.confirm(
+      "Hapus riwayat chat untuk fitur ini secara permanen?\n\n(Riwayat chat lain tidak akan terpengaruh.)",
+    );
+    if (!ok) return;
+    setMessages([]);
+    setShowHistory(false);
+  };
 
   const finish = () => {
     setIsLoading(false);
@@ -512,6 +548,23 @@ export default function AIWorkbench({
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
+                onClick={() => setShowHistory((v) => !v)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[9px] font-black uppercase tracking-wider text-slate-300 transition-all active:scale-95"
+                title="Lihat riwayat chat tersimpan"
+              >
+                <History className="w-3 h-3" /> Riwayat
+              </button>
+              <button
+                type="button"
+                onClick={handleClearHistory}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-red-500/40 bg-red-950/40 hover:bg-red-900/40 text-[9px] font-black uppercase tracking-wider text-red-300 transition-all active:scale-95"
+                title="Hapus riwayat chat secara permanen"
+              >
+                <Trash2 className="w-3 h-3" /> Hapus
+              </button>
+              <span className="w-px h-4 bg-slate-700" />
+              <button
+                type="button"
                 onClick={chatZoomIn}
                 className="px-2 py-1 rounded-lg border border-emerald-700 bg-emerald-950/40 hover:bg-emerald-900/40 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
                 title="Zoom In kolom chat (isi satu layar)"
@@ -529,6 +582,27 @@ export default function AIWorkbench({
             </div>
           </div>
 
+          {showHistory && (
+            <div className="shrink-0 max-h-40 overflow-y-auto border-b border-slate-800 bg-slate-950/80 p-2 space-y-1">
+              <div className="flex items-center justify-between px-1 pb-1">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">📜 Riwayat Chat Tersimpan</span>
+                <span className="text-[9px] font-mono text-slate-500">{messages.length} pesan</span>
+              </div>
+              {messages.length === 0 ? (
+                <p className="text-[9px] text-slate-500 px-1">Belum ada riwayat untuk fitur ini.</p>
+              ) : (
+                messages.map((m) => (
+                  <div key={m.id} className="text-[9px] leading-snug text-slate-300">
+                    <span className={`font-bold ${m.role === "user" ? "text-amber-400" : "text-slate-400"}`}>
+                      {m.role === "user" ? "Anda: " : "AI: "}
+                    </span>
+                    <span className="line-clamp-2">{m.content}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
           <div ref={chatScrollRef} className="flex-1 overflow-y-auto flex flex-col gap-2 p-3 min-h-0">
             {messages.length === 0 && (
               <div className="m-auto text-center max-w-xs">
@@ -543,8 +617,18 @@ export default function AIWorkbench({
             {messages.map((m) => (
               <div
                 key={m.id}
-                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex items-end gap-1.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
+                {m.role === "ai" && m.content !== "" && (
+                  <button
+                    type="button"
+                    onClick={() => setDocText(m.content)}
+                    className="shrink-0 mb-0.5 p-1 rounded-md border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all active:scale-95"
+                    title="Salin balasan AI ini ke kertas dokumen kanan untuk diedit"
+                  >
+                    <ClipboardPaste className="w-3 h-3" />
+                  </button>
+                )}
                 <div
                   className={`max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed shadow whitespace-pre-wrap break-words ${
                     m.role === "user"

@@ -46,6 +46,10 @@ const MAX_OUTPUT_TOKENS = 4096;
 const MAX_INPUT_LENGTH = 32000;
 const DEFAULT_TEMPERATURE = 0.5;
 
+/* Hitung jumlah KARAKTER sesungguhnya (Unicode code point), bukan unit UTF-16.
+   Ini membuat pemotongan saldo akurat untuk emoji & huruf non-Latin. */
+const charCount = (s: string): number => Array.from(s ?? "").length;
+
 /* Fallback system instruction when no feature prompt matches. */
 const DEFAULT_FEATURE_INSTRUCTION =
   "Bertindaklah sebagai asisten AI yang membantu, informatif, dan jujur. " +
@@ -76,7 +80,16 @@ const FEATURE_INSTRUCTIONS: Record<string, string> = {
   "ide-bisnis": "Kamu adalah Konsultan Bisnis Korporasi Senior. TUGAS MUTLAK: Lakukan analisis SWOT kilat, petakan target pasar, dan berikan 3 taktik gerilya untuk memenangkan produk UMKM buatan user di pasar lokal.",
   "bahasa-formal": "Kamu adalah Sekretaris Eksekutif dan Ahli Korespondensi Bisnis. TUGAS MUTLAK: Ubah total teks acak/kasual dari user menjadi surat penawaran bisnis resmi, proposal formal, atau email korporat yang berwibawa tinggi.",
   "generator-propaganda": "Kamu adalah Direktur Propaganda dan Kampanye Kreatif Masal. TUGAS MUTLAK: Buat narasi copywriting iklan persuasif berskala luas yang membakar emosi, memicu urgensi pembelian, dan menggempur psikologis pasar digital Indonesia.",
-  "audio-mp3-manusia": "Kamu adalah AI Voice Over Director & Scriptwriter. TUGAS MUTLAK: Ubah masukan teks dari user menjadi draf naskah pembacaan suara audio (Voice Over Script) yang memiliki intonasi manja, luwes, natural seperti manusia asli, lengkap dengan tanda jeda baca (tanda koma, titik, tanda penekanan nada [intonasi naik/turun]) agar siap diumpankan ke mesin Text-to-Speech MP3!"
+    "audio-mp3-manusia": "Kamu adalah AI Voice Over Director & Scriptwriter. TUGAS MUTLAK: Ubah masukan teks dari user menjadi draf naskah pembacaan suara audio (Voice Over Script) yang memiliki intonasi manja, luwes, natural seperti manusia asli, lengkap dengan tanda jeda baca (tanda koma, titik, tanda penekanan nada [intonasi naik/turun]) agar siap diumpankan ke mesin Text-to-Speech MP3!",
+  "chat-ai": "Kamu adalah Asisten AI generik yang ramah, jujur, dan bersolutif. Tugasmu adalah berdiskusi bebas dengan pengguna — jawablah pertanyaan apa adanya, proporsional, dan tawarkan bantuan ekstra bila perlu. Kamu BOLEH membahas topik apapun: sains, teknologi, budaya, seni, bisnis, agama, politik, atau hal santai sehari-hari. Jaga tetap jujur, berikan langkah praktis ringkas + contoh konkret saat relevan, dan jangan pernah mengarang fakta."
+};
+
+/* Suhu (temperature) default per fitur.
+   - chat-ai  : obrolan bebas → sedikit kreatif (0.7) agar alami, ramah, dan variatif.
+   - sisanya  : pakai DEFAULT_TEMPERATURE (0.5) agar tetap konsisten kebijakan anti-halusinasi.
+   Founder dapat menimpa paksa lewat body request `temperature`. */
+const FEATURE_DEFAULT_TEMPERATURE: Record<string, number> = {
+  "chat-ai": 0.7,
 };
 
 interface GenerateRequestBody {
@@ -181,8 +194,26 @@ async function deductCharacterBalance(
 function buildSystemInstruction(
   feature: string,
   userInput: string,
-  userEmail: string,
+    userEmail: string,
 ): string {
+  // chat-ai = ruang obrolan BEBAS: tidak terikat pada cakupan 14 fitur khusus.
+  if (feature === "chat-ai") {
+    const instruction =
+      FEATURE_INSTRUCTIONS["chat-ai"] ?? DEFAULT_FEATURE_INSTRUCTION;
+    return `${instruction}
+
+Email pengguna: ${userEmail || "anon@ai-nusantara.local"}
+
+PANDUAN PERJANCANGAN (Chat Bebas — tidak terikat cakupan fitur lain):
+1. Bersikaplah seperti asisten AI yang cerdas, ramah, dan bersolutif.
+2. Jawab pertanyaan/perintah pengguna apa adanya, proporsional, dan tawarkan bantuan ekstra bila perlu.
+3. BOLEH membahas topik apapun secara alami — sains, teknologi, budaya, ekonomi, seni, dll.
+4. Berikan langkah praktis ringkas + contoh konkret bila relevan.
+5. Jangan pernah mengarang fakta; nyatakan jujur bila data kurang.
+
+Input pengguna:
+${userInput}`;
+  }
   const instruction =
     FEATURE_INSTRUCTIONS[feature] ?? DEFAULT_FEATURE_INSTRUCTION;
   return `${instruction}\n\nEmail pengguna: ${userEmail || "anon@ai-nusantara.local"}\n\nPANDUAN PERBINCANGAN:\n1. Bersikaplah natural dan ramah seperti asisten yang sedang mengobrol. Balaslah pertanyaan/perintah pengguna apa adanya dan proporsional — jangan menumpahkan laporan atau struktur panjang bila pengguna belum meminta dokumen lengkap. Untuk sapaan singkat (misal "tes", "halo"), balas singkat lalu tawarkan bantuan.\n2. Tetap gunakan pengetahuan khusus dari peran fitur di atas saat menjawab.\n3. Jika pembahasan pengguna TIDAK berkaitan dengan peran/fitur di atas, tolak dengan sopan dan minta maaf, lalu arahkan kembali ke topik fitur tersebut; jangan pernah keluar dari lingkup fitur.\n4. Jawab dalam bahasa Indonesia yang jelas, profesional, komprehensif namun padat, hindari halusinasi, dan jangan mengarang fakta.\n\nInput pengguna:\n${userInput}`;
@@ -212,7 +243,10 @@ export async function POST(request: Request) {
   const message = String(rawBody.message ?? rawBody.prompt ?? "").trim().slice(0, MAX_INPUT_LENGTH);
   const feature = String(rawBody.feature ?? rawBody.featureId ?? "").trim();
   const model = rawBody.model?.trim();
-  const temperature = Number(rawBody.temperature) || DEFAULT_TEMPERATURE;
+    const temperature =
+    Number(rawBody.temperature) ||
+    FEATURE_DEFAULT_TEMPERATURE[feature] ||
+    DEFAULT_TEMPERATURE;
   const maxTokens = Math.min(
     Number(rawBody.maxTokens) || MAX_OUTPUT_TOKENS,
     MAX_OUTPUT_TOKENS,
@@ -370,7 +404,7 @@ async function streamWithRotation(deps: RotationDeps): Promise<Response> {
                 if (signal.aborted) break;
                 const token = chunk.text();
                 if (token) {
-                  outputCharacters += token.length;
+                  outputCharacters += charCount(token);
                   if (!closed) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: token })}\n\n`));
                 }
               }
@@ -428,7 +462,7 @@ async function streamWithRotation(deps: RotationDeps): Promise<Response> {
                     };
                     const delta = payload?.choices?.[0]?.delta?.content;
                     if (typeof delta === "string" && delta) {
-                      outputCharacters += delta.length;
+                      outputCharacters += charCount(delta);
                       if (!closed) controller.enqueue(sseData({ text: delta }));
                     }
                   } catch {
@@ -441,7 +475,7 @@ async function streamWithRotation(deps: RotationDeps): Promise<Response> {
 
             // ── Berhasil → deduksi saldo + done frame ──────────────────
             if (!closed && !signal.aborted) {
-              const inputCharacters = message.length;
+              const inputCharacters = charCount(message.trim());
               const totalDeducted = inputCharacters + outputCharacters;
               const remaining = await deductCharacterBalance(user.id, totalDeducted, currentBalance);
               const monetization: MonetizationResult = {
@@ -580,7 +614,7 @@ async function streamFromOpenRouter(deps: OpenRouterDeps): Promise<Response> {
             const dataStr = frame.slice(5).trim();
 
             if (dataStr === "[DONE]") {
-              const inputCharacters = message.length;
+              const inputCharacters = charCount(message.trim());
               const totalDeducted = inputCharacters + outputCharacters;
               const remaining = await deductCharacterBalance(user.id, totalDeducted, currentBalance);
               const monetization: MonetizationResult = {
@@ -601,7 +635,7 @@ async function streamFromOpenRouter(deps: OpenRouterDeps): Promise<Response> {
               };
               const delta = payload?.choices?.[0]?.delta?.content;
               if (typeof delta === "string" && delta) {
-                outputCharacters += delta.length;
+                outputCharacters += charCount(delta);
                 if (!closed) controller.enqueue(sseData({ text: delta }));
               }
             } catch {

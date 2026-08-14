@@ -126,6 +126,13 @@ const fiturNusantara: FiturNusantara[] = [
     cat: "UMKM",
     contoh: "Ubah pesan WhatsApp 'Mau nanya soal harga barangnya' menjadi bahasa formal.",
   },
+    {
+    id: "chat-ai",
+    nama: "💬 Chat AI",
+    desc: "Obrolan bebas dengan AI — tidak terikat pada 14 fitur khusus di atas.",
+    cat: "UMUM",
+    contoh: "Jelaskan perbedaan fotosintesis dan fotosistem secara sederhana.",
+  },
   {
     id: "audio-mp3",
     nama: "🎙️ Audio MP3 Manusia Luwes",

@@ -26,7 +26,14 @@ export default function FounderDashboard() {
   const [loading, setLoading] = useState(false);
 
   const [users, setUsers] = useState<User[]>([]);
-  const [features, setFeatures] = useState<Feature[]>([]);
+    const [features, setFeatures] = useState<Feature[]>([]);
+  const [newFeatureDraft, setNewFeatureDraft] = useState<Partial<Feature>>({
+    feature_name: "",
+    feature_slug: "",
+    system_prompt: "",
+    temperature: 0.5,
+    is_active: true,
+  });
   const [showFeaturesPanel, setShowFeaturesPanel] = useState(false);
   const [showTotalAccountsModal, setShowTotalAccountsModal] = useState(false);
   const [showLiveMonitorModal, setShowLiveMonitorModal] = useState(false);
@@ -799,8 +806,34 @@ export default function FounderDashboard() {
     } catch (err) {
             console.error('saveFeature local failed', err);
             alert('Gagal menyimpan feature: ' + String(err));
-            return { ok: false, error: String(err) };
+                        return { ok: false, error: String(err) };
     }
+  }
+
+  /* ➕ Tambah fitur baru dari UI founder (prompt manual + temperatur) */
+  function addFeatureManual() {
+    if (!newFeatureDraft.feature_slug?.trim() || !newFeatureDraft.feature_name?.trim()) {
+      alert('Slug dan Nama fitur wajib diisi.');
+      return;
+    }
+    const newFeature: Feature = {
+      id: Date.now(),
+      feature_slug: newFeatureDraft.feature_slug!.trim(),
+      feature_name: newFeatureDraft.feature_name!.trim(),
+      system_prompt: newFeatureDraft.system_prompt?.trim() ?? '',
+      temperature: Number(newFeatureDraft.temperature ?? 0),
+      is_active: Boolean(newFeatureDraft.is_active ?? true),
+      seo_title: null,
+      seo_description: null,
+    };
+    saveFeature(newFeature);
+    setNewFeatureDraft({
+      feature_name: '',
+      feature_slug: '',
+      system_prompt: '',
+      temperature: 0.5,
+      is_active: true,
+    });
   }
 
   // 🎛️ Founder Configuration Hub save
@@ -1787,17 +1820,46 @@ export default function FounderDashboard() {
             </button>
 
             <button onClick={() => setShowFeaturesPanel(!showFeaturesPanel)} className="p-6 bg-slate-800/40 hover:bg-slate-800 rounded-2xl border border-slate-700/50 text-left transition-all group space-y-2">
-              <div className="text-xl group-hover:scale-110 transition-transform">📑</div>
-              <h4 className="font-bold text-sm text-slate-200">📑 Manajemen Konten 11 Fitur</h4>
-              <p className="text-xs text-slate-400">Ubah atau tambahkan system prompt 11 Fitur langsung dari browser tanpa menyentuh kode.</p>
+                            <div className="text-xl group-hover:scale-110 transition-transform">📑</div>
+              <h4 className="font-bold text-sm text-slate-200">📑 Manajemen Konten {features.length} Fitur</h4>
+              <p className="text-xs text-slate-400">Ubah atau tambahkan system prompt {features.length} Fitur langsung dari browser tanpa menyentuh kode.</p>
             </button>
           </div>
 
 
           {showFeaturesPanel && (
             <div className="mt-6 bg-slate-900/50 p-4 rounded-lg border border-slate-800 space-y-4">
-              <h4 className="font-bold">11 Fitur - System Prompts</h4>
+                                                        <h4 className="font-bold">{features.length} Fitur - System Prompts</h4>
               <div className="space-y-4 max-h-96 overflow-auto">
+                {/* Kolom Tambah / Edit Prompt Manual beserta aturan temperatur */}
+                <div className="p-3 rounded-lg border border-dashed border-slate-700 bg-slate-800/30 space-y-3">
+                  <div className="text-xs font-bold text-amber-400">➕ Tambah Fitur Manual (Prompt + Temperature)</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[9px] text-slate-400 mb-0.5">Nama Fitur</label>
+                      <input type="text" value={newFeatureDraft.feature_name ?? ""} onChange={(e) => setNewFeatureDraft({ ...newFeatureDraft, feature_name: e.target.value })} className="w-full px-2 py-1 text-sm bg-slate-900 rounded" placeholder="💬 Chat AI" />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] text-slate-400 mb-0.5">Slug (huruf kecil &amp; -)</label>
+                      <input type="text" value={newFeatureDraft.feature_slug ?? ""} onChange={(e) => setNewFeatureDraft({ ...newFeatureDraft, feature_slug: e.target.value })} className="w-full px-2 py-1 text-sm bg-slate-900 rounded" placeholder="chat-ai" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] text-slate-400 mb-0.5">System Prompt (aturan keaijian)</label>
+                    <textarea value={newFeatureDraft.system_prompt ?? ""} onChange={(e) => setNewFeatureDraft({ ...newFeatureDraft, system_prompt: e.target.value })} className="w-full min-h-[70px] px-2 py-1 text-sm bg-slate-900 rounded" placeholder="Kamu adalah..." />
+                  </div>
+                  <div className="flex items-end gap-4">
+                    <div>
+                      <label className="block text-[9px] text-slate-400 mb-0.5">Temperature</label>
+                      <input type="number" min={0} max={1} step={0.1} value={Number(newFeatureDraft.temperature ?? 0)} onChange={(e) => setNewFeatureDraft({ ...newFeatureDraft, temperature: Number(e.target.value) })} className="w-24 px-2 py-1 text-sm bg-slate-900 rounded" />
+                      <div className="text-[9px] text-slate-500">0.0 = ketat/presisi · 0.5 = netral · 0.7 = kreatif · 1.0 = bebas</div>
+                    </div>
+                    <div className="flex items-center gap-1 text-[9px] text-slate-300 mt-4">
+                      <input type="checkbox" checked={Boolean(newFeatureDraft.is_active)} onChange={(e) => setNewFeatureDraft({ ...newFeatureDraft, is_active: e.target.checked })} /> Aktif
+                    </div>
+                    <button onClick={addFeatureManual} className="ml-auto mt-3.5 px-3 py-1 bg-amber-400 rounded text-xs font-bold text-slate-950">Tambah Fitur</button>
+                  </div>
+                </div>
                 {features.map((f) => (
                   <div key={f.id} className="p-3 bg-slate-800/30 rounded space-y-2">
                     <div className="flex items-center justify-between">
