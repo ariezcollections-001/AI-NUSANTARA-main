@@ -165,7 +165,14 @@ export default function TampilanPC({
     onLogout,
     onDeleteAccount,
   } = useDashboardLive();
-  const [selectedFitur, setSelectedFitur] = useState<string | null>(null);
+  const [selectedFitur, setSelectedFitur] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return sessionStorage.getItem("bikinAI_selectedFitur");
+    } catch {
+      return null;
+    }
+  });
   const [promptInput, setPromptInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
@@ -186,6 +193,11 @@ export default function TampilanPC({
   const handleBackToHome = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+    }
+    try {
+      sessionStorage.removeItem("bikinAI_selectedFitur");
+    } catch {
+      /* abaikan */
     }
     setSelectedFitur(null);
     setAiResponse("");
@@ -522,6 +534,9 @@ export default function TampilanPC({
                         type="button"
                         onClick={() => {
                           setSelectedFitur(item.id);
+                          try {
+                            sessionStorage.setItem("bikinAI_selectedFitur", item.id);
+                          } catch { /* abaikan */ }
                           setAiResponse("");
                           setPromptInput("");
                           setErrorMessage(null);

@@ -44,7 +44,7 @@ export const runtime = "edge";
 
 const MAX_OUTPUT_TOKENS = 4096;
 const MAX_INPUT_LENGTH = 32000;
-const DEFAULT_TEMPERATURE = 0.3;
+const DEFAULT_TEMPERATURE = 0.5;
 
 /* Fallback system instruction when no feature prompt matches. */
 const DEFAULT_FEATURE_INSTRUCTION =
@@ -185,7 +185,7 @@ function buildSystemInstruction(
 ): string {
   const instruction =
     FEATURE_INSTRUCTIONS[feature] ?? DEFAULT_FEATURE_INSTRUCTION;
-  return `${instruction}\n\nEmail pengguna: ${userEmail || "anon@ai-nusantara.local"}\n\nPanduan: Jawab dalam bahasa Indonesia yang jelas dan profesional, komprehensif namun padat, hindari halusinasi, dan berikan langkah praktis konkret bila relevan. Jangan pernah mengarang fakta.\n\nInput pengguna:\n${userInput}`;
+  return `${instruction}\n\nEmail pengguna: ${userEmail || "anon@ai-nusantara.local"}\n\nPANDUAN PERBINCANGAN:\n1. Bersikaplah natural dan ramah seperti asisten yang sedang mengobrol. Balaslah pertanyaan/perintah pengguna apa adanya dan proporsional — jangan menumpahkan laporan atau struktur panjang bila pengguna belum meminta dokumen lengkap. Untuk sapaan singkat (misal "tes", "halo"), balas singkat lalu tawarkan bantuan.\n2. Tetap gunakan pengetahuan khusus dari peran fitur di atas saat menjawab.\n3. Jika pembahasan pengguna TIDAK berkaitan dengan peran/fitur di atas, tolak dengan sopan dan minta maaf, lalu arahkan kembali ke topik fitur tersebut; jangan pernah keluar dari lingkup fitur.\n4. Jawab dalam bahasa Indonesia yang jelas, profesional, komprehensif namun padat, hindari halusinasi, dan jangan mengarang fakta.\n\nInput pengguna:\n${userInput}`;
 }
 
 /*
