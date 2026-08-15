@@ -97,7 +97,7 @@ async function callProvider(provider: { apiKey: string; models: { id: string; ur
             content: prompt,
           },
         ],
-        temperature: 0,
+        temperature: 0.2,
         max_tokens: 1200,
       }),
     });
