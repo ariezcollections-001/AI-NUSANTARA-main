@@ -5,6 +5,9 @@
   --foreground: #171717;
   --app-bg: #030712;
   --app-accent: #f59e0b;
+  /* Theme-aware surface colors (Feature 60: Template Resmi Kertas Dokumen) */
+  --paper-bg: #030712;
+  --template-dropdown-bg: #030712;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,6 +31,8 @@ body {
    ============================================================ */
 [data-theme="light"] {
   --app-bg: #ffffff;
+  --paper-bg: #ffffff;
+  --template-dropdown-bg: #f0f4f8;
 }
 
 /* Teks utama -> hitam */

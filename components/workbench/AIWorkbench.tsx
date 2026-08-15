@@ -95,15 +95,7 @@ const fmtDate = (iso: string) => {
   }
 };
 
-const FALLBACK_TEMPLATES: DocTemplate[] = [
-  {
-    id: "tmp-fallback",
-    label: "Template",
-    title: "LEMBAR KERJA",
-    body:
-      "LEMBAR KERJA\n\nJudul        : ______________________________\nTanggal      : __/__/2026\nLampiran     : ______________________________\n\nPendahuluan\n______________________________________________\n\nTujuan\n1. ______________________________\n2. ______________________________\n\nIsi / Rincian\n______________________________________________\n\nKesimpulan\n______________________________________________\n\nMengetahui,\n\n(_____________________________)",
-  },
-];
+const FALLBACK_TEMPLATES: DocTemplate[] = [];
 
 /* -------------------------------------------------------------------
    Template KHAS untuk setiap fitur — teks PENUH & siap pakai. User
@@ -125,6 +117,27 @@ const FEATURE_TEMPLATES: Record<string, DocTemplate[]> = {
       body:
         "ASESMEN PEMBELAJARAN\n\nMata Pelajaran : ______________________________\nKelas          : ______________________________\nMateri         : ______________________________\n\nA. Asesmen Diagnostik\n1. Pertanyaan: ______________________________\n   Jawaban kunci: ______________________________\n\nB. Asesmen Formatif\n1. Soal: ______________________________\n2. Soal: ______________________________\n\nC. Asesmen Sumatif\n1. Pilihan ganda (5 butir).\n2. Uraian singkat (3 butir).\n\nD. Rubrik Penilaian Keterampilan\nKriteria            | Skor 4 | Skor 3 | Skor 2 | Skor 1\nKetepatan jawaban: (______________________________)\nKerja sama        : (______________________________)\n\nE. Nilai Akhir = (Jumlah skor / skor maksimal) x 100\n\nGuru Mata Pelajaran\n\n(_____________________________)",
     },
+    {
+      id: "rpp3",
+      label: "Template Silabus & KD",
+      title: "SILABUS & KOMPETENSI DASAR",
+      body:
+        "SILABUS & KOMPETENSI DASAR (KI-KD)\n\nMata Pelajaran  : ______________________________\nKelas/Semester   : ______________________________\nAlokasi Waktu    : ______________________________ (___ JP)\n\nKI-1 Pengetahuan  : ______________________________\nKI-2 Penggunaan   : ______________________________\nKI-3 Keterampilan  : ______________________________\nKI-4 Sikap        : ______________________________\n\nKD per bab/unit:\nKD _____ : ______________________________\nKD _____ : ______________________________\nKD _____ : ______________________________\n\nSumber / Bahan Bacaan:\n- ______________________________\n\nMengetahui,\n(_____________________________)",
+    },
+    {
+      id: "rpp4",
+      label: "Template Praktikum / Lab",
+      title: "RPP PRAKTIKUM / LABORATORIUM",
+      body:
+        "RPP PRAKTIKUM / LABORATORIUM (MODEL Eksperimental)\n\nAlokasi Waktu    : ______________________________\nMata Pelajaran   : ______________________________\nTopik Eksperimen : ______________________________\n\nHipotesis: ______________________________\n\nVariabel Bebas      : ______________________________\nVariabel Terikat    : ______________________________\nVariabel Kontrol    : ______________________________\n\nPerlengkapan: ______________________________\n\nProsedur Praktikum:\n1. ________________________________________________\n2. ________________________________________________\n3. ________________________________________________\n4. ________________________________________________\n\nTabel Pengamatan:\n| No | Perlakuan | Hasil | Catatan |\n|----|-----------|-------|---------|\n| 1  | _________ | _____ | _______ |\n| 2  | _________ | _____ | _______ |\n\nAnalisis Data & Kesimpulan:\n________________________________________________\n\nCatatan Keamanan:\n________________________________________________\n\n(_____________________________)",
+    },
+    {
+      id: "rpp5",
+      label: "Template Observasi Kelas",
+      title: "FORMAT OBSERVASI KELAS",
+      body:
+        "FORMAT OBSERVASI KELAS\n\nGuru       : ______________________________\nKelas      : ______________________________\nPertemuan  : _____ (ke-)   Tanggal : __/__/2026\nAspek      : (Pembukaan / Inti / Penutup)\n\nSkor 1 (Tidak Pernah) - 5 (Selalu)\n\n1. Guru mengaitkan pelajaran dengan kehidupan sehari-hari\n   Skor: 1 2 3 4 5  | Catatan: __________________\n2. Siswa bertanya / mengajukan pendapat\n   Skor: 1 2 3 4 5  | Catatan: __________________\n3. Penggunaan Media / Sumber Belajar\n   Skor: 1 2 3 4 5  | Catatan: __________________\n4. Interaksi Guru-Siswa\n   Skor: 1 2 3 4 5  | Catatan: __________________\n5. Umpan Balik / Penilaian Formatif\n   Skor: 1 2 3 4 5  | Catatan: __________________\n\nKesimpulan singkat:\n________________________________________________\n\n(_____________________________)",
+    },
   ],
   "buat-soal": [
     {
@@ -140,6 +153,27 @@ const FEATURE_TEMPLATES: Record<string, DocTemplate[]> = {
       title: "BANK SOAL ESAI & RUBRIK",
       body:
         "BANK SOAL ESAI BESERTA RUBRIK PENILAIAN\n\nMata Pelajaran : ______________________________\nKelas          : ______________________________\nMateri         : ______________________________\n\n1. Jelaskan dengan bahasamu sendiri konsep ____________\n   Rubrik: (3) benar & disertai contoh; (2) benar tanpa contoh;\n   (1) kurang tepat; (0) tidak menjawab.\n\n2. Buatlah langkah penyelesaian untuk ____________\n   Rubrik: kelengkapan langkah, ketepatan hasil, keruntutan.\n\n3. Analisislah faktor penyebab ____________ dan beri solusi.\n   Rubrik: kerincian analisis (0-4), kesesuaian solusi (0-4).\n\n4. Bandingkan ____________ dengan ____________.\n   Rubrik: kesesuaian, kedalaman, kebahasaan.\n\n5. Simpulkan materi ____________ dalam satu paragraf padat.\n   Rubrik: ketepatan isi (0-4), kejelasan kalimat (0-2).\n\nPedoman: Nilai = (total skor / skor maksimal) x 100",
+    },
+    {
+      id: "soal3",
+      label: "Template Isian Singkat",
+      title: "BANK SOAL ISIAN SINGKAT",
+      body:
+        "BANK SOAL ISIAN SINGKAT\n\nMata Pelajaran : ______________________________\nKelas          : ______________________________\nMateri         : ______________________________\n\nInstruksi: Tuliskan jawaban singkat pada ruang yang tersedia.\n\n1. Definisi __________ adalah ______________________________\n\n2. Tahap __________ terjadi ketika __________________________\n\n3. Faktor utama __________ dapat dikelompokkan menjadi __________\n\n4. Contoh penerapan __________ dalam kehidupan sehari-hari: __________\n\n5. Rumus __________ dipakai untuk ____________________________\n\nKunci Jawaban:\n1. __________  2. __________  3. __________  4. __________  5. __________\n\n(_____________________________)",
+    },
+    {
+      id: "soal4",
+      label: "Template Soal Esai",
+      title: "BANK SOAL ESAI / URAIAN",
+      body:
+        "BANK SOAL ESAI / URAIAN\n\nMata Pelajaran : ______________________________\nKelas          : ______________________________\nMateri         : ______________________________\n\n1. Jelaskan perbedaan antara __________ dan __________\n   __________________________________________________________________\n   __________________________________________________________________\n\n2. Gambarkan proses __________ dengan diagram alur.\n   __________________________________________________________________\n\n3. Analisis faktor __________ dan beri solusi yang relevan.\n   __________________________________________________________________\n\n4. Evaluasi pernyataan berikut:\n   ________________________________________________\n   Jawabanmu: __________________________________________________________________\n\n5. Buat kesimpulan tentang __________.\n   __________________________________________________________________\n   __________________________________________________________________\n\nRubrik: Kebenaran konsep(0-3) | Kelengkapan(0-3) | Kejelasan(0-2) | Keterkaitan(0-2)\n\nNilai: ____ / 10\n\n(_____________________________)",
+    },
+    {
+      id: "soal5",
+      label: "Template Kunci & Pembahasan",
+      title: "KUNCI & PEMBAHASAN",
+      body:
+        "KUNCI & PEMBAHASAN SOAL\n\nMata Pelajaran : ______________________________\nKelas          : ______________________________\nMateri         : ______________________________\n\nNo | Butir Soal          | Kunci | Pembahasan Singkat\n---|---------------------|-------|-----------------\n1  | Isian/PG/Esai       | _____ | __________________\n2  | Isian/PG/Esai       | _____ | __________________\n3  | Isian/PG/Esai       | _____ | __________________\n4  | Isian/PG/Esai       | _____ | __________________\n5  | Isian/PG/Esai       | _____ | __________________\n\nSkor per butir: ___, ___, ___, ___, ___\nKesalahan konsep yang sering muncul:\n________________________________________________\n\nStrategi perbaikan:\n1. ________________________________________________\n2. ________________________________________________\n\n(_____________________________)",
     },
   ],
   "koreksi-tugas": [
@@ -157,6 +191,27 @@ const FEATURE_TEMPLATES: Record<string, DocTemplate[]> = {
       body:
         "LEMBAR UMPAN BALIK PENGOREKSI\n\nNama Siswa     : ______________________________\nJudul Tugas    : ______________________________\nNilai Akhir    : ____ / 100\nPredikat       : (A/B/C/D)\n\nKritik / Observasi (objektif)\n1. ______________________________________________\n2. ______________________________________________\n3. ______________________________________________\n\nSaran Perbaikan\n1. ______________________________________________\n2. ______________________________________________\n3. ______________________________________________\n\nApresiasi (hal yang sudah baik)\n- ______________________________________________\n\nRekomendasi Tindak Lanjut\n- ______________________________________________\n\nPengoreksi,\n\n(_____________________________)",
     },
+    {
+      id: "kor3",
+      label: "Template Analisis Kesalahan",
+      title: "ANALISIS KESALAHAN",
+      body:
+        "ANALISIS KESALAHAN\n\nNama Siswa       : ______________________________\nKelas            : ______________________________\nMata Pelajaran   : ______________________________\nNo Soal          : ______________________________\n\nJenis Kesalahan (centang):\n[ ] Kesalahan fakta / data\n[ ] Kesalahan konsep / prinsip\n[ ] Kesalahan prosedur / langkah\n[ ] Kesalahan hitung\n[ ] Kesalahan penulisan / ejaan\n\nDeskripsi Kesalahan:\n________________________________________________\n________________________________________________\n\nPenyebab:\n________________________________________________\n\nStrategi Remedial / Intervensi:\n1. ________________________________________________\n2. ________________________________________________\n3. ________________________________________________\n\nFollow-up: ______________________________\n\n(_____________________________)",
+    },
+    {
+      id: "kor4",
+      label: "Template Rubrik Penilaian",
+      title: "RUBRIK PENILAIAN",
+      body:
+        "RUBRIK PENILAIAN (Holistik)\n\nAspek Penilaian         | Sangat Baik(4) | Baik(3) | Cukup(2) | Kurang(1)\n1. Kelengkapan isi     | 4:____ | 3:____ | 2:____ | 1:____\n2. Ketepatan konsep    | 4:____ | 3:____ | 2:____ | 1:____\n3. Logika / argumen    | 4:____ | 3:____ | 2:____ | 1:____\n4. Bahasa & ejaan      | 4:____ | 3:____ | 2:____ | 1:____\n5. Penyajian hasil     | 4:____ | 3:____ | 2:____ | 1:____\n\nSkor: _____ / 20\n\nDeskripsi singkat penilaian:\n________________________________________________\n\nSaran pengembangan:\n________________________________________________\n\n(_____________________________)",
+    },
+    {
+      id: "kor5",
+      label: "Template Nilai & Deskripsi Rapor",
+      title: "NILAI & DESKRIPSI RAPOR",
+      body:
+        "NILAI & DESKRIPSI RAPOR\n\nNama Siswa     : ______________________________\nNIS/NISN       : ______________________________\nKelas          : ______________________________\nMata Pelajaran : ______________________________\nSemester       : _____\n\nKomponen       | Bobot | Nilai | Deskripsi Singkat\n----------------|-------|-------|------------------\nPengetahuan    | ___%  | ____  | __________________\nKeterampilan   | ___%  | ____  | __________________\nSikap          | ___%  | ____  | __________________\nPartisipasi    | ___%  | ____  | __________________\n\nNilai Akhir: ____ -> (A/B/C/D/E)\n\nDeskripsi Perilaku:\nSikap fokus belajar: ______________________________\nGotong royong    : ______________________________\n\nPengusul: ______________________________\nTanggal: __/__/2026\n\n(_____________________________)",
+    },
   ],
   "bahan-ajar": [
     {
@@ -173,149 +228,285 @@ const FEATURE_TEMPLATES: Record<string, DocTemplate[]> = {
       body:
         "LEMBAR KERJA PESERTA DIDIK (LKPD)\n\nMata Pelajaran : ______________________________\nKelas          : ______________________________\nNama Kelompok  : ______________________________\nAnggota        : 1. ______________  3. ______________\n                  2. ______________  4. ______________\n\nTujuan:\n______________________________\n\nPetunjuk Kerja:\n1. Amati ______________________________\n2. Diskusikan ______________________________\n3. Tuliskan hasil pada tabel berikut:\n\n| No | Aspek yang Diamati | Hasil Pengamatan |\n|----|--------------------|------------------|\n| 1  | __________________ | ________________ |\n| 2  | __________________ | ________________ |\n| 3  | __________________ | ________________ |\n\nKesimpulan\n______________________________\n\nNilai Kelompok: ____\n\n(_____________________________)",
     },
+    {
+      id: "ba3",
+      label: "Template Presentasi Slide",
+      title: "SLIDES PERPRESENTASIAN",
+      body:
+        "SLIDES PERPRESENTASIAN - STRUKTUR 5 SLIDE\n\nSlide 1 : ______________________________ (Judul Presentasi)\nSlide 2 : ______________________________ (Apa Masalah / Hook)\nSlide 3 : ______________________________ (Apa Solusi / Data)\nSlide 4 : ______________________________ (Apa Manfaat / Bukti)\nSlide 5 : ______________________________ (Penutup / Ajukan)\n\nSetiap slide:\n- Hook (kalimat pembuka kuat)      : __________________\n- Visual utama (gambar/ikon)      : __________________\n- CTA (ajakan jelas & urgen)      : __________________\n\nCatatan:\n- Max 6 poin per slide, font minimal 24pt.\n- Hindari tabel penuh, pakai angka/bullet.\n- Warna dominan: ________ | aksen: ________.\n\nDurasi: ____ menit | Target: __________________\n\n(_____________________________)",
+    },
+    {
+      id: "ba4",
+      label: "Template Infografis",
+      title: "INFOGRAFIS",
+      body:
+        "INFOGRAFIS - 5 BAGIAN\n\nJudul utama  : ______________________________\nSubjudul     : ______________________________\nFakta 1      : ______________________________ [ikon: _______]\nFakta 2      : ______________________________ [ikon: _______]\nFakta 3      : ______________________________ [ikon: _______]\nSumber data  : ______________________________\nCTA akhir    : ______________________________\n\nLayout:\n- 3 kolom vertikal / grid.\n- Ikon tema: _____ | Warna: primer ______ aksen ______.\n- Font judul: ____ | isi: ____\n\nDimensi: ____ x ____ px | Resolusi: ____ dpi\n\n(_____________________________)",
+    },
+    {
+      id: "ba5",
+      label: "Template Diagnostik",
+      title: "LEMBAR DIAGNOSTIK",
+      body:
+        "LEMBAR DIAGNOSTIK\n\nTopik  : ______________________________\nKelas/SK : ______________________________\n\nInstruksi: beri tanda [V] jika pernah / paham, beri alasan singkat bila belum.\n\nNo | Butir / Konsep                                    | Ya | Tidak | Alasan\n---|--------------------------------------------------|----|-------|--------\n1  | Saya pahami ____________________________________ |    |       | ________\n2  | Saya bisa ______________________________________ |    |       | ________\n3  | Saya menerapkan _______________________________ |    |       | ________\n4  | Saya menghubungkan ____________________________ |    |       | ________\n5  | Saya menyimpulkan ____________________________ |    |       | ________\n\nSkor Ya: ____ / 5\nPersiapan: ____% -> (Naik / Ulang / Tambahan)\n\nSaran pengayaan:\n________________________________________________\n\n(_____________________________)",
+    },
   ],
   "bedah-jurnal": [
     {
       id: "bj1",
-      label: "Template Ringkasan",
-      title: "RINGKASAN BEDAH JURNAL",
+      label: "1. Resume Jurnal Internasional (Scopus/Sinta)",
+      title: "LAPORAN BEDAH JURNAL ILMIAH (RESUME)",
       body:
-        "RINGKASAN BEDAH JURNAL\n\nJudul Jurnal  : ______________________________\nPenulis       : ______________________________\nTahun         : ______________________________\nJurnal        : ______________________________\nDOI/Link      : ______________________________\n\n1. LATAR BELAKANG & MASALAH (1-2 paragraf)\n   ______________________________\n\n2. TUJUAN PENELITIAN\n   - ______________________________\n\n3. METODE PENELITIAN\n   - Desain    : ______________________________\n   - Subjek    : ______________________________\n   - Instrumen : ______________________________\n   - Analisis  : ______________________________\n\n4. HASIL UTAMA\n   1) ______________________________\n   2) ______________________________\n\n5. KESIMPULAN PENULIS\n   ______________________________\n\n6. KELEBIHAN\n   - ______________________________\n\n7. KELEMAHAN / CATATAN KRITIS\n   - ______________________________\n\n8. IMPLIKASI / RELEVANSI\n   ______________________________\n\nTanggal Bedah : __/__/2026\nPembuat : ______________________________\n\n(_____________________________)",
+        "LAPORAN BEDAH JURNAL ILMIAH (RESUME)\nJudul Jurnal    : __________________\nPenulis / Tahun : __________________\nNama Jurnal/Vol : __________________\nAkreditasi/Index: __________________ (Scopus Q1-Q4 / Sinta 1-6)\n\nA. ABSTRAK & MASALAH UTAMA\n- Latar Belakang Masalah: __________________\n- Pertanyaan Penelitian : __________________\n\nB. METODOLOGI PENELITIAN\n- Desain Riset / Pendekatan: __________________\n- Populasi & Sampel Terapkan: __________________\n- Teknik Pengumpulan Data  : __________________\n- Teknik Analisis Data     : __________________\n\nC. TEMUAN KUNCI (KEY FINDINGS)\n1. Hasil Analisis Data Utama: __________________\n2. Hubungan Antar Variabel  : __________________\n\nD. FORENSIK JURNAL (CRITICAL REVIEW)\n- Kelebihan Jurnal / Novelty: __________________\n- Kelemahan Riset / Keterbatasan: __________________\n\nE. REKOMENDASI MASA DEPAN & KESIMPULAN\n- Kesimpulan Akhir: __________________\n- Saran Riset Selanjutnya: __________________",
     },
     {
       id: "bj2",
-      label: "Template Catatan Kritis",
-      title: "CATATAN KRITIS JURNAL",
+      label: "2. Matriks Sintesis Literatur",
+      title: "MATRIKS SINTESIS LITERATUR",
       body:
-        "CATATAN KRITIS JURNAL\n\nJudul Jurnal    : ______________________________\nKonteks Bidang  : ______________________________\n\n1. Kelayakan Metode\n   - Kekuatan  : ______________________________\n   - Kelemahan : ______________________________\n\n2. Kesesuaian Data & Pembahasan\n   - Kesesuaian sampel: ______________________________\n   - Pembahasan hasil : ______________________________\n\n3. Kekuatan Bukti (evidens)\n   - ______________________________\n\n4. Celah yang Bisa Diteliti Lanjut\n   - ______________________________\n\n5. Rekomendasi Pemanfaatan untuk ____________\n   - ______________________________\n\nPenelaah,\n\n(_____________________________)",
+        "MATRIKS SINTESIS LITERATUR\n\nNo | Sumber (Penulis/Tahun) | Fokus Variabel | Metode | Temuan Utama | Keterbatasan | Relevansi\n---|----------------------|---------------|--------|--------------|--------------|----------\n1  | _____________________ | ____________ | ____________ | ____________ | ____________ | ____________\n2  | _____________________ | ____________ | ____________ | ____________ | ____________ | ____________\n3  | _____________________ | ____________ | ____________ | ____________ | ____________ | ____________\n4  | _____________________ | ____________ | ____________ | ____________ | ____________ | ____________\n5  | _____________________ | ____________ | ____________ | ____________ | ____________ | ____________\n\nGap yang teridentifikasi: ______________________________\n\n(_____________________________)",
+    },
+    {
+      id: "bj3",
+      label: "3. Analisis Metodologi Riset",
+      title: "ANALISIS METODOLOGI RISET",
+      body:
+        "ANALISIS METODOLOGI RISET\n\nNama Jurnal : __________________\nTahun / Vol  : __________________\nMetode       : (Eksperimental / Survey / Kualitatif / Kuantitatif / Campuran)\n\n1. Populasi / Sampel: __________________ (Ukuran: ____)\n2. Teknik Sampling  : __________________ (Probabilistik / Non-prob)\n3. Instrumen / Ukuran: __________________\n4. Teknik Analisis Data: __________________\n5. Asumsi / Validitas: __________________\n\nKelemahan Metodologi:\n________________________________________________\n\nSaran Perbaikan Metodologi:\n________________________________________________\n\n(_____________________________)",
+    },
+    {
+      id: "bj4",
+      label: "4. Catatan Kritis Kelemahan Jurnal",
+      title: "CATATAN KRITIS: KELEMAHAN JURNAL",
+      body:
+        "CATATAN KRITIS: KELEMAHAN JURNAL\n\nJudul Jurnal : __________________\n1. Sample / Generalisabilitas: __________________\n2. Instrumen / Validitas      : __________________\n3. Desain / Temporal          : __________________\n4. Analisis / Statistik       : __________________\n5. Bias / Konflik Kompetensi  : __________________\n6. Etika Publikasi            : __________________\n\nDampak Kritis: ______________________________\n\n(_____________________________)",
+    },
+    {
+      id: "bj5",
+      label: "5. Draft Sitasi & Daftar Pustaka",
+      title: "DAFTAR PUSTAKA (SITASI)",
+      body:
+        "DAFTAR PUSTAKA (SITASI)\n\n1. __________________ (__________________), tahun ____, vol __, hlm ____.\n2. __________________ (__________________), tahun ____, vol __, hlm ____.\n3. __________________ (__________________), tahun ____, vol __, hlm ____.\n4. __________________ (__________________), tahun ____, vol __, hlm ____.\n5. __________________ (__________________), tahun ____, vol __, hlm ____.\n\nFormat: __________________ (APA / MLA / Chicago / Harvard)\nDOI / URL: __________________\nAkses: __ / __ / ____\n\n(_____________________________)",
     },
   ],
   "rangkum-buku": [
     {
       id: "rb1",
-      label: "Template Ringkasan",
-      title: "RINGKASAN BAB BUKU",
+      label: "1. Ringkasan Bab Buku Eksklusif",
+      title: "RINGKASAN EKSEKUTIF BAB BUKU BACAAN",
       body:
-        "RINGKASAN BAB BUKU\n\nJudul Buku : ______________________________\nPengarang  : ______________________________\nBab yang Dirangkum : Bab ___ : ________________\nHalaman    : __________\n\n1. GAGASAN UTAMA BAB\n   ______________________________\n\n2. POIN-POIN PENTING\n   - ______________________________\n   - ______________________________\n   - ______________________________\n\n3. KONSEP / ISTILAH KUNCI\n   - ______________________________\n\n4. TEMUAN / ARGUMEN PENULIS\n   ______________________________\n\n5. CONTOH / ILUSTRASI DALAM BUKU\n   ______________________________\n\n6. KESIMPULAN RINGKAS\n   ______________________________\n\n7. HAL YANG BISA DIPELAJARI PEMBACA\n   - ______________________________\n\nTanggal Dirangkum : __/__/2026\nPerangkum : ______________________________\n\n(_____________________________)",
+        "RINGKASAN EKSEKUTIF BAB BUKU BACAAN\nJudul Buku    : __________________\nPenulis Buku  : __________________\nPenerbit/Tahun: __________________\nBab / Sub-Bab : __________________ (Judul Bab: __________________)\n\nA. IDENTIFIKASI KONSEP UTAMA\n- Inti Sari Gagasan Penulis: __________________\n- Latar Belakang Teori Bab : __________________\n\nB. POIN PEMBAHASAN SUBSTANSIAL (BULLET POINTS)\n* Poin Utama 1 (__________________): __________________\n* Poin Utama 2 (__________________): __________________\n* Poin Utama 3 (__________________): __________________\n\nC. DAFTAR TOKOH PURBA & TOKOH UTAMA YANG DIKUTIP\n1. Nama Tokoh/Teoretikus: __________________ -> Teori: __________________\n2. Nama Tokoh/Teoretikus: __________________ -> Teori: __________________\n\nD. KESIMPULAN & BENANG MERAH TEORI\n- Kesimpulan Isi Bab Buku: __________________\n- Catatan Kritis Pembaca : __________________",
     },
     {
       id: "rb2",
-      label: "Template Peta Pikiran",
-      title: "PETA PIKIRAN BUKU (MIND MAP)",
+      label: "2. Peta Konsep Teori Buku",
+      title: "PETA KONSEP TEORI BUKU",
       body:
-        "PETA PIKIRAN BAB BUKU\n\nJudul Buku : ______________________________\nBab        : ______________________________\n\nGagasan Utama\n______________________________\n\nCabang 1: ______________________________\n- Sub: ________________\n- Sub: ________________\n\nCabang 2: ______________________________\n- Sub: ________________\n- Sub: ________________\n\nCabang 3: ______________________________\n- Sub: ________________\n- Sub: ________________\n\nHubungan Antar Cabang\n______________________________\n\nKesimpulan Visual\n______________________________\n\n(_____________________________)",
+        "PETA KONSEP TEORI BUKU\n\nJudul Buku   : __________________\nTeori Pokok  : __________________\n\nKonsep Utama A: __________________\n- Subkonsep 1: __________________\n- Subkonsep 2: __________________\n\nKonsep Utama B: __________________\n- Subkonsep 1: __________________\n- Subkonsep 2: __________________\n\nKonsep Utama C: __________________\n- Subkonsep 1: __________________\n\nRelasi Antar Konsep: ______________________________\n\nReferensi: ______________________________\n\n(_____________________________)",
+    },
+    {
+      id: "rb3",
+      label: "3. Daftar Istilah Penting (Glosarium)",
+      title: "GLOSSARIUM / DAFTAR ISTILAH PENTING",
+      body:
+        "GLOSSARIUM / DAFTAR ISTILAH PENTING\n\nIstilah 1 : ______________________ -> Definisi: ______________________________\nIstilah 2 : ______________________ -> Definisi: ______________________________\nIstilah 3 : ______________________ -> Definisi: ______________________________\nIstilah 4 : ______________________ -> Definisi: ______________________________\nIstilah 5 : ______________________ -> Definisi: ______________________________\nIstilah 6 : ______________________ -> Definisi: ______________________________\n\nSumber istilah: ______________________________\n\n(_____________________________)",
+    },
+    {
+      id: "rb4",
+      label: "4. Kutipan Emas & Kutipan Langsung",
+      title: "KUTIPAN EMAS & KUTIPAN LANGSUNG",
+      body:
+        "KUTIPAN EMAS & KUTIPAN LANGSUNG\n\nHalaman : __________________\nTeks penuh: ________________________________________________\nParafraase: ________________________________________________\nRelevansi: ________________________________________________\n\nKutipan 2 (hlm.____): ________________________________________\nParafraase: ________________________________________________\n\nCatatan etika sitasi: ______________________________\n\n(_____________________________)",
+    },
+    {
+      id: "rb5",
+      label: "5. Lembar Resume Ringkas Komparasi",
+      title: "RESUME KOMPARASI BUKU",
+      body:
+        "RESUME KOMPARASI (Buku sumber vs Tokoh)\n\nBuku A : __________________ (____ hal)\nBuku B : __________________ (____ hal)\n\nPoin Kesamaan:\n________________________________________________\nPoin Perbedaan:\n________________________________________________\n\nImplikasi Teoritis: ______________________________\n\n(_____________________________)",
     },
   ],
   "kerangka-skripsi": [
     {
       id: "ks1",
-      label: "Template Bab 1-5",
-      title: "KERANGKA SKRIPSI (BAB 1-5)",
+      label: "1. Outline Proposal Skripsi Komplit",
+      title: "OUTLINE PROPOSAL SKRIPSI MAHASISWA",
       body:
-        "KERANGKA SKRIPSI (BAB 1 - BAB 5)\n\nJudul Usulan : ______________________________\nNama/NIM     : ______________________________\nProgram Studi: ______________________________\n\nBAB I  PENDAHULUAN\n1.1 Latar Belakang      : ______________________________\n1.2 Rumusan Masalah    : 1. ___________\n2. ___________\n1.3 Tujuan Penelitian   : ______________________________\n1.4 Manfaat            : ______________________________\n\nBAB II  TINJAUAN PUSTAKA\n2.1 Kajian Teori       : ______________________________\n2.2 Penelitian Relevan : ______________________________\n2.3 Kerangka Pikir     : ______________________________\n2.4 Hipotesis          : ______________________________\n\nBAB III  METODE PENELITIAN\n3.1 Jenis & Desain     : ______________________________\n3.2 Populasi/Sampel    : ______________________________\n3.3 Instrumen          : ______________________________\n3.4 Teknik Analisis    : ______________________________\n\nBAB IV  HASIL & PEMBAHASAN\n4.1 Deskripsi Hasil    : ______________________________\n4.2 Uji Hipotesis      : ______________________________\n4.3 Pembahasan         : ______________________________\n\nBAB V  PENUTUP\n5.1 Kesimpulan         : ______________________________\n5.2 Saran              : ______________________________\n\nDaftar Pustaka\n- ______________________________\n\n(_____________________________)",
+        "OUTLINE PROPOSAL SKRIPSI MAHASISWA\nRencana Judul Skripsi: __________________\nNama / NIM Mahasiswa : __________________\nProgram Studi / Kampus: __________________\nJenis Penelitian     : __________________ (Kuantitatif / Kualitatif / R&D)\n\nBAB I: PENDAHULUAN\n- 1.1 Latar Belakang Masalah: __________________\n- 1.2 Rumusan Masalah Riset: __________________\n- 1.3 Tujuan & Manfaat Riset: __________________\n\nBAB II: TINJAUAN PUSTAKA\n- 2.1 Landasan Teori Utama  : __________________\n- 2.2 Penelitian Terdahulu  : __________________\n- 2.3 Kerangka Berpikir/Hipotesis: __________________\n\nBAB III: METODE PENELITIAN\n- 3.1 Pendekatan & Lokasi   : __________________\n- 3.2 Sumber Data / Sampel  : __________________\n- 3.3 Variabel / Instrumen  : __________________\n- 3.4 Teknik Analisis Data  : __________________\n\nBAB IV & V: RENCANA PEMBAHASAN & KESIMPULAN\n- 4.1 Rencana Fokus Temuan  : __________________\n- 5.1 Target Kesimpulan Akhir: __________________\n\nMengetahui,\nDosen Pembimbing Utama\n\n(_____________________________)",
     },
     {
       id: "ks2",
-      label: "Template ABSTRAK",
-      title: "ABSTRAK SKRIPSI",
+      label: "2. Struktur Bab II: Landasan Teori",
+      title: "BAB II: LANDASAN TEORI",
       body:
-        "ABSTRAK SKRIPSI\n\nJudul    : ______________________________\nPenulis  : ______________________________\nPembimbing: 1. ______________ 2. ______________\n\nABSTRAK\n\nLatar belakang: ______________________________\nTujuan        : ______________________________\nMetode        : ______________________________\nHasil         : ______________________________\nKesimpulan    : ______________________________\n\nKata Kunci : ____________; ____________; ____________\n\n(Maksimal 250 kata, satu alinea percakapan akademik.)\n\n(_____________________________)",
+        "BAB II: LANDASAN TEORI\n\n1. Landasan Teori Utama: __________________\n   - Konsep Kunci 1: __________________\n   - Konsep Kunci 2: __________________\n\n2. Teori Pendukung: __________________\n   - Prinsip: __________________\n   - Model: __________________\n\n3. Hipotesis / Kerangka Berpikir:\n   - Variabel X (____) <-> Variabel Y (____): __________________\n\nReferensi Teori (min. 3):\n1. __________________\n2. __________________\n3. __________________\n\nKeterkaitan dengan Masalah: __________________\n\n(_____________________________)",
+    },
+    {
+      id: "ks3",
+      label: "3. Struktur Bab III: Metode Penelitian",
+      title: "BAB III: METODE PENELITIAN",
+      body:
+        "BAB III: METODE PENELITIAN\n\n1. Jenis Penelitian & Pendekatan: __________________\n2. Lokasi & Populasi/Sampel: __________________ (n=____)\n3. Teknik Pengambilan Sampel: __________________\n4. Instrumen: __________________\n5. Prosedur Pengumpulan Data: __________________\n6. Teknik Analisis Data: __________________\n7. Aspek Keabsahan / Reliabilitas: __________________\n\nJadwal Kegiatan:\nMinggu 1-__: __________________\nMinggu __-__: __________________\n\n(_____________________________)",
+    },
+    {
+      id: "ks4",
+      label: "4. Daftar Pertanyaan Wawancara / Kuesioner",
+      title: "DRAFT INSTRUMEN: WAWANCARA / KUESIONER",
+      body:
+        "DRAFT INSTRUMEN: WAWANCARA / KUESIONER\n\nNomor | Pertanyaan / Topik                        | Jenis       | Skor\n------|-------------------------------------------|-------------|---------\n1     | ________________________________________ | Terbuka     | _____\n2     | ________________________________________ | Likert 1-5 | _____\n3     | ________________________________________ | Pilihan G   | _____\n4     | ________________________________________ | Interval    | _____\n5     | ________________________________________ | Checklist   | _____\n\nFokus Kelompok: ________________________________________\nEtika Peneliti: ________________________________________\n\n(_____________________________)",
+    },
+    {
+      id: "ks5",
+      label: "5. Matriks Rencana Jadwal Riset (Gantt Chart)",
+      title: "MATRIKS JADWAL RISET (Gantt Chart)",
+      body:
+        "MATRIKS JADWAL RISET (Gantt Chart)\n\nBulan:   1  2  3  4  5  6  7  8  9  10 11 12\n1. Riset pustaka     |__|__|__|__|  |  |  |  |  |  |  |\n2. Pengajuan proposal|__|__|      |  |  |  |  |  |  |  |\n3. Pengumpulan data  |  |  |  |__|__|__|__|  |  |  |  |\n4. Analisis data     |  |  |  |  |  |__|__|__|__|  |  |\n5. Penulisan laporan |  |  |  |  |  |  |  |__|__|__|__\n\nKeterangan: [|] = aktif, [ ] = belum mulai.\n\nMilestone:\n1. __________________ (Bulan ____)\n2. __________________ (Bulan ____)\n3. __________________ (Bulan ____)\n\n(_____________________________)",
     },
   ],
   "tiktok-viral": [
     {
-      id: "tt1",
-      label: "Template Skrip 30 detik",
-      title: "SKRIP VIDEO TIKTOK 30 DETIK",
+      id: "tv1",
+      label: "1. Naskah Konten Jualan Video Pendek",
+      title: "DRAF NASKAH KONTEN VIDEO PENDEK (TIKTOK/REELS)",
       body:
-        "SKRIP VIDEO TIKTOK (30 DETIK) — JUALAN VIRAL\n\nProduk yang diiklankan : ______________________________\nHarga / promo          : ______________________________\nTarget audiens         : ______________________________\n\n00:00-00:03  HOOK (pancing perhatian)\n[VISUAL] ______________________________\n[TEXT]   \"________________________\"\n\n00:03-00:12  MASALAH & EMPATI\n[VISUAL] ______________________________\n[UCAPAN] \"Apakah kamu juga pernah...?\"\n\n00:12-00:22  SOLUSI / FITUR PRODUK\n[VISUAL] ______________________________\n[UCAPAN] \"Nah, sekarang ada...\"\n\n00:22-00:27  CALL TO ACTION + URGENSI\n[TEXT]   \"Hanya hari ini, harga...\"\n[UCAPAN] \"Klik link di bio sekarang!\"\n\n00:27-00:30  TUTUP MEREK\n[TEXT]   @______________\n\nCatatan:\n- Kalimat pendek, ganti potongan cepat.\n- Tambahkan musik trending / sound viral.\n- Jangan lupa caption + hashtag.\n\n(_____________________________)",
+        "DRAF NASKAH KONTEN VIDEO PENDEK (TIKTOK/REELS)\nNama Produk/Jasa: __________________\nTarget Audiens   : __________________\nTema / Konsep    : __________________\n\nA. HOOK 3 DETIK PERTAMA (Penarik Perhatikan)\n- Visual Awal Konten : __________________\n- Kalimat Utama (Teks) : __________________\n\nB. STORYLINE / INTI KONTEN (Edukasi / Masalah)\n- Menyoroti Masalah User: __________________\n- Solusi dari Produk Kita: __________________\n- Fitur Unggulan Produk  : __________________\n\nC. CALL TO ACTION (CTA / Ajikan Membeli)\n- Penawaran Spesial (Diskon): __________________\n- Kalimat Paksaan Membeli   : __________________\n\nD. TAGAR & RUMUS VIRAL (HASHTAG ARRAYS)\n#__________________ #__________________ #__________________ #fyp",
     },
     {
-      id: "tt2",
-      label: "Template Skrip 60 detik",
-      title: "SKRIP VIDEO TIKTOK 60 DETIK",
+      id: "tv2",
+      label: "2. Script Video Edukasi Produk (Soft Sell)",
+      title: "DRAF SCRIPT VIDEO EDUKASI PRODUK (SOFT SELL)",
       body:
-        "SKRIP VIDEO TIKTOK (60 DETIK)\n\nProduk / Jasa : ______________________________\nTokoh        : ______________________________\nNaskah narasi utama:\n\nBUKA (0-10 dtk)  . Hook: \"Masalah ________ + solusinya ini.\"\nISI PERTAMA (10-30 dtk) . Penjelasan manfaat utama: ____________\nISI KEDUA (30-50 dtk)  . Tunjukkan cara pakai / bukti hasil: ____________\nPENAWARAN (50-57 dtk)  . Promo/harga: ____________\nTUTUP (57-60 dtk)      . Ajakan & merek: @____________\n\nTeknik Editing yang Disarankan\n- Cross-cutting cepat tiap 2-3 detik.\n- Tulisan besar (min. 2 kata) muncul di layar.\n- Gunakan auto-captions.\n\n(_____________________________)",
+        "DRAF SCRIPT VIDEO EDUKASI PRODUK (SOFT SELL)\nNama Produk: __________________\n\n1. Hook Pembuka : __________________\n2. Isi Inti    : __________________\n   - Fakta/Masalah    : __________________\n   - Solusi Produk    : __________________\n3. Skenario    : __________________\n4. CTA Akhir   : __________________\n\n#__________________ #__________________ #fyp",
+    },
+    {
+      id: "tv3",
+      label: "3. Ide Konten Bulanan (Content Calendar)",
+      title: "IDE KONTEN BULANAN (CONTENT CALENDAR)",
+      body:
+        "IDE KONTEN BULANAN (CONTENT CALENDAR)\n\nHari | Tema Konten | Hook Utama | Produk/Fitur | CTA |\n-----|----------------------|------------|---------------|-----|\nSenin | ____________ | ____________ | ____________ | ____________ |\nSelasa | ____________ | ____________ | ____________ | ____________ |\nRabu | ____________ | ____________ | ____________ | ____________ |\nKamis | ____________ | ____________ | ____________ | ____________ |\nJumat | ____________ | ____________ | ____________ | ____________ |\nSabtu | ____________ | ____________ | ____________ | ____________ |\nMinggu | ____________ | ____________ | ____________ | ____________ |\n\nTotal Video: ____  |  Estimasi Views: ____",
+    },
+    {
+      id: "tv4",
+      label: "4. Naskah Video Unboxing / Review Real",
+      title: "DRAF VIDEO UNBOXING / REVIEW PRODUK",
+      body:
+        "DRAF VIDEO UNBOXING / REVIEW PRODUK\nProduk: __________________\nHarga: __________________\nRating: ____ / 5\n\n1. Unboxing - Isi paket apa saja: __________________\n2. Kualitas / Bahan: __________________\n3. Fitur unggulan pertama kali pakai: __________________\n4. Plusminus (kelebihan & kekurangan): __________________\n5. Kesimpulan - Worth buy? CTA: __________________\n\n#unboxing #review #__________________ #fyp",
+    },
+    {
+      id: "tv5",
+      label: "5. Skrip Balasan Komentar Menjadi Video",
+      title: "SKRIP BALASAN KOMENTAR MENJADI VIDEO",
+      body:
+        "SKRIP BALASAN KOMENTAR MENJADI VIDEO\nKomentar Problematik: __________________\n\n1. Hook (baca ulang komentar): __________________\n2. Empati (akui perasaan komentar): __________________\n3. Solusi (tunjukkan produk): __________________\n4. Sosialisasi keuntungan: __________________\n5. CTA Akhir: __________________\n\n#reply #comment #__________________ #fyp",
     },
   ],
   "caption-ig": [
     {
       id: "ig1",
-      label: "Template Caption Jualan",
-      title: "CAPTION INSTAGRAM JUALAN",
+      label: "1. Caption Jualan Model AIDA (Attention-Interest-Desire-Action)",
+      title: "DRAF COPYWRITING CAPTION MEDIA SOSIAL (INSTAGRAM)",
       body:
-        "CAPTION INSTAGRAM JUALAN\n\nProduk / Promo : ______________________________\nHarga / Deal   : ______________________________\nCTR/Mention    : @______________\n\nHOOK (baris pertama, menarik & menghentikan scroll)\n\"________________________________\"\n\nISI / MANFAAT (2-4 poin singkat)\n- ______________\n- ______________\n- ______________\n\nPROOF / SOSIAL EVIDENCE (hasil/cara pakai)\n\"________________\"\n\nCALL TO ACTION (ajakan jelas & urgent)\n\"Klik link di bio / inbox sekarang!\"\n\nHASHTAG\n#____________ #____________ #____________ #____________\n#____________ #____________ #____________ #____________\n\nCATATAN UNTUK FEED/GGOLIAT\n- Gambar tajam & idealnya angka/CTA terlihat.\n- Balas DM cepat agar konversi meningkat.\n\n(_____________________________)",
+        "DRAF COPYWRITING CAPTION MEDIA SOSIAL (INSTAGRAM)\nNama Produk : __________________\nFitur Utama : __________________\nHarga Paket : __________________\n\n[ATTENTION - Ambil Perhatian]\n👉 Kalimat Pembuka: __________________\n\n[INTEREST - Bangun Ketertarikan]\n👉 Detail Keunggulan: __________________\n\n[DESIRE - Pancing Keinginan Memiliki]\n👉 Testimoni/Manfaat Gaib: __________________\n\n[ACTION - Ambil Tindakan Klik Beli]\n👉 Link Pembelian / WA: __________________\n\n[HASHTAGS SELEKTIF]\n#__________________ #__________________ #__________________",
     },
     {
       id: "ig2",
-      label: "Template Caption Branding",
-      title: "CAPTION INSTAGRAM BRANDING",
+      label: "2. Caption Ringkas Model Storytelling",
+      title: "CAPTION RINGKAS MODEL STORYTELLING",
       body:
-        "CAPTION INSTAGRAM BRANDING (STORYTELLING)\n\nNilai / Cerita Merek : ______________________________\nTarget Pembaca      : ______________________________\n\nPEMBUKA (cerita/pertanyaan relatable)\n\"________________________________\"\n\nPERKEMBANGAN (perjalanan/kisah)\n\"________________________________\"\n\nNILAI & MAKNA (kenapa penting)\n\"________________________________\"\n\nAJAKAN INTERAKSI\n\"Tulis komentarmu di bawah, yuk!\"\n\nHASHTAG\n#____________ #____________ #____________\n\n(_____________________________)",
+        "CAPTION RINGKAS MODEL STORYTELLING\nNama Produk: __________________\n\n1. Situasi / Awal Cerita: __________________\n2. Konflik / Masalah    : __________________\n3. Solusi / Produk      : __________________\n4. Resolusi / Testimoni : __________________\n5. CTA                  : __________________\n\n#__________________ #__________________ #storytelling #fyp",
+    },
+    {
+      id: "ig3",
+      label: "3. Teks Kuis / Giveaway Peningkat Interaksi",
+      title: "TEKS KUIS / GIVEAWAY PENINGKAT INTERAKSI",
+      body:
+        "TEKS KUIS / GIVEAWAY PENINGKAT INTERAKSI\nNama Brand  : __________________\nHadiah       : __________________\nSyarat Ikut  : __________________\n\n1. Ikuti akun ini: __________________\n2. Like post ini    : __________________\n3. Tag 2 teman      : __________________\n4. Share ke story   : __________________\n\n🎉 Bonus: __________________\n\nJadwal: Mulai ____ / ____ / ____  |  Akhir ____ / ____ / ____\nPemenang akan diumumkan: __________________",
+    },
+    {
+      id: "ig4",
+      label: "4. Teks Pengumuman Promo Hari Raya / Event",
+      title: "TEKS PROMO HARI RAYA / EVENT",
+      body:
+        "TEKS PROMO HARI RAYA / EVENT\nNama Brand : __________________\nProduk Utama: __________________\nDiskon / Promo: __________________\n\n🎊 PROMO [NAMA EVENT] 🎊\n\n1. Durasi: ____ / ____ / ____ s/d ____ / ____ / ____\n2. Syarat: __________________\n3. CTA: __________________\n\n#__________________ #__________________ #[NAMA_EVENT]",
+    },
+    {
+      id: "ig5",
+      label: "5. Mikro-Copywriting Teks Katalog Produk",
+      title: "MIKRO-COPYWRITING TEKS KATALOG PRODUK",
+      body:
+        "MIKRO-COPYWRITING TEKS KATALOG PRODUK\nNama Produk: __________________\nKategori    : __________________\nHarga       : __________________\n\n1. Headline (max 6 kata): __________________\n2. FSA (Feature-Spesial-Argument): __________________\n3. Bukti Sosial: __________________\n4. Penawaran Spesial: __________________\n5. CTA Mikro: __________________",
     },
   ],
   "ide-bisnis": [
     {
       id: "ib1",
-      label: "Template Analisis Ide",
-      title: "ANALISIS IDE BISNIS",
+      label: "1. Analisis SWOT & Taktik Gerilya",
+      title: "CETAK BIRU STRATEGI BISNIS UMKM",
       body:
-        "ANALISIS IDE BISNIS\n\nNama Ide Bisnis       : ______________________________\nModal Awal Estimasi   : Rp ____________\nLokasi / Pasar Target : ______________________________\n\n1. TREN PASAR LOKAL\n   - ______________________________\n   - ______________________________\n\n2. SEGMEN PELANGGAN (siapa yang paling butuh)\n   - Usia/kelas : ______________________________\n   - Kebutuhan  : ______________________________\n\n3. KEUNGGULAN vs PESAING\n   - ______________________________\n\n4. RENCANA PRODUK MULAI\n   - Produk inti: ______________________________\n   - Harga      : Rp ________________\n\n5. SALURAN PENJUALAN\n   - ______________   - ______________\n\n6. PROYEKSI MODAL & BEP\n   - Biaya mulai : Rp ____________\n   - BEP bulan  : ________________\n\n7. RISIKO & MITIGASI\n   - Risiko: ____________ | Mitigasi: ____________\n\n(_____________________________)",
+        "CETAK BIRU STRATEGI BISNIS UMKM\nNama Usaha  : __________________\nJenis Produk: __________________\nSkala Pasar : __________________\n\nA. ANALISIS SWOT MINI\n- Strengths (Kekuatan Internal): __________________\n- Weaknesses (Kelemahan Internal): __________________\n- Opportunities (Peluang Pasar): __________________\n- Threats (Ancaman Pesaing)   : __________________\n\nB. TARGET DEMOGRAFI KONSUMEN\n- Profil Pembeli Ideal: __________________\n\nC. 3 TAKTIK GERILYA LOKAL (LOW BUDGET HIGH IMPACT)\n1. Taktik 1: __________________\n2. Taktik 2: __________________\n3. Taktik 3: __________________\n\nD. PROYEKSI HARGA & VALUE PROPOSITION\n- Alasan Konsumen Wajib Memilih Produk Ini: __________________",
     },
     {
       id: "ib2",
-      label: "Template Rencana 90 hari",
-      title: "RENCANA BISNIS 90 HARI",
+      label: "2. Strategi Menghancurkan Harga Pesaing",
+      title: "STRATEGI MENGHANCURKAN HARGA PESAING",
       body:
-        "RENCANA BISNIS 90 HARI\n\nNama Bisnis  : ______________________________\nModal Awal   : Rp ____________\n\nMINGGU 1-4 (Fondasi)\n- Riset pasar: ____________\n- Siapkan produk/sistem: ____________\n- Bangun kehadiran online: ____________\n\nMINGGU 5-8 (Peluncuran & Uji)\n- Soft launching: ____________\n- Kumpulkan feedback: ____________\n- Perbaiki produk: ____________\n\nMINGGU 9-12 (Skalasi)\n- Promosi berbayar/kolaborasi: ____________\n- Perluas jangkauan: ____________\n- Evaluasi & catat KPI: ____________\n\nTarget Pendapatan Bulan 3 : Rp ____________\n\n(_____________________________)",
+        "STRATEGI MENGHANCURKAN HARGA PESAING\nNama Produk Kita : __________________\nHarga Kita       : __________________\nHarga Pesaing    : __________________\n\n1. Analisis Harga Pesaing: __________________\n2. Biaya Kami: __________________\n3. Strategi (diskon gila / bundling / gratis ongkir): __________________\n4. Value Perception Boost: __________________\n5. Break-even safety margin: __________________",
+    },
+    {
+      id: "ib3",
+      label: "3. Ide Inovasi Varian Produk Baru",
+      title: "IDE INOVASI VARIAN PRODUK BARU",
+      body:
+        "IDE INOVASI VARIAN PRODUK BARU\nProduk Asal : __________________\nMarket Gap  : __________________\n\n1. Varian Baru #1: __________________\n   - Bahan/Desain : __________________\n   - Harga Jual   : __________________\n2. Varian Baru #2: __________________\n   - Bahan/Desain : __________________\n   - Harga Jual   : __________________\n3. Varian Baru #3: __________________\n   - Bahan/Desain : __________________\n   - Harga Jual   : __________________\n\nEstimasi ROI: __________________",
+    },
+    {
+      id: "ib4",
+      label: "4. Taktik Optimasi Toko Online / Shopee",
+      title: "OPTIMASI TOKO ONLINE / SHOP",
+      body:
+        "OPTIMASI TOKO ONLINE / SHOP\nLink Toko: __________________\nProduk Unggulan: __________________\n\n1. Judul Produk (SEO): __________________\n2. Deskripsi Produk (keyword): __________________\n3. Foto Produk (9:1, 5 foto): __________________\n4. Varian & Stok: __________________\n5. Diskon / Voucher: __________________\n\nTarget CTR: ____% | Target CR: ____%",
+    },
+    {
+      id: "ib5",
+      label: "5. Rencana Kemitraan / Reseller System",
+      title: "RENCANA KEMITRAAN / RESELLER",
+      body:
+        "RENCANA KEMITRAAN / RESELLER\nNama Brand  : __________________\nProduk      : __________________\n\n1. Model Kemitraan: __________________\n2. Syarat Ikut    : __________________\n3. Komisi Reseller: __________________\n4. Support Marketing: __________________\n5. AHP / SOP       : __________________\n\nTarget Reseller: ____ orang | Proyeksi Penjualan: __________________",
     },
   ],
   "bahasa-formal": [
     {
       id: "bf1",
-      label: "Template Surat Formal",
-      title: "SURAT DINAS / KORPORAT FORMAL",
+      label: "1. Surat Penawaran Kerjasama Bisnis Resmi",
+      title: "SURAT PENAWARAN KERJASAMA BISNIS (B2B)",
       body:
-        "SURAT DINAS / KORPORAT\n\nNomor      : ____________/____________/2026\nLampiran   : ____________\nPerihal    : ____________\n\nKepada Yth.\n____________\nDi ____________\n\nDengan hormat,\n\nSehubungan dengan ____________, bersama ini kami sampaikan bahwa ____________.\nAdapun rincian yang perlu diperhatikan adalah sebagai berikut:\n\n1. ____________\n2. ____________\n3. ____________\n\nDemikian surat ini kami sampaikan. Atas perhatian dan kerja sama\nBapak/Ibu, kami mengucapkan terima kasih.\n\nHormat kami,\n\n(_____________________________)\n\nCatatan: hindari istilah santai, gunakan kalimat baku dan sopan.",
+        "SURAT PENAWARAN KERJASAMA BISNIS (B2B)\nNomor Surat: __________________\nHal        : Penawaran Kerjasama Produk __________________\nLampiran   : __________________\n\nKepada Yth.\n__________________\ndi Tempat\n\nDengan hormat,\nPerkenalkan kami dari __________________ yang bergerak di bidang __________________. Melalui surat ini, kami bermaksud menawarkan produk unggulan kami yaitu __________________ untuk menjadi mitra strategis di perusahaan Bapak/Ibu.\n\nAdapun keunggulan produk kami mencakup:\n1. __________________\n2. __________________\n\nBesar harapan kami untuk dapat berdiskusi lebih lanjut dalam sesi presentasi. Atas perhatian Bapak/Ibu, kami ucapkan terima kasih.\n\nHormat Kami,\n\n\n(_____________________________)\nJabatan: __________________",
     },
     {
       id: "bf2",
-      label: "Template Email Profesional",
-      title: "EMAIL PROFESIONAL",
+      label: "2. Email Resmi Negosiasi Kontrak Kerja",
+      title: "EMAIL RESMI NEGOSIASI KONTRAK KERJA",
       body:
-        "EMAIL PROFESIONAL\n\nSubjek: ____________\n\nKepada Yth. ____________,\n\nDengan hormat,\n\nSaya ____________ selaku ____________ ingin mengajukan ____________.\nSebagai pertimbangan, saya sampaikan beberapa hal berikut:\n\n1. ____________\n2. ____________\n\nSaya mohon ____________. Jika berkenan, saya dapat dihubungi di\n____________ atau ____________ untuk tindak lanjut.\n\nDemikian surat elektronik ini saya sampaikan. Atas perhatian Bapak/Ibu,\nsaya mengucapkan terima kasih.\n\nHormat saya,\n\n(_____________________________)\n\nJabatan: ____________\nKontak : ____________",
-    },
-  ],
-  "audio-mp3": [
-    {
-      id: "am1",
-      label: "Template Narasi 60 detik",
-      title: "NASKAH NARASI AUDIO (60 DETIK)",
-      body:
-        "NASKAH NARASI AUDIO (60 DETIK)\n\nJudul Narasi : ______________________________\nTujuan       : (promosi / edukasi / perkenalan)\nNada Bicara  : (hangat / bersemangat / tenang)\n\n[INTRO 0-5 dtk]\n\"Halo, ________________...\"\n\n[ISI 5-35 dtk]\n\"Tahukah kamu, ________________...\"\n\"Bayangkan jika ________________...\"\n\"Nah, di sinilah peran ________________...\"\n\n[KEPUTUSAN 35-45 dtk]\n\"Mulai hari ini, coba ________________...\"\n\n[CLOSING 45-60 dtk]\n\"Terima kasih sudah mendengarkan. Sampai jumpa di ________________!\"\n\nPetunjuk Suara\n- Bicara perlahan, tarik napas di titik koma.\n- Tekankan kata kunci dengan nada naik-turun.\n- Gunakan jeda alami antar kalimat.",
+        "EMAIL RESMI NEGOSIASI KONTRAK KERJA\n\nKepada Yth. __________________\nPerusahaan: __________________\n\nKami menghargai kerja sama selama ini. Berkenaan dengan pembaharuan kontrak kerja yang akan datang, kami ingin menegaskan secara tertulis hal-hal sebagai berikut:\n\n1. Jangka Waktu  : __________________\n2. Gaji/Upah     : __________________\n3. Tunjangan     : __________________\n4. Tugas & Tanggung Jawab: __________________\n5. Kebijakan     : __________________\n\nKami mengharapkan kesepakatan dapat ditegaskan dalam Kontrak Kerja Tertulis (PKT) yang akan kami tanda tangani paling lambat pada __________________.\n\nHormat kami,\n\n(_____________________________)",
     },
     {
-      id: "am2",
-      label: "Template Narasi Panjang",
-      title: "NASKAH NARASI AUDIO (120 DETIK)",
+      id: "bf3",
+      label: "3. Teks Surat Pengunduran Diri Profesional",
+      title: "SURAT PENGUNDURAN DIRI PROFESIONAL",
       body:
-        "NASKAH NARASI AUDIO (120 DETIK)\n\nTema / Produk : ______________________________\nTarget Audiens: ______________________________\n\n[PEMBUKA 0-15 dtk]\nSentuhan emosi/pertanyaan: \"____________________________\"\n\n[KONTEKS 15-45 dtk]\nCeritakan latar & masalah: \"____________________________\"\n\n[JALINAN 45-90 dtk]\nPerkenalkan solusi & manfaat: \"____________________________\"\n\"Sehingga ______ dapat ______...\"\n\n[AJAKAN 90-110 dtk]\nTindakan yang diharapkan: \"____________________________\"\n\n[PENUTUP 110-120 dtk]\nRingkas & tanda tangan suara: \"____________________________\"\n\nCatatan Produksi\n- Direkam di ruang senyap, jarak mic 15-20 cm.\n- Tambahkan musik latar volume rendah.\n",
-    },
-  ],
-  "generator-propaganda": [
-    {
-      id: "gp1",
-      label: "Template 3 Variant Konten",
-      title: "RANCANG KONTEN PERSUASIF (3 VARIAN)",
-      body:
-        "RANCANG KONTEN PERSUASIF (PROPAGANDA POSITIF)\n\nIsu / Pesan Utama : ______________________________\nTarget Audiens    : ______________________________\nDampak yang Diharapkan : ______________________________\n\nVARIAN A — Emosional & Motivasi\nHook   : \"________________________\"\nIsi    : cerita, ajakan refleksi, bukti sederhana.\nTutup  : ajakan aksi nyata.\n\nVARIAN B — Logika & Data\nHook   : \"Tahukah kamu, ____________...\"\nIsi    : fakta/angka pendukung, perbandingan.\nTutup  : kesimpulan menguatkan pesan utama.\n\nVARIAN C — Kreatif / Simbolik\nHook   : kalimat ikonik pendek.\nIsi    : analogi & metafora yang mudah diingat.\nTutup  : tagline yang dapat diulang.\n\nEtika Penyampaian\n- Hindari informasi menyesatkan.\n- Sertakan sumber bila memakai data.\n- Sampaikan dengan bahasa yang menyatukan.",
+        "SURAT PENGUNDURAN DIRI PROFESIONAL\nNomor Surat: __________________\nHal        : Pengunduran Diri\n\nKepada Yth.\n__________________\ndi Tempat\n\nSehubungan dengan keputusan saya untuk beralih ke perusahaan lain / kembali ke pekerjaan akademisi, saya dengan hormat mengajukan pengunduran diri saya dari posisi sebagai __________________ dengan tanggal __________________.\n\nSaya menyampaikan:\n1. Peran terakhir yang saya pegang: __________________\n2. Proyek yang sedang dikelola: __________________\n3. Penanggung jawab lanjutan: __________________\n\nSaya berterima kasih atas kesempatan dan pengalaman belajar yang diberikan. Saya akan membantu proses penyelesaian sampai akhir kontrak / masa transisi selama __________________.\n\nHormat kami,\n\n(_____________________________)",
     },
     {
-      id: "gp2",
-      label: "Template Tagline & Kutipan",
-      title: "TAGLINE & AJAKAN KAMPANYE",
+      id: "bf4",
+      label: "4. Teks Surat Teguran / Somasi Formal",
+      title: "SURAT TEGURAN / SOMASI FORMAL",
       body:
-        "TAGLINE & AJAKAN KAMPANYE\n\nTema Kampanye : ______________________________\nSasaran       : ______________________________\n\nTAGLINE UTAMA\n\"________________________\"\n\n3 TAGLINE ALTERNATIF\n1. \"________________________\"\n2. \"________________________\"\n3. \"________________________\"\n\nKALIMAT AJAKAN (CTA)\n\"Marilah ________________...\"\n\nKALIMAT PENUTUP PRESENTASI/POSTER\n\"Karena <nilai>, kita bisa ________________...\"\n\nPesan Singkat untuk Media Sosial (1-2 kalimat)\n____________________________\n\n(_____________________________)",
+        "SURAT TEGURAN / SOMASI FORMAL\nNomor Surat: __________________\nHal        : Teguran / Somasi\n\nKepada Yth.\n__________________\ndi Tempat\n\nDengan hormat,\nSehubungan dengan pelanggaran yang terjadi pada __________________ terhadap __________________, kami sebagai wakil hukum / pengelola kami mengirimkan surat teguran / somasi formal ini untuk:\n\n1. Pelanggaran yang terjadi : __________________\n2. Bukti Pendukung          : __________________\n3. Dampak Pelanggaran       : __________________\n\nKami memberikan kesempatan untuk memberikan tanggapan tertulis dalam waktu _____ (_____ ) hari terhitung sejak penerimaan surat ini. Apabila tidak ada tanggapan yang memuaskan, kami berhak mengambil langkah lanjutan sesuai hukum yang berlaku.\n\nHormat kami,\n\n(_____________________________)",
+    },
+    {
+      id: "bf5",
+      label: "5. Proposal Singkat Pengajuan Dana Investor",
+      title: "PROPOSAL PENGAJUAN DANA INVESTOR",
+      body:
+        "PROPOSAL PENGAJUAN DANA INVESTOR\n\nNama Startup    : __________________\nBidang Usaha    : __________________\nPermintaan Dana : __________________\n\n1. Problem / Market Gap : __________________\n2. Solusi Produk/Kami   : __________________\n3. Model Bisnis / Revenue : __________________\n4. Target Pasar / TAM    : __________________\n5. Proyeksi Keuntungan (ROI) 12 bulan: __________________\n\nKami mengajukan investasi sebesar __________________ dengan porsi __________________%.\n\nHormat kami,\n\n(_____________________________)",
     },
   ],
 };
@@ -871,7 +1062,7 @@ export default function AIWorkbench({
         <section
           className={
             docZoomed
-              ? "fixed inset-0 z-50 m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-[#030712] p-3 rounded-2xl border border-slate-700/70 shadow-[0_25px_80px_rgba(0,0,0,0.65)]"
+              ? "fixed inset-0 z-50 m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-[var(--paper-bg)] p-3 rounded-2xl border border-slate-700/70 shadow-[0_25px_80px_rgba(0,0,0,0.65)]"
               : "w-[55%] min-w-0 h-full flex flex-col rounded-2xl border border-yellow-400/30 bg-black/40 overflow-hidden backdrop-blur-xl"
           }
           style={docZoomed ? { width: "86vw" } : undefined}
@@ -888,7 +1079,7 @@ export default function AIWorkbench({
                 className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
                 title="Kosongkan kertas dokumen"
               >
-                📄 Blank
+                📄 DUKOMEN (Blank)
               </button>
 
               {/* Tombol TEMPLATE tunggal — saat ditekan menyembul kolom pilihan template */}
@@ -899,13 +1090,13 @@ export default function AIWorkbench({
                   className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95 ${showTemplatePicker ? "ring-2 ring-amber-400" : ""}`}
                   title="Pilih template resmi untuk mengisi kertas dokumen"
                 >
-                  {showTemplatePicker ? "📂" : "📁"} TEMPLATE{" "}
+                  {showTemplatePicker ? "📂" : "📁"} PILIHAN TEMPLATE{" "}
                   <ChevronDown className={`w-3 h-3 transition-transform ${showTemplatePicker ? "rotate-180" : ""}`} />
                 </button>
 
                 {/* Kolom pilihan template menyembul — diisi dari activeTemplates / FEATURE_TEMPLATES */}
-                {showTemplatePicker && (
-                  <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] max-h-72 overflow-y-auto rounded-xl border border-yellow-400/30 bg-[#030712] shadow-[0_8px_30px_rgba(0,0,0,0.8)]">
+                                {showTemplatePicker && (
+                  <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] max-h-72 overflow-y-auto rounded-xl border border-yellow-400/30 bg-[var(--template-dropdown-bg)] shadow-[0_8px_30px_rgba(0,0,0,0.8)]">
                     {activeTemplates.length === 0 ? (
                       <div className="px-3 py-2 text-[10px] text-slate-500">
                         (belum ada template — akan diisi nanti)
@@ -958,7 +1149,7 @@ export default function AIWorkbench({
                 className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95"
                 title="Unduh teks dokumen sebagai file Word .doc"
               >
-                <FileText className="w-3 h-3" /> Word
+                <FileText className="w-3 h-3" /> Ekspor MS.Word
               </button>
             </div>
             {/* Baris 2: EDIT | FONT | A+ | A- | ZOOM+ | ZOOM- */}
