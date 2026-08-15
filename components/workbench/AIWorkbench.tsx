@@ -14,6 +14,11 @@ import {
   History,
   Trash2,
   ClipboardPaste,
+  Play,
+  Square,
+  Download,
+  Volume2,
+  X,
 } from "lucide-react";
 
 /* =====================================================================
@@ -596,6 +601,14 @@ const FONTS = {
 
 type DocFont = keyof typeof FONTS;
 
+/* Gaya suara yang tersedia untuk fitur GENERATE AUDIO (audio-mp3-manusia).
+   id harus sinkron dengan whitelist di app/api/ai/tts/route.ts */
+const AUDIO_VOICES: { id: string; label: string; emoji: string; desc: string }[] = [
+  { id: "kakak_ayu", label: "Kakak Ayu", emoji: "👧", desc: "Ramah, lembut, dan akrab" },
+  { id: "narator_profesional", label: "Narator Profesional", emoji: "🎙️", desc: "Beres, tegas, gaya dokumenter" },
+  { id: "sales_tiktok", label: "Sales TikTok", emoji: "🔥", desc: "Ceria, energik, gaya iklan viral" },
+];
+
 export default function AIWorkbench({
   featureId,
   featureTitle,
@@ -615,6 +628,14 @@ export default function AIWorkbench({
   const [chatError, setChatError] = useState<string | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // --- SEKAT 3 : GENERATE AUDIO (khusus fitur audio-mp3-manusia) ---
+  const [showAudioModal, setShowAudioModal] = useState(false);
+  const [audioVoice, setAudioVoice] = useState<string>("kakak_ayu");
+  const [audioStatus, setAudioStatus] = useState<"idle" | "processing" | "done" | "error">("idle");
+  const [audioUrl, setAudioUrl] = useState<string>("");
+  const [audioErr, setAudioErr] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // --- SEKAT 2 : KERTAS DOKUMEN MURNI ---
   const [docText, setDocText] = useState("");
@@ -936,6 +957,66 @@ export default function AIWorkbench({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  /* ====== GENERATE AUDIO — ubah teks kolom dokumen menjadi MP3 (khusus audio-mp3-manusia) ====== */
+  const handleGenerateAudio = async () => {
+    if (audioStatus === "processing") return;
+    if (!docText.trim()) {
+      setAudioStatus("error");
+      setAudioErr("Kolom dokumen masih kosong. Silakan tulis / isi teks dulu di kertas dokumen kanan.");
+      return;
+    }
+    setAudioStatus("processing");
+    setAudioErr(null);
+    try {
+      const res = await fetch("/api/ai/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: docText.slice(0, 5000), voice: audioVoice }),
+      });
+      if (!res.ok) {
+        let msg = "Gagal membuat audio. Silakan coba lagi.";
+        try {
+          const data = (await res.json()) as { error?: string } | null;
+          if (data && data.error) msg = String(data.error);
+        } catch {
+          /* body bukan JSON */
+        }
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      if (blob.size === 0) throw new Error("Audio kosong. Silakan coba lagi.");
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      const url = URL.createObjectURL(blob);
+      setAudioUrl(url);
+      setAudioStatus("done");
+    } catch (e) {
+      setAudioStatus("error");
+      setAudioErr(e instanceof Error ? e.message : "Gagal membuat audio. Silakan coba lagi.");
+    }
+  };
+
+  const handlePlayAudio = () => {
+    audioRef.current?.play().catch(() => {
+      /* pemutar butuh interaksi langsung user */
+    });
+  };
+  const handleStopAudio = () => {
+    const a = audioRef.current;
+    if (a) {
+      a.pause();
+      a.currentTime = 0;
+    }
+  };
+  const handleDownloadAudio = () => {
+    if (!audioUrl || audioStatus !== "done") return;
+    const link = document.createElement("a");
+    link.href = audioUrl;
+    link.download = `ai-nusantara-audio-${audioVoice}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -1284,6 +1365,16 @@ export default function AIWorkbench({
               >
                 🔍 Zoom −
               </button>
+              {featureId === "audio-mp3-manusia" && (
+                <button
+                  type="button"
+                  onClick={() => setShowAudioModal(true)}
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-amber-400/50 bg-amber-400/15 hover:bg-amber-400/25 text-[9px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95"
+                  title="Ubah teks dokumen menjadi audio MP3 (pilih gaya suara)"
+                >
+                  🔊 Generate Audio
+                </button>
+              )}
               <span className="ml-auto text-[9px] font-mono text-slate-500">
                 {Math.round(docZoom * 100)}% · {fontSize}px
               </span>
@@ -1433,6 +1524,154 @@ export default function AIWorkbench({
           </div>
         </div>
       )}
+
+      {/* ===== MODAL GENERATE AUDIO — khusus fitur audio-mp3-manusia ===== */}
+      {showAudioModal && featureId === "audio-mp3-manusia" && (
+        <>
+          <div className="fixed inset-0 z-[45] bg-black/70" onClick={() => setShowAudioModal(false)} />
+          <div className="fixed inset-0 z-[55] m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-[#030712] p-3 rounded-2xl border border-slate-700/70 shadow-[0_25px_80px_rgba(0,0,0,0.65)]">
+            {/* Header */}
+            <div className="shrink-0 flex items-center justify-between gap-2 pb-2 border-b border-yellow-400/30">
+              <h3 className="text-sm font-black uppercase tracking-widest text-amber-400 flex items-center gap-2">
+                🔊 Generate Audio <span className="text-slate-500 normal-case">· Teks Dokumen → MP3</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAudioModal(false)}
+                className="px-2.5 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-white transition-all"
+                title="Tutup panel audio"
+              >
+                ✕ Tutup
+              </button>
+            </div>
+
+            {/* Pilihan gaya bahasa / suara */}
+            <div className="shrink-0 flex flex-wrap items-center gap-1.5 py-2">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mr-1">
+                Gaya Suara:
+              </span>
+              {AUDIO_VOICES.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setAudioVoice(v.id)}
+                  className={`flex flex-col items-start px-3 py-1.5 rounded-lg border transition-all active:scale-95 text-left ${
+                    audioVoice === v.id
+                      ? "border-amber-400/60 bg-amber-400/15 text-amber-200"
+                      : "border-yellow-400/30 bg-black/40 text-white hover:bg-black/60"
+                  }`}
+                  title={v.desc}
+                >
+                  <span className="text-[10px] font-black">
+                    {v.emoji} {v.label}
+                  </span>
+                  <span className="text-[8px] text-slate-400 leading-tight">{v.desc}</span>
+                </button>
+              ))}
+            </div>
+            {/*PART1*/}
+
+            {/* BARIS 1 : Penampil audio / status proses */}
+            <div className="flex-1 min-h-0 flex items-center justify-center rounded-xl border border-yellow-400/30 bg-black/40 p-4">
+              {audioStatus === "processing" ? (
+                <div className="flex flex-col items-center gap-2 text-amber-300">
+                  <Loader2 className="w-10 h-10 animate-spin" />
+                  <p className="text-xs font-bold uppercase tracking-wider">Sedang Memproses…</p>
+                  <p className="text-[10px] text-slate-400">
+                    AI sedang mengubah teks dokumen menjadi audio berkualitas…
+                  </p>
+                </div>
+              ) : audioStatus === "error" ? (
+                <div className="flex flex-col items-center gap-2 text-red-300 text-center max-w-md">
+                  <p className="text-xs font-bold">⚠️ Terjadi kendala</p>
+                  <p className="text-[10px]">{audioErr}</p>
+                  <button
+                    type="button"
+                    onClick={() => setAudioStatus("idle")}
+                    className="px-3 py-1.5 rounded-lg border border-red-500/50 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-white transition-all"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
+              ) : audioStatus === "done" && audioUrl ? (
+                <div className="w-full max-w-xl flex flex-col gap-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handlePlayAudio}
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl border border-emerald-400/50 bg-emerald-400/15 hover:bg-emerald-400/25 text-emerald-300 text-[11px] font-black uppercase tracking-wider transition-all active:scale-95"
+                      title="Putar audio"
+                    >
+                      <Play className="w-5 h-5" /> Putar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStopAudio}
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl border border-red-400/50 bg-red-400/15 hover:bg-red-400/25 text-red-300 text-[11px] font-black uppercase tracking-wider transition-all active:scale-95"
+                      title="Stop audio"
+                    >
+                      <Square className="w-5 h-5" /> Stop
+                    </button>
+                  </div>
+                  <audio ref={audioRef} src={audioUrl} controls className="w-full rounded-lg" />
+                  <p className="text-center text-[9px] text-slate-400">
+                    ✅ Audio selesai dibuat dengan gaya “{AUDIO_VOICES.find((v) => v.id === audioVoice)?.label ?? audioVoice}”
+                    — tekan <b className="text-emerald-300">Putar</b> untuk mendengarnya.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center max-w-md">
+                  <div className="text-4xl">🎧</div>
+                  <p className="mt-2 text-[11px] text-slate-400 leading-relaxed">
+                    Teks dari kolom dokumen akan diubah menjadi audio MP3 dengan gaya suara pilihanmu.
+                    <br />
+                    <span className="text-amber-400">Klik tombol 🔊 Generate Audio di bawah</span> untuk mulai.
+                  </p>
+                </div>
+              )}
+            </div>
+            {/*PART2*/}
+
+            {/* BARIS 2 — KEMBALI (kiri) | GENERATE AUDIO (tengah) | DOWNLOAD AUDIO (kanan) */}
+            <div className="shrink-0 flex items-center justify-between gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAudioModal(false)}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
+                title="Tutup panel GENERATE AUDIO"
+              >
+                ← Kembali
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateAudio}
+                disabled={audioStatus === "processing"}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg border border-amber-400/50 bg-amber-400/15 hover:bg-amber-400/25 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-black uppercase tracking-wider text-amber-300 transition-all active:scale-95"
+                title="Suruh AI membuat audio dari teks dokumen"
+              >
+                {audioStatus === "processing" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Memproses…
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4" /> Generate Audio
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadAudio}
+                disabled={audioStatus !== "done"}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-emerald-400/50 bg-emerald-400/15 hover:bg-emerald-400/25 disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-black uppercase tracking-wider text-emerald-300 transition-all active:scale-95"
+                title="Unduh audio MP3 yang sudah dihasilkan"
+              >
+                <Download className="w-4 h-4" /> Download Audio
+              </button>
+            </div>
+          </div>
+        </>
+          )}
     </div>
   );
 }
