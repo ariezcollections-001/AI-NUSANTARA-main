@@ -23,7 +23,6 @@ export default function FounderDashboard() {
   const [price, setPrice] = useState("15000");
   const [geminiKey, setGeminiKey] = useState("");
   const [openRouterKey, setOpenRouterKey] = useState("");
-  const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [users, setUsers] = useState<User[]>([]);
@@ -50,10 +49,14 @@ export default function FounderDashboard() {
   const [founderPassword, setFounderPassword] = useState<string>('');
   const [profileLoading, _setProfileLoading] = useState(false);
 
-  const [vaultKeys, setVaultKeys] = useState({ gemini: [] as string[], openrouter: [] as string[] });
+  const [vaultKeys, setVaultKeys] = useState({
+    gemini: [] as string[],
+    openrouter: [] as string[],
+    elevenlabs: [] as string[],
+  });
   const [newVaultKey, setNewVaultKey] = useState("");
-  const [newVaultType, setNewVaultType] = useState<"gemini" | "openrouter">("gemini");
-  const [editingKey, setEditingKey] = useState<{ type: "gemini" | "openrouter"; index: number; value: string } | null>(null);
+  const [newVaultType, setNewVaultType] = useState<"gemini" | "openrouter" | "elevenlabs">("gemini");
+  const [editingKey, setEditingKey] = useState<{ type: "gemini" | "openrouter" | "elevenlabs"; index: number; value: string } | null>(null);
 
   // 💳 KEY BERBAYAR (Cadangan) — disimpan TERPISAH dari kolom gratis agar tidak
   // tercampur. Hanya dipakai bila SEMUA key gratis gagal (menghindari tagihan
@@ -110,7 +113,6 @@ export default function FounderDashboard() {
             if (key_name === 'price_per_1k' || key_name === 'package_price_rupiah') setPrice(String(key_value));
             if (key_name === 'gemini_api_key') setGeminiKey(String(key_value));
             if (key_name === 'openrouter_api_key') setOpenRouterKey(String(key_value));
-            if (key_name === 'elevenlabs_api_key') setElevenLabsKey(String(key_value));
             // ⚠️ IMPORTANT: PERSIST to backend real API so changes survive reload & reflect for all users.
             try {
               await fetch('/api/founder/config', {
@@ -143,12 +145,12 @@ export default function FounderDashboard() {
             if (gk !== null) setGeminiKey(gk);
             const ok = localStorage.getItem('founder_config_openrouter_api_key');
             if (ok !== null) setOpenRouterKey(ok);
-            const ek = localStorage.getItem('founder_config_elevenlabs_api_key');
-            if (ek !== null) setElevenLabsKey(ek);
             const storedGeminiKeys = localStorage.getItem('founder_keys_gemini');
             const storedOpenRouterKeys = localStorage.getItem('founder_keys_openrouter');
+            const storedElevenLabsKeys = localStorage.getItem('founder_keys_elevenlabs');
             if (storedGeminiKeys) setVaultKeys((prev) => ({ ...prev, gemini: JSON.parse(storedGeminiKeys) }));
             if (storedOpenRouterKeys) setVaultKeys((prev) => ({ ...prev, openrouter: JSON.parse(storedOpenRouterKeys) }));
+            if (storedElevenLabsKeys) setVaultKeys((prev) => ({ ...prev, elevenlabs: JSON.parse(storedElevenLabsKeys) }));
 
             // 🔴 LOAD CONFIG FROM CLOUD (Supabase founder_config) — real production source of truth
             void loadCloudConfigs();
@@ -184,6 +186,7 @@ export default function FounderDashboard() {
           setVaultKeys({
             gemini: Array.isArray(parsed.gemini) ? parsed.gemini : [],
             openrouter: Array.isArray(parsed.openrouter) ? parsed.openrouter : [],
+            elevenlabs: Array.isArray(parsed.elevenlabs) ? parsed.elevenlabs : [],
           });
         }
       }
@@ -204,7 +207,6 @@ export default function FounderDashboard() {
       if (map.price_per_1k !== undefined) setPrice(map.price_per_1k);
       if (map.gemini_api_key) setGeminiKey(map.gemini_api_key);
       if (map.openrouter_api_key) setOpenRouterKey(map.openrouter_api_key);
-      if (map.elevenlabs_api_key) setElevenLabsKey(map.elevenlabs_api_key);
       // 💳 Load key BERBAYAR (cadangan) — kolom terpisah dari gratis
       if (map.gemini_api_key_paid) setPaidGeminiKey(map.gemini_api_key_paid);
       if (map.openrouter_api_key_paid) setPaidOpenRouterKey(map.openrouter_api_key_paid);
@@ -217,6 +219,7 @@ export default function FounderDashboard() {
             setVaultKeys({
               gemini: Array.isArray(parsed.gemini) ? parsed.gemini : [],
               openrouter: Array.isArray(parsed.openrouter) ? parsed.openrouter : [],
+              elevenlabs: Array.isArray(parsed.elevenlabs) ? parsed.elevenlabs : [],
             });
           }
         } catch {
@@ -243,11 +246,12 @@ export default function FounderDashboard() {
     }
   }
 
-    async function saveVaultKeys(next: { gemini: string[]; openrouter: string[] }) {
+    async function saveVaultKeys(next: { gemini: string[]; openrouter: string[]; elevenlabs: string[] }) {
       setVaultKeys(next);
       // Cache lokal (baca cepat sebelum cloud resolve)
       try { localStorage.setItem('founder_keys_gemini', JSON.stringify(next.gemini)); } catch { /* ignore */ }
       try { localStorage.setItem('founder_keys_openrouter', JSON.stringify(next.openrouter)); } catch { /* ignore */ }
+      try { localStorage.setItem('founder_keys_elevenlabs', JSON.stringify(next.elevenlabs)); } catch { /* ignore */ }
       try { localStorage.setItem('founder_config_vault_keys', JSON.stringify(next)); } catch { /* ignore */ }
 
       // 🔴 Persist ke founder_config via SERVER API (admin/client service-role).
@@ -317,6 +321,7 @@ export default function FounderDashboard() {
     if (!newVaultKey.trim()) return alert('Masukkan API key terlebih dahulu.');
     const next = { ...vaultKeys };
     if (newVaultType === 'gemini') next.gemini = [...next.gemini, newVaultKey.trim()];
+    else if (newVaultType === 'elevenlabs') next.elevenlabs = [...next.elevenlabs, newVaultKey.trim()];
     else next.openrouter = [...next.openrouter, newVaultKey.trim()];
     try {
       await saveVaultKeys(next);
@@ -327,9 +332,10 @@ export default function FounderDashboard() {
     }
   }
 
-    async function updateVaultKey(type: 'gemini' | 'openrouter', index: number, value: string) {
+    async function updateVaultKey(type: 'gemini' | 'openrouter' | 'elevenlabs', index: number, value: string) {
     const next = { ...vaultKeys };
     if (type === 'gemini') next.gemini[index] = value;
+    else if (type === 'elevenlabs') next.elevenlabs[index] = value;
     else next.openrouter[index] = value;
     try {
       await saveVaultKeys(next);
@@ -340,9 +346,10 @@ export default function FounderDashboard() {
     }
   }
 
-    async function deleteVaultKey(type: 'gemini' | 'openrouter', index: number) {
+    async function deleteVaultKey(type: 'gemini' | 'openrouter' | 'elevenlabs', index: number) {
     const next = { ...vaultKeys };
     if (type === 'gemini') next.gemini = next.gemini.filter((_, i) => i !== index);
+    else if (type === 'elevenlabs') next.elevenlabs = next.elevenlabs.filter((_, i) => i !== index);
     else next.openrouter = next.openrouter.filter((_, i) => i !== index);
     try {
       await saveVaultKeys(next);
@@ -753,15 +760,7 @@ export default function FounderDashboard() {
     alert('Kunci API berhasil diperbarui dan disimpan ke cloud.');
   }
 
-  async function saveElevenLabsKey() {
-    const k = elevenLabsKey.trim();
-    if (!k) return alert('Masukkan ElevenLabs API key terlebih dahulu.');
-    await postConfig('elevenlabs_api_key', k);
-    try { await supabase.from('founder_config').upsert({ key_name: 'elevenlabs_api_key', key_value: k }, { onConflict: 'key_name' }); } catch {}
-    try { localStorage.setItem('founder_config_elevenlabs_api_key', k); } catch {}
-    setElevenLabsKey('');
-    alert('✅ ElevenLabs API key berhasil disimpan. Fitur Generate Audio (TTS MP3) kini aktif untuk semua pengguna.');
-  }
+    // 🎙️ ElevenLabs (TTS MP3) — kunci dikelola di Vault (modal API Vault), tidak lagi di kolom terpisah.
 
   async function performUserAction(action: string, userId: string, amount?: number) {
     try {
@@ -1229,12 +1228,12 @@ export default function FounderDashboard() {
               <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4">
                 <div>
                   <div className="text-xs uppercase tracking-[0.3em] text-slate-400">API Vault Rahasia</div>
-                  <div className="text-lg font-bold text-white">Google Gemini & OpenRouter Keys</div>
+                  <div className="text-lg font-bold text-white">Google Gemini, OpenRouter & ElevenLabs (Vault)</div>
                 </div>
                 <button onClick={() => setShowVaultModal(false)} className="text-slate-300 hover:text-white">Tutup</button>
               </div>
               <div className="max-h-[70vh] overflow-auto p-4 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800">
                     <div className="text-xs uppercase tracking-[0.3em] text-amber-400 mb-3">Google Gemini Keys</div>
                     <div className="space-y-3">
@@ -1291,6 +1290,35 @@ export default function FounderDashboard() {
                       {vaultKeys.openrouter.length === 0 && <div className="text-xs text-slate-500">Belum ada OpenRouter key tersimpan.</div>}
                     </div>
                   </div>
+
+                  <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800">
+                    <div className="text-xs uppercase tracking-[0.3em] text-sky-400 mb-3">ElevenLabs Keys (TTS MP3)</div>
+                    <div className="space-y-3">
+                      {vaultKeys.elevenlabs.map((key, index) => (
+                        <div key={`elevenlabs-${index}`} className="flex items-center gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          {editingKey?.type === 'elevenlabs' && editingKey.index === index ? (
+                            <input value={editingKey.value} onChange={(e) => setEditingKey({ ...editingKey, value: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm" />
+                          ) : (
+                            <span className="text-sm text-slate-200 font-mono">{maskKey(key)}</span>
+                          )}
+                          <div className="flex items-center gap-2">
+                            {editingKey?.type === 'elevenlabs' && editingKey.index === index ? (
+                              <>
+                                <button onClick={() => updateVaultKey('elevenlabs', index, editingKey.value)} className="px-2 py-1 bg-emerald-500 rounded text-xs font-bold">Simpan</button>
+                                <button onClick={() => setEditingKey(null)} className="px-2 py-1 bg-slate-700 rounded text-xs">Batal</button>
+                              </>
+                            ) : (
+                              <>
+                                <button onClick={() => setEditingKey({ type: 'elevenlabs', index, value: key })} className="px-2 py-1 bg-amber-500 rounded text-xs font-bold">📝 Edit</button>
+                                <button onClick={() => deleteVaultKey('elevenlabs', index)} className="px-2 py-1 bg-rose-600 rounded text-xs font-bold">🗑️ Hapus</button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {vaultKeys.elevenlabs.length === 0 && <div className="text-xs text-slate-500">Belum ada ElevenLabs key tersimpan.</div>}
+                    </div>
+                  </div>
                 </div>
 
                 {/* 💳 KEY BERBAYAR (Cadangan) — kolom terpisah, TIDAK tercampur gratis */}
@@ -1331,42 +1359,16 @@ export default function FounderDashboard() {
                   </div>
                 </div>
 
-                {/* 🎙️ ELEVENLABS — TTS MP3 (fitur Generate Audio / AUDIO MP3) */}
-                <div className="mt-4 bg-slate-900 p-4 rounded-3xl border border-rose-500/40">
-                  <div className="flex items-center gap-2 border-b border-rose-700/40 pb-2 mb-3">
-                    <span className="text-lg">🎙️</span>
-                    <div>
-                      <div className="text-xs uppercase tracking-[0.3em] text-rose-400 font-bold">ELEVENLABS (TTS MP3)</div>
-                      <div className="text-[11px] text-slate-400">Kunci Text-to-Speech untuk fitur AUDIO MP3 / GENERATE AUDIO. Isi sekali di sini — langsung berlaku untuk semua pengguna (localhost & Vercel), tanpa perlu ditempel ke environment.</div>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm text-slate-300">ElevenLabs API Key</label>
-                      <input
-                        value={elevenLabsKey}
-                        onChange={(e) => setElevenLabsKey(e.target.value)}
-                        placeholder="Masukkan ElevenLabs API key (elevenlabs.io → Profile → API Keys)..."
-                        className="w-full mt-1 bg-slate-950 border border-slate-800 rounded p-3 text-sm text-slate-100 font-mono"
-                      />
-                    </div>
-                    <button
-                      onClick={saveElevenLabsKey}
-                      disabled={!elevenLabsKey.trim()}
-                      className="w-full py-3 bg-rose-500 text-slate-950 font-bold rounded-xl hover:bg-rose-600 transition-all disabled:opacity-50"
-                    >
-                      💾 SIMPAN ELEVENLABS API KEY
-                    </button>
-                  </div>
-                </div>
+                {/* 🎙️ ElevenLabs (TTS MP3) kini dikelola di Vault — lihat kolom "ElevenLabs Keys (TTS MP3)" di atas. */}
 
                 <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <label className="text-sm text-slate-300">Jenis Kunci</label>
-                      <select value={newVaultType} onChange={(e) => setNewVaultType(e.target.value as 'gemini' | 'openrouter')} className="bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-100">
+                      <select value={newVaultType} onChange={(e) => setNewVaultType(e.target.value as 'gemini' | 'openrouter' | 'elevenlabs')} className="bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-100">
                         <option value="gemini">Google Gemini AQ</option>
                         <option value="openrouter">OpenRouter sk-or</option>
+                        <option value="elevenlabs">ElevenLabs (sk-)</option>
                       </select>
                     </div>
                     <div>
@@ -1826,8 +1828,8 @@ export default function FounderDashboard() {
             <h3 className="text-md font-bold tracking-wide text-slate-200">KOLAM TOKEN GLOBAL (VAULT API KEY RAHASIA)</h3>
           </div>
  
-          <p className="text-sm text-slate-400">Klik untuk membuka Vault API yang aman. Simpan dan kelola kunci Google Gemini atau OpenRouter Anda secara terpisah, tanpa menampilkan nilai sensitif di tampilan utama.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <p className="text-sm text-slate-400">Klik untuk membuka Vault API yang aman. Simpan dan kelola kunci Google Gemini, OpenRouter, maupun ElevenLabs (TTS MP3) secara terpisah, tanpa menampilkan nilai sensitif di tampilan utama.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
               <div className="text-xs uppercase tracking-[0.3em] text-amber-400">Google Gemini Keys</div>
               <div className="mt-3 text-2xl font-bold text-slate-100">{vaultKeys.gemini.length}</div>
@@ -1837,6 +1839,11 @@ export default function FounderDashboard() {
               <div className="text-xs uppercase tracking-[0.3em] text-emerald-400">OpenRouter Keys</div>
               <div className="mt-3 text-2xl font-bold text-slate-100">{vaultKeys.openrouter.length}</div>
               <div className="text-[11px] text-slate-500">Kunci sk-or tersimpan di Vault.</div>
+            </div>
+            <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
+              <div className="text-xs uppercase tracking-[0.3em] text-sky-400">ElevenLabs Keys (TTS MP3)</div>
+              <div className="mt-3 text-2xl font-bold text-slate-100">{vaultKeys.elevenlabs.length}</div>
+              <div className="text-[11px] text-slate-500">Kunci sk- (TTS MP3) tersimpan di Vault.</div>
             </div>
           </div>
           <div className="flex justify-end pt-2">

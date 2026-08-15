@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       // Fallback: Return a simple text response indicating TTS is not configured
       return NextResponse.json(
         {
-          error: "Layanan TTS belum dikonfigurasi. Silakan isi ElevenLabs API Key di halaman Founder (bagian ELEVENLABS / TTS MP3) atau di .env.local (ELEVENLABS_API_KEY).",
+          error: "Layanan TTS belum dikonfigurasi. Silakan isi ElevenLabs API Key di halaman Founder → KOLAM TOKEN GLOBAL (VAULT API KEY RAHASIA) → kolom ElevenLabs Keys (TTS MP3), atau di .env.local (ELEVENLABS_API_KEY).",
           voice: selectedVoice,
         },
         { status: 501 }

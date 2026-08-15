@@ -3,12 +3,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export interface VaultKeys {
   gemini: string[];
   openrouter: string[];
+  /** ElevenLabs (TTS MP3 / GENERATE AUDIO) — kunci gratis, bagian dari KOLAM ROTARY (Vault). */
+  elevenlabs: string[];
   /** Kunci berbayar TIDAK tercampur ke pool gratis — disimpan terpisah. */
   paidGemini: string[];
   paidOpenrouter: string[];
 }
 
-const EMPTY: VaultKeys = { gemini: [], openrouter: [], paidGemini: [], paidOpenrouter: [] };
+const EMPTY: VaultKeys = { gemini: [], openrouter: [], elevenlabs: [], paidGemini: [], paidOpenrouter: [] };
 
 function toArr(val: unknown): string[] {
   if (!Array.isArray(val)) return [];
@@ -21,7 +23,7 @@ function toArr(val: unknown): string[] {
  * Mengumpulkan SEMUA lokasi penyimpanan kunci AI di tabel `founder_config`
  * sehingga apa pun yang Founder simpan di dashboard (Vault multi-key maupun
  * kolom "Kunci Rahasia" single-key) otomatis dipakai untuk output user:
- *   - `vault_keys`             : JSON `{ gemini: [], openrouter: [] }`
+  *   - `vault_keys`             : JSON `{ gemini: [], openrouter: [], elevenlabs: [] }`
  *   - `gemini_api_keys_free`   : JSON array kunci Gemini (rotator gratisan)
  *   - `gemini_api_key`         : single kunci Gemini
  *   - `gemini_api_key_paid`    : single kunci Gemini berbayar (Kran 2)
@@ -87,7 +89,18 @@ export function isValidGeminiKey(k: unknown): boolean {
   if (!t) return false;
   // Kunci Gemini produksi Google selalu diawali "AIza" (panjang 39).
   if (/^AQ(_FALLBACK_)?\./i.test(t)) return false;   // tolak stub dev
-  return /^AIza[A-Za-z0-9_-]{20,}$/i.test(t);
+    return /^AIza[A-Za-z0-9_-]{20,}$/i.test(t);
+}
+
+/**
+ * 🔴 VALIDASI FORMAT kunci ElevenLabs — hanya kunci produksi (`sk-` + alfanumerik)
+ * yang dipakai agar stub/placeholder tidak bocor ke provider.
+ */
+export function isValidElevenLabsKey(k: unknown): boolean {
+  if (typeof k !== "string") return false;
+  const t = k.trim();
+  if (!t) return false;
+  return /^sk-[A-Za-z0-9]{20,}$/i.test(t);
 }
 
 /**
@@ -113,26 +126,18 @@ export async function resolveGeminiKey(getter: () => Promise<VaultKeys> = getVau
 }
 
 /**
- * Sumber ElevenLabs (TTS MP3 / GENERATE AUDIO).
- * Dibaca dari kolom `elevenlabs_api_key` di tabel `founder_config` (diisi lewat
- * dashboard Founder) → berlaku untuk localhost & Vercel tanpa harus menempel
- * di environment. Fallback `ELEVENLABS_API_KEY` hanya bila kolom DB kosong.
+ * 🔴 Sumber kunci ElevenLabs (TTS MP3 / GENERATE AUDIO) — bagian dari KOLAM
+ * ROTARY (Vault) yang sama dengan Gemini/OpenRouter. Founder kelola via modal
+ * Vault API; semua fitur termasuk Generate Audio pakai apikey dari sana.
+ * Ambil key pertama yang valid dari pool elevenlabs, fallback env bila kosong.
  */
-export async function resolveElevenLabsKey(): Promise<string> {
+export async function resolveElevenLabsKey(getter: () => Promise<VaultKeys> = getVaultKeys): Promise<string> {
   try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("founder_config")
-      .select("key_value")
-      .eq("key_name", "elevenlabs_api_key")
-      .maybeSingle();
-    const row = (data as { key_value: string | null } | null) ?? null;
-    if (!error && row?.key_value) {
-      const v = String(row.key_value).trim();
-      if (v) return v;
-    }
+    const vault = await getter();
+    const fromVault = vault.elevenlabs.find(isValidElevenLabsKey);
+    if (fromVault) return fromVault.trim();
   } catch {
-    /* lanjut ke fallback env */
+    /* jika vault tidak bisa dibaca, lanjut ke fallback env */
   }
   return (process.env.ELEVENLABS_API_KEY || "").trim();
 }
@@ -212,11 +217,13 @@ export async function getVaultKeys(): Promise<VaultKeys> {
     // 1) Vault multi-key JSON
     let vaultGemini: string[] = [];
     let vaultOpenrouter: string[] = [];
+    let vaultElevenlabs: string[] = [];
     try {
       const parsed = map.vault_keys ? JSON.parse(map.vault_keys) : null;
       if (parsed && typeof parsed === "object") {
         vaultGemini = toArr(parsed.gemini);
         vaultOpenrouter = toArr(parsed.openrouter);
+        vaultElevenlabs = toArr(parsed.elevenlabs);
       }
     } catch { /* ignore malformed */ }
 
@@ -268,6 +275,12 @@ export async function getVaultKeys(): Promise<VaultKeys> {
             .map((k) => k.trim())
             .filter((k) => k.length > 0),
       openrouter,
+      elevenlabs: vaultElevenlabs.length
+        ? vaultElevenlabs
+        : // Fallback env (covers Edge runtime tanpa secret service_role)
+          [process.env.ELEVENLABS_API_KEY ?? ""]
+            .map((k) => k.trim())
+            .filter((k) => k.length > 0),
       paidGemini: paidArray,
       paidOpenrouter: [],
     };
