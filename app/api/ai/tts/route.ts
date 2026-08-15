@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveElevenLabsKey } from "@/lib/aiVault";
 
 /* ====== 14 WATAK SUARA PREMIUM ======
    id di sini WAJIB sinkron dengan const AUDIO_VOICES
@@ -75,13 +76,13 @@ export async function POST(request: Request) {
     };
 
     const selectedConfig = voiceConfig[selectedVoice];
-    const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+    const elevenLabsApiKey = await resolveElevenLabsKey();
 
     if (!elevenLabsApiKey) {
       // Fallback: Return a simple text response indicating TTS is not configured
       return NextResponse.json(
         {
-          error: "Layanan TTS belum dikonfigurasi. Silakan tambahkan ELEVENLABS_API_KEY di environment variables.",
+          error: "Layanan TTS belum dikonfigurasi. Silakan isi ElevenLabs API Key di halaman Founder (bagian ELEVENLABS / TTS MP3) atau di .env.local (ELEVENLABS_API_KEY).",
           voice: selectedVoice,
         },
         { status: 501 }

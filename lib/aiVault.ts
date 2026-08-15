@@ -112,6 +112,31 @@ export async function resolveGeminiKey(getter: () => Promise<VaultKeys> = getVau
   return isValidGeminiKey(envKey) ? envKey.trim() : "";
 }
 
+/**
+ * Sumber ElevenLabs (TTS MP3 / GENERATE AUDIO).
+ * Dibaca dari kolom `elevenlabs_api_key` di tabel `founder_config` (diisi lewat
+ * dashboard Founder) → berlaku untuk localhost & Vercel tanpa harus menempel
+ * di environment. Fallback `ELEVENLABS_API_KEY` hanya bila kolom DB kosong.
+ */
+export async function resolveElevenLabsKey(): Promise<string> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("founder_config")
+      .select("key_value")
+      .eq("key_name", "elevenlabs_api_key")
+      .maybeSingle();
+    const row = (data as { key_value: string | null } | null) ?? null;
+    if (!error && row?.key_value) {
+      const v = String(row.key_value).trim();
+      if (v) return v;
+    }
+  } catch {
+    /* lanjut ke fallback env */
+  }
+  return (process.env.ELEVENLABS_API_KEY || "").trim();
+}
+
 
 /* Key berbayar hanya dari tempat eksplisit — TIDAK dari pool gratis. */
 function getPaidGeminiKeys(vault: VaultKeys): string[] {

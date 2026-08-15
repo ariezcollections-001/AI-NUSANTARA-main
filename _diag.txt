@@ -1,0 +1,4 @@
+components/workbench/AIWorkbench.tsx: OK-0errors
+app/api/ai/tts/route.ts: OK-0errors
+lib/aiVault.ts: OK-0errors
+app/x-founder-control-99f7jK/page.tsx: OK-0errors

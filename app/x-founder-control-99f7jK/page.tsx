@@ -23,6 +23,7 @@ export default function FounderDashboard() {
   const [price, setPrice] = useState("15000");
   const [geminiKey, setGeminiKey] = useState("");
   const [openRouterKey, setOpenRouterKey] = useState("");
+  const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [users, setUsers] = useState<User[]>([]);
@@ -109,6 +110,7 @@ export default function FounderDashboard() {
             if (key_name === 'price_per_1k' || key_name === 'package_price_rupiah') setPrice(String(key_value));
             if (key_name === 'gemini_api_key') setGeminiKey(String(key_value));
             if (key_name === 'openrouter_api_key') setOpenRouterKey(String(key_value));
+            if (key_name === 'elevenlabs_api_key') setElevenLabsKey(String(key_value));
             // ⚠️ IMPORTANT: PERSIST to backend real API so changes survive reload & reflect for all users.
             try {
               await fetch('/api/founder/config', {
@@ -141,6 +143,8 @@ export default function FounderDashboard() {
             if (gk !== null) setGeminiKey(gk);
             const ok = localStorage.getItem('founder_config_openrouter_api_key');
             if (ok !== null) setOpenRouterKey(ok);
+            const ek = localStorage.getItem('founder_config_elevenlabs_api_key');
+            if (ek !== null) setElevenLabsKey(ek);
             const storedGeminiKeys = localStorage.getItem('founder_keys_gemini');
             const storedOpenRouterKeys = localStorage.getItem('founder_keys_openrouter');
             if (storedGeminiKeys) setVaultKeys((prev) => ({ ...prev, gemini: JSON.parse(storedGeminiKeys) }));
@@ -200,6 +204,7 @@ export default function FounderDashboard() {
       if (map.price_per_1k !== undefined) setPrice(map.price_per_1k);
       if (map.gemini_api_key) setGeminiKey(map.gemini_api_key);
       if (map.openrouter_api_key) setOpenRouterKey(map.openrouter_api_key);
+      if (map.elevenlabs_api_key) setElevenLabsKey(map.elevenlabs_api_key);
       // 💳 Load key BERBAYAR (cadangan) — kolom terpisah dari gratis
       if (map.gemini_api_key_paid) setPaidGeminiKey(map.gemini_api_key_paid);
       if (map.openrouter_api_key_paid) setPaidOpenRouterKey(map.openrouter_api_key_paid);
@@ -746,6 +751,16 @@ export default function FounderDashboard() {
     if (openRouterKey) { await postConfig('openrouter_api_key', openRouterKey); try { await supabase.from('founder_config').upsert({ key_name: 'openrouter_api_key', key_value: openRouterKey }, { onConflict: 'key_name' }); } catch {} }
     setGeminiKey(''); setOpenRouterKey('');
     alert('Kunci API berhasil diperbarui dan disimpan ke cloud.');
+  }
+
+  async function saveElevenLabsKey() {
+    const k = elevenLabsKey.trim();
+    if (!k) return alert('Masukkan ElevenLabs API key terlebih dahulu.');
+    await postConfig('elevenlabs_api_key', k);
+    try { await supabase.from('founder_config').upsert({ key_name: 'elevenlabs_api_key', key_value: k }, { onConflict: 'key_name' }); } catch {}
+    try { localStorage.setItem('founder_config_elevenlabs_api_key', k); } catch {}
+    setElevenLabsKey('');
+    alert('✅ ElevenLabs API key berhasil disimpan. Fitur Generate Audio (TTS MP3) kini aktif untuk semua pengguna.');
   }
 
   async function performUserAction(action: string, userId: string, amount?: number) {
@@ -1312,6 +1327,35 @@ export default function FounderDashboard() {
                       className="w-full py-3 bg-amber-500 text-slate-950 font-bold rounded-xl hover:bg-amber-600 transition-all disabled:opacity-50"
                     >
                       {paidSaving ? '💾 Menyimpan...' : '💾 SIMPAN KEY BERBAYAR (CADANGAN)'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 🎙️ ELEVENLABS — TTS MP3 (fitur Generate Audio / AUDIO MP3) */}
+                <div className="mt-4 bg-slate-900 p-4 rounded-3xl border border-rose-500/40">
+                  <div className="flex items-center gap-2 border-b border-rose-700/40 pb-2 mb-3">
+                    <span className="text-lg">🎙️</span>
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.3em] text-rose-400 font-bold">ELEVENLABS (TTS MP3)</div>
+                      <div className="text-[11px] text-slate-400">Kunci Text-to-Speech untuk fitur AUDIO MP3 / GENERATE AUDIO. Isi sekali di sini — langsung berlaku untuk semua pengguna (localhost & Vercel), tanpa perlu ditempel ke environment.</div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm text-slate-300">ElevenLabs API Key</label>
+                      <input
+                        value={elevenLabsKey}
+                        onChange={(e) => setElevenLabsKey(e.target.value)}
+                        placeholder="Masukkan ElevenLabs API key (elevenlabs.io → Profile → API Keys)..."
+                        className="w-full mt-1 bg-slate-950 border border-slate-800 rounded p-3 text-sm text-slate-100 font-mono"
+                      />
+                    </div>
+                    <button
+                      onClick={saveElevenLabsKey}
+                      disabled={!elevenLabsKey.trim()}
+                      className="w-full py-3 bg-rose-500 text-slate-950 font-bold rounded-xl hover:bg-rose-600 transition-all disabled:opacity-50"
+                    >
+                      💾 SIMPAN ELEVENLABS API KEY
                     </button>
                   </div>
                 </div>
