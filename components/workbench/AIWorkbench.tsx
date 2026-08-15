@@ -609,7 +609,7 @@ export default function AIWorkbench({
   const [activeDate, setActiveDate] = useState<string>("");
   const [showHistory, setShowHistory] = useState(false);
   const [checkedDates, setCheckedDates] = useState<string[]>([]);
-  const [confirmModal, setConfirmModal] = useState<"delete-checked" | "delete-all" | null>(null);
+  const [confirmModal, setConfirmModal] = useState<"delete-checked" | "delete-all" | "delete-chat" | null>(null);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -728,6 +728,7 @@ export default function AIWorkbench({
     // Kosongkan ruang obrolan AKTIF saja (bukan menghapus seluruh riwayat)
     setMessages([]);
     setShowHistory(false);
+    setConfirmModal(null);
   };
 
   const loadSession = (date: string) => {
@@ -977,9 +978,9 @@ export default function AIWorkbench({
               </button>
               <button
                 type="button"
-                onClick={handleClearHistory}
+                onClick={() => setConfirmModal("delete-chat")}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg border border-red-500/40 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase tracking-wider text-red-300 transition-all active:scale-95"
-                title="Kosongkan ruang obrolan aktif"
+                title="Kosongkan ruang obrolan aktif (butuh konfirmasi dulu)"
               >
                 <Trash2 className="w-3 h-3" /> Hapus
               </button>
@@ -1405,7 +1406,9 @@ export default function AIWorkbench({
             <p className="text-xs font-bold text-white">
               {confirmModal === "delete-all"
                 ? "Yakin ingin menghapus SEMUA riwayat chat fitur ini?"
-                : `Yakin ingin menghapus ${checkedDates.length} riwayat yang dicentang?`}
+                : confirmModal === "delete-chat"
+                  ? "Apakah Anda yakin ingin menghapus obrolan ini?"
+                  : `Yakin ingin menghapus ${checkedDates.length} riwayat yang dicentang?`}
             </p>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
@@ -1417,10 +1420,14 @@ export default function AIWorkbench({
               </button>
               <button
                 type="button"
-                onClick={() => (confirmModal === "delete-all" ? handleDeleteAll() : handleDeleteChecked())}
+                onClick={() => {
+                  if (confirmModal === "delete-all") handleDeleteAll();
+                  else if (confirmModal === "delete-chat") handleClearHistory();
+                  else handleDeleteChecked();
+                }}
                 className="px-3 py-1.5 rounded-lg border border-red-500/50 bg-red-500/40 text-white text-[10px] font-bold transition-all"
               >
-                Ya, Hapus
+                Hapus
               </button>
             </div>
           </div>
