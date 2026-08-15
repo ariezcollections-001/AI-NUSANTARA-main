@@ -97,6 +97,78 @@ const fmtDate = (iso: string) => {
 
 const FALLBACK_TEMPLATES: DocTemplate[] = [];
 
+
+const UMUM_CHAT_TEMPLATES: DocTemplate[] = [
+    {
+      id: "cb1",
+      label: "1. Blank Layout (Kertas Kosong Bersih)",
+      title: "",
+      body:
+        "",
+    },
+    {
+      id: "cb2",
+      label: "2. Format Buku Catatan & Brainstorming",
+      title: "LEMBAR CATATAN & HASIL BRAINSTORMING BEBAS",
+      body:
+        "LEMBAR CATATAN & HASIL BRAINSTORMING BEBAS\nTopik Diskusi Utama: __________________\nTanggal/Sesi      : __________________\n\nA. KESIMPULAN INTI HASIL DISKUSI\n- Poin Utama Pembahasan: __________________\n- Ide/Gagasan Terbaik   : __________________\n\nB. DAFTAR TINDAKAN TINDAK LANJUT (ACTION PLAN)\n1. Langkah Kerja 1 : __________________\n2. Langkah Kerja 2 : __________________\n\nC. CATATAN TAMBAHAN (SCRATCHPAD)\n____________________________________________________",
+    },
+    {
+      id: "cb3",
+      label: "3. Format Outline Artikel / Tulisan Bebas",
+      title: "STRUKTUR KERANGKA ARTIKEL / KARANGAN BEBAS",
+      body:
+        "STRUKTUR KERANGKA ARTIKEL / KARANGAN BEBAS\nRencana Judul  : __________________\nTema Utama     : __________________\n\n[BAGIAN 1: PARAGRAF PEMBUKA / INTRO]\n- Gagasan Utama Menarik: __________________\n\n[BAGIAN 2: ISI PEMBAHASAN / BODY]\n- Poin Argumen 1: __________________\n- Poin Argumen 2: __________________\n\n[BAGIAN 3: KESIMPULAN / PENUTUP]\n- Ringkasan Akhir Tulisan: __________________",
+    },
+];
+
+const UMUM_AUDIO_TEMPLATES: DocTemplate[] = [
+    {
+      id: "am1",
+      label: "1. Naskah Iklan Komersial (VO Script)",
+      title: "SKRIP AUDIO VOICE OVER (VO) - IKLAN PRODUK KOMERSIAL",
+      body:
+        "SKRIP AUDIO VOICE OVER (VO) - IKLAN PRODUK KOMERSIAL\nNama Produk: __________________\nDurasi Target: 30 Detik / 60 Kata\nGaya Suara : [Intonasi Ceria, Manja, Luwes, dan Menggoda]\n\n[DRAF NASKAH PEMBACAAN SUARA]:\n\"[Jeda Singkat] Halo Sahabat Nusantara! [Intonasi Naik] Pernah gak sih ngerasa pusing karena kerjaan menumpuk? [Jeda Dua Detik] Jangan khawatir! [Intonasi Mantap] Sekarang ada solusi instan dari __________________. [Jeda] Yuk, coba sekarang juga dan dapatkan diskon khusus hari ini! [Intonasi Turun] Klik link di bawah ya!\"",
+    },
+    {
+      id: "am2",
+      label: "2. Naskah Narasi Dongeng (Storytelling VO)",
+      title: "NASKAH NARASI DONGENG (STORYTELLING VO)",
+      body:
+        "NASKAH NARASI DONGENG (STORYTELLING VO)\nJudul Dongeng: __________________\nKarakter Utama: __________________\n\n1. PEMBUKA (Perkenalan Tokoh)      : __________________\n2. KONFLIK / MASALAH               : __________________\n3. KLIMAKS                         : __________________\n4. PENYELESAIAN (Resolusi)         : __________________\n5. PESAN MORAL                     : __________________\n\n* Tulis tanda intonasi eksplisit: [Jeda Sejenak], [Intonasi Turun], [Antusias], [Berbisik].",
+    },
+    {
+      id: "am3",
+      label: "3. Teks Sambutan / Pembuka Podcast Resmi",
+      title: "TEKS SAMBUTAN / PEMBUKA PODCAST RESMI",
+      body:
+        "TEKS SAMBUTAN / PEMBUKA PODCAST RESMI\nNama Podcast    : __________________\nNama Host       : __________________\nTopik Episode   : __________________\n\n[OPENING PODCAST]:\nHalo dan selamat datang di __________________! [Antusias] Episode kali ini kita akan membahas topik yang paling dinanti, yaitu __________________. Sebelum mulai, jangan lupa subscribe dan nyalakan lonceng notifikasi ya! [Jeda Sejenak] Tanpa berlama-lama lagi, kita mulai! [Intonasi Naik]",
+    },
+];
+
+const UMUM_PROPAGANDA_TEMPLATES: DocTemplate[] = [
+    {
+      id: "gp1",
+      label: "1. Narasi Gempur Pasar (Memicu FOMO Massal)",
+      title: "KAMPANYE PROPAGANDA PEMBAKARAN PASAR DIGITAL (FOMO)",
+      body:
+        "KAMPANYE PROPAGANDA PEMBAKARAN PASAR DIGITAL (FOMO)\nNama Produk/Jasa: __________________\nTarget Kompetitor: __________________\n\n[NARASI PROPAGANDA UTAMA]:\n\"PERINGATAN KERAS! Jangan sampai Anda menjadi orang terakhir yang tertinggal dalam kebodohan teknologi! [Urgensi] Detik ini, ribuan kompetitor Anda sudah bergerak maju menggunakan __________________ untuk melipatgandakan keuntungan mereka! [Gempuran] Apakah Anda akan tetap diam menonton kesuksesan orang lain? [Aksi] Amankan slot paket koin Anda sekarang, sebelum harga naik menjadi dua kali lipat malam ini! Kuota tersisa tinggal sedikit!\"",
+    },
+    {
+      id: "gp2",
+      label: "2. Teks Slogan Pendek Pembakar Semangat",
+      title: "SLOGAN PENDEK PEMBAKAR SEMANGAT",
+      body:
+        "SLOGAN PENDEK PEMBAKAR SEMANGAT\nNama Brand/Produk: __________________\n\n5 VARIAN SLOGAN (max 6 kata):\n1. ____________\n2. ____________\n3. ____________\n4. ____________\n5. ____________\n\nCatatan: bombastis, emosional, mudah diingat, dan memicu rasa takut ketinggalan (FOMO).",
+    },
+    {
+      id: "gp3",
+      label: "3. Teks Manifesto Visi Misi Brand Ekstrem",
+      title: "MANIFESTO VISI MISI BRAND EKSTREM",
+      body:
+        "MANIFESTO VISI MISI BRAND EKSTREM\nNama Brand: __________________\n\n[PRINSIP KAMI]:\n1. Kami percaya bahwa __________________\n2. Kami menolak __________________\n3. Kami berjuang untuk __________________\n\n[VISI EKSTREM]: __________________\n[MISI 12 BULAN]: __________________\n[JANJI KEPADA PENDUKUNG]: __________________",
+    },
+];
 /* -------------------------------------------------------------------
    Template KHAS untuk setiap fitur — teks PENUH & siap pakai. User
    tinggal melengkapi bagian yang berisi garis bawah / kolom penting.
@@ -509,6 +581,11 @@ const FEATURE_TEMPLATES: Record<string, DocTemplate[]> = {
         "PROPOSAL PENGAJUAN DANA INVESTOR\n\nNama Startup    : __________________\nBidang Usaha    : __________________\nPermintaan Dana : __________________\n\n1. Problem / Market Gap : __________________\n2. Solusi Produk/Kami   : __________________\n3. Model Bisnis / Revenue : __________________\n4. Target Pasar / TAM    : __________________\n5. Proyeksi Keuntungan (ROI) 12 bulan: __________________\n\nKami mengajukan investasi sebesar __________________ dengan porsi __________________%.\n\nHormat kami,\n\n(_____________________________)",
     },
   ],
+  "chat-ai": UMUM_CHAT_TEMPLATES,
+  "obrolan-bebas": UMUM_CHAT_TEMPLATES,
+  "audio-mp3": UMUM_AUDIO_TEMPLATES,
+  "audio-mp3-manusia": UMUM_AUDIO_TEMPLATES,
+  "generator-propaganda": UMUM_PROPAGANDA_TEMPLATES,
 };
 
 const FONTS = {
@@ -789,7 +866,7 @@ export default function AIWorkbench({
   /* ====== Tombol-tombol kontrol kertas dokumen ====== */
   const handleBlank = () => setDocText("");
   const handleTemplate = (tpl: DocTemplate) =>
-    setDocText(tpl.title + "\n" + "=".repeat(26) + "\n\n" + tpl.body);
+    setDocText(tpl.body ? tpl.title + "\n" + "=".repeat(26) + "\n\n" + tpl.body : "");
   const toggleLock = () => setIsLocked((p) => !p);
   const cycleFont = () =>
     setDocFont((p) => (p === "sans" ? "serif" : p === "serif" ? "mono" : "sans"));
