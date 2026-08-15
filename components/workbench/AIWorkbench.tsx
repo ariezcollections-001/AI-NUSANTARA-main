@@ -601,7 +601,7 @@ const FONTS = {
 
 type DocFont = keyof typeof FONTS;
 
-/* Gaya suara yang tersedia untuk fitur GENERATE AUDIO (audio-mp3-manusia).
+/* Gaya suara yang tersedia untuk fitur GENERATE AUDIO (audio-mp3).
    id harus sinkron dengan whitelist di app/api/ai/tts/route.ts */
 const AUDIO_VOICES: { id: string; label: string; emoji: string; desc: string }[] = [
   { id: "kakak_ayu", label: "Kakak Ayu", emoji: "👧", desc: "Ramah, lembut, dan akrab" },
@@ -629,7 +629,7 @@ export default function AIWorkbench({
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // --- SEKAT 3 : GENERATE AUDIO (khusus fitur audio-mp3-manusia) ---
+  // --- SEKAT 3 : GENERATE AUDIO (khusus fitur audio-mp3) ---
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [audioVoice, setAudioVoice] = useState<string>("kakak_ayu");
   const [audioStatus, setAudioStatus] = useState<"idle" | "processing" | "done" | "error">("idle");
@@ -959,7 +959,7 @@ export default function AIWorkbench({
     URL.revokeObjectURL(url);
   };
 
-  /* ====== GENERATE AUDIO — ubah teks kolom dokumen menjadi MP3 (khusus audio-mp3-manusia) ====== */
+  /* ====== GENERATE AUDIO — ubah teks kolom dokumen menjadi MP3 (khusus audio-mp3) ====== */
   const handleGenerateAudio = async () => {
     if (audioStatus === "processing") return;
     if (!docText.trim()) {
@@ -1365,7 +1365,7 @@ export default function AIWorkbench({
               >
                 🔍 Zoom −
               </button>
-              {featureId === "audio-mp3-manusia" && (
+              {featureId === "audio-mp3" && (
                 <button
                   type="button"
                   onClick={() => setShowAudioModal(true)}
@@ -1525,8 +1525,8 @@ export default function AIWorkbench({
         </div>
       )}
 
-      {/* ===== MODAL GENERATE AUDIO — khusus fitur audio-mp3-manusia ===== */}
-      {showAudioModal && featureId === "audio-mp3-manusia" && (
+      {/* ===== MODAL GENERATE AUDIO — khusus fitur audio-mp3 ===== */}
+      {showAudioModal && featureId === "audio-mp3" && (
         <>
           <div className="fixed inset-0 z-[45] bg-black/70" onClick={() => setShowAudioModal(false)} />
           <div className="fixed inset-0 z-[55] m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-[#030712] p-3 rounded-2xl border border-slate-700/70 shadow-[0_25px_80px_rgba(0,0,0,0.65)]">
