@@ -1,40 +1,77 @@
 import { NextResponse } from "next/server";
 
+/* ====== 14 WATAK SUARA PREMIUM ======
+   id di sini WAJIB sinkron dengan const AUDIO_VOICES
+   di components/workbench/AIWorkbench.tsx */
+type AudioVoiceId =
+  | "pria-formal-wibawa"
+  | "pria-santai-gaul"
+  | "pria-energik-iklan"
+  | "pria-karismatik-sepuh"
+  | "pria-naratif-dokumenter"
+  | "pria-anak-cowok"
+  | "pria-seram-film"
+  | "wanita-luwes-manja"
+  | "wanita-ceria-antusias"
+  | "wanita-dewasa-bijak"
+  | "wanita-formal-korporat"
+  | "wanita-bisik-asmr"
+  | "wanita-anak-cewek"
+  | "wanita-seksi-elegan";
+
 interface TTSRequest {
   text: string;
-  voice?: "sales_tiktok" | "kakak_ayu" | "narator_profesional";
+  voice?: AudioVoiceId;
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { text, voice = "kakak_ayu" } = body as TTSRequest;
+    const { text, voice = "wanita-luwes-manja" } = body as TTSRequest;
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json({ error: "Teks diperlukan." }, { status: 400 });
     }
 
-    // Validate voice selection
-    const validVoices = ["sales_tiktok", "kakak_ayu", "narator_profesional"];
-    const selectedVoice = validVoices.includes(voice) ? voice : "kakak_ayu";
+    const validVoices: AudioVoiceId[] = [
+      "pria-formal-wibawa",
+      "pria-santai-gaul",
+      "pria-energik-iklan",
+      "pria-karismatik-sepuh",
+      "pria-naratif-dokumenter",
+      "pria-anak-cowok",
+      "pria-seram-film",
+      "wanita-luwes-manja",
+      "wanita-ceria-antusias",
+      "wanita-dewasa-bijak",
+      "wanita-formal-korporat",
+      "wanita-bisik-asmr",
+      "wanita-anak-cewek",
+      "wanita-seksi-elegan",
+    ];
+    const selectedVoice: AudioVoiceId = validVoices.includes(voice as AudioVoiceId)
+      ? (voice as AudioVoiceId)
+      : "wanita-luwes-manja";
 
-    // Voice configuration mapping
-    const voiceConfig: Record<string, { voice_id: string; stability: number; similarity_boost: number }> = {
-      sales_tiktok: {
-        voice_id: "pNInz6obpgDQGcFmaJgB", // Example ElevenLabs voice ID for energetic speaker
-        stability: 0.5,
-        similarity_boost: 0.75,
-      },
-      kakak_ayu: {
-        voice_id: "EXAVITQu4vr4xnSDxMaL", // Example ElevenLabs voice ID for friendly female speaker
-        stability: 0.6,
-        similarity_boost: 0.8,
-      },
-      narator_profesional: {
-        voice_id: "VR6AewLTigWG4xSOukaG", // Example ElevenLabs voice ID for deep narrator voice
-        stability: 0.85,
-        similarity_boost: 0.9,
-      },
+    // voiceConfig memakai voice_id contoh yang sudah tersedia;
+    // silakan ganti dengan voice_id custom milik user di dashboard ElevenLabs.
+    const voiceConfig: Record<AudioVoiceId, { voice_id: string; stability: number; similarity_boost: number }> = {
+      // === KATEGORI LAKI-LAKI ===
+      "pria-formal-wibawa": { voice_id: "pNInz6obpgDQGcFmaJgB", stability: 0.9, similarity_boost: 0.7 },
+      "pria-santai-gaul": { voice_id: "pNInz6obpgDQGcFmaJgB", stability: 0.5, similarity_boost: 0.85 },
+      "pria-energik-iklan": { voice_id: "pNInz6obpgDQGcFmaJgB", stability: 0.35, similarity_boost: 0.9 },
+      "pria-karismatik-sepuh": { voice_id: "VR6AewLTigWG4xSOukaG", stability: 0.85, similarity_boost: 0.75 },
+      "pria-naratif-dokumenter": { voice_id: "VR6AewLTigWG4xSOukaG", stability: 0.6, similarity_boost: 0.85 },
+      "pria-anak-cowok": { voice_id: "pNInz6obpgDQGcFmaJgB", stability: 0.45, similarity_boost: 0.95 },
+      "pria-seram-film": { voice_id: "VR6AewLTigWG4xSOukaG", stability: 0.95, similarity_boost: 0.6 },
+      // === KATEGORI PEREMPUAN ===
+      "wanita-luwes-manja": { voice_id: "EXAVITQu4vr4xnSDxMaL", stability: 0.5, similarity_boost: 0.85 },
+      "wanita-ceria-antusias": { voice_id: "EXAVITQu4vr4xnSDxMaL", stability: 0.4, similarity_boost: 0.9 },
+      "wanita-dewasa-bijak": { voice_id: "EXAVITQu4vr4xnSDxMaL", stability: 0.85, similarity_boost: 0.8 },
+      "wanita-formal-korporat": { voice_id: "EXAVITQu4vr4xnSDxMaL", stability: 0.95, similarity_boost: 0.75 },
+      "wanita-bisik-asmr": { voice_id: "EXAVITQu4vr4xnSDxMaL", stability: 0.6, similarity_boost: 0.95 },
+      "wanita-anak-cewek": { voice_id: "EXAVITQu4vr4xnSDxMaL", stability: 0.45, similarity_boost: 0.95 },
+      "wanita-seksi-elegan": { voice_id: "EXAVITQu4vr4xnSDxMaL", stability: 0.45, similarity_boost: 0.85 },
     };
 
     const selectedConfig = voiceConfig[selectedVoice];

@@ -14,6 +14,7 @@ import {
   History,
   Trash2,
   ClipboardPaste,
+  Check,
   Play,
   Square,
   Download,
@@ -601,13 +602,64 @@ const FONTS = {
 
 type DocFont = keyof typeof FONTS;
 
-/* Gaya suara yang tersedia untuk fitur GENERATE AUDIO (audio-mp3).
-   id harus sinkron dengan whitelist di app/api/ai/tts/route.ts */
-const AUDIO_VOICES: { id: string; label: string; emoji: string; desc: string }[] = [
-  { id: "kakak_ayu", label: "Kakak Ayu", emoji: "👧", desc: "Ramah, lembut, dan akrab" },
-  { id: "narator_profesional", label: "Narator Profesional", emoji: "🎙️", desc: "Beres, tegas, gaya dokumenter" },
-  { id: "sales_tiktok", label: "Sales TikTok", emoji: "🔥", desc: "Ceria, energik, gaya iklan viral" },
+/* ===== 14 WATAK SUARA PREMIUM =====
+   id wajib sinkron dengan whitelist & voiceConfig di app/api/ai/tts/route.ts */
+type AudioCategory = "laki" | "perempuan";
+
+interface AudioVoiceOption {
+  id: string;
+  cat: AudioCategory;
+  emoji: string;
+  label: string;
+  desc: string;
+}
+
+const AUDIO_VOICES: AudioVoiceOption[] = [
+  // ===== KATEGORI LAKI-LAKI (SEKAT KIRI) =====
+  { id: "pria-formal-wibawa", cat: "laki", emoji: "👔", label: "1. Formal, Berat & Berwibawa", desc: "Tegas, berat, penuh wibawa — untuk sambutan resmi" },
+  { id: "pria-santai-gaul", cat: "laki", emoji: "😎", label: "2. Santai, Akrab & Gaul", desc: "Bersahabat dan santai, gaya anak muda kekinian" },
+  { id: "pria-energik-iklan", cat: "laki", emoji: "🔥", label: "3. Energetik, Teriak Hype & IKLAN", desc: "Ledakan semangat penuh hype, sakti untuk iklan" },
+  { id: "pria-karismatik-sepuh", cat: "laki", emoji: "🧔", label: "4. Karismatik, Sepuh & Berwawasan", desc: "Dewasa, bijaksana, kharismatik — khas motivator" },
+  { id: "pria-naratif-dokumenter", cat: "laki", emoji: "🎬", label: "5. Naratif, Mengalir & Dokumenter", desc: "Alur tutur halus dan dramatis, khas dokumenter" },
+  { id: "pria-anak-cowok", cat: "laki", emoji: "🧒", label: "6. Polos, Lucu & Anak-Anak (Cowok)", desc: "Ceria, polos, menggemaskan, gaya anak laki-laki" },
+  { id: "pria-seram-film", cat: "laki", emoji: "🎃", label: "7. Seram, Berat & Kharismatik Film", desc: "Dalam, mencekam, tegas — khas trailer horor" },
+  // ===== KATEGORI PEREMPUAN (SEKAT KANAN) =====
+  { id: "wanita-luwes-manja", cat: "perempuan", emoji: "💗", label: "8. Luwes, Lembut & Manja", desc: "Lembut, manja, akrab — hangat dan menyentuh" },
+  { id: "wanita-ceria-antusias", cat: "perempuan", emoji: "✨", label: "9. Ceria, Cepat & Antusias", desc: "Energik, ringan, cerah — khas host konten viral" },
+  { id: "wanita-dewasa-bijak", cat: "perempuan", emoji: "🤱", label: "10. Dewasa, Keibuan & Bijak", desc: "Tenang, hangat, menyejukkan — khas ibu bijak" },
+  { id: "wanita-formal-korporat", cat: "perempuan", emoji: "💼", label: "11. Formal, Tegas & Korporat", desc: "Profesional, jelas, berwibawa — gaya korporat" },
+  { id: "wanita-bisik-asmr", cat: "perempuan", emoji: "🎧", label: "12. Bisik-Bisik, Lembut ASMR", desc: "Berbisik halus dan menenangkan, lembut di telinga" },
+  { id: "wanita-anak-cewek", cat: "perempuan", emoji: "👧", label: "13. Polos, Lucu & Anak-Anak (Cewek)", desc: "Imut, ceria, polos — khas dongeng anak" },
+  { id: "wanita-seksi-elegan", cat: "perempuan", emoji: "🌹", label: "14. Seksi, Elegan & Premium Luxury", desc: "Mewah, anggun, berkelas — untuk produk premium" },
 ];
+
+/* Satu baris pilihan gaya suara — hover menyala, klik set/hilang centang */
+function VoiceStyleItem({ v, selected, onToggle }: { v: AudioVoiceOption; selected: boolean; onToggle: (id: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(v.id)}
+      title={v.desc}
+      className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left transition-all active:scale-[0.98] ${
+        selected
+          ? "border-amber-400/80 bg-amber-400/15 text-amber-100 shadow-[0_0_14px_rgba(251,191,36,0.3)]"
+          : "border-slate-700 bg-slate-800 text-white hover:bg-slate-700 hover:border-amber-400/50 hover:-translate-y-0.5 hover:shadow-[0_0_12px_rgba(251,191,36,0.2)]"
+      }`}
+    >
+      <span
+        className={`flex items-center justify-center w-5 h-5 rounded-md border shrink-0 transition-all ${
+          selected ? "border-amber-400 bg-amber-400 text-slate-950" : "border-slate-600 bg-slate-950 text-transparent"
+        }`}
+      >
+        {selected && <Check className="w-3.5 h-3.5" />}
+      </span>
+      <span className="flex flex-col min-w-0">
+        <span className="text-[10px] font-bold leading-tight">{v.label}</span>
+        <span className="text-[8px] text-slate-400 leading-tight truncate">{v.desc}</span>
+      </span>
+    </button>
+  );
+}
 
 export default function AIWorkbench({
   featureId,
@@ -631,7 +683,7 @@ export default function AIWorkbench({
 
   // --- SEKAT 3 : GENERATE AUDIO (khusus fitur audio-mp3) ---
   const [showAudioModal, setShowAudioModal] = useState(false);
-  const [audioVoice, setAudioVoice] = useState<string>("kakak_ayu");
+  const [audioVoice, setAudioVoice] = useState<string>("");
   const [audioStatus, setAudioStatus] = useState<"idle" | "processing" | "done" | "error">("idle");
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [audioErr, setAudioErr] = useState<string | null>(null);
@@ -965,6 +1017,11 @@ export default function AIWorkbench({
     if (!docText.trim()) {
       setAudioStatus("error");
       setAudioErr("Kolom dokumen masih kosong. Silakan tulis / isi teks dulu di kertas dokumen kanan.");
+      return;
+    }
+    if (!audioVoice) {
+      setAudioStatus("error");
+      setAudioErr("Silakan pilih salah satu dari 14 gaya bahasa suara terlebih dahulu.");
       return;
     }
     setAudioStatus("processing");
@@ -1528,51 +1585,62 @@ export default function AIWorkbench({
       {/* ===== MODAL GENERATE AUDIO — khusus fitur audio-mp3 ===== */}
       {showAudioModal && featureId === "audio-mp3" && (
         <>
-          <div className="fixed inset-0 z-[45] bg-black/70" onClick={() => setShowAudioModal(false)} />
-          <div className="fixed inset-0 z-[55] m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-[#030712] p-3 rounded-2xl border border-slate-700/70 shadow-[0_25px_80px_rgba(0,0,0,0.65)]">
-            {/* Header */}
-            <div className="shrink-0 flex items-center justify-between gap-2 pb-2 border-b border-yellow-400/30">
+          <div className="fixed inset-0 z-[45] bg-black/85" onClick={() => setShowAudioModal(false)} />
+          <div className="fixed inset-0 z-[55] m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-slate-950 p-3 rounded-2xl border border-slate-600 shadow-[0_25px_80px_rgba(0,0,0,0.8)]">
+            {/* Header — judul PILIH GAYA BAHASA */}
+            <div className="shrink-0 flex items-center justify-between gap-2 pb-2 border-b border-yellow-400/30 bg-slate-900 rounded-lg px-3 py-2.5">
               <h3 className="text-sm font-black uppercase tracking-widest text-amber-400 flex items-center gap-2">
-                🔊 Generate Audio <span className="text-slate-500 normal-case">· Teks Dokumen → MP3</span>
+                🗣️ PILIH GAYA BAHASA{" "}
+                <span className="text-slate-400 normal-case tracking-normal">
+                  · 14 Watak Suara Premium — Teks Dokumen → MP3
+                </span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowAudioModal(false)}
-                className="px-2.5 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-white transition-all"
+                className="px-2.5 py-1 rounded-lg border border-yellow-400/30 bg-black/60 hover:bg-black/80 text-[10px] font-bold text-white transition-all active:scale-95"
                 title="Tutup panel audio"
               >
                 ✕ Tutup
               </button>
             </div>
 
-            {/* Pilihan gaya bahasa / suara */}
-            <div className="shrink-0 flex flex-wrap items-center gap-1.5 py-2">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mr-1">
-                Gaya Suara:
-              </span>
-              {AUDIO_VOICES.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => setAudioVoice(v.id)}
-                  className={`flex flex-col items-start px-3 py-1.5 rounded-lg border transition-all active:scale-95 text-left ${
-                    audioVoice === v.id
-                      ? "border-amber-400/60 bg-amber-400/15 text-amber-200"
-                      : "border-yellow-400/30 bg-black/40 text-white hover:bg-black/60"
-                  }`}
-                  title={v.desc}
-                >
-                  <span className="text-[10px] font-black">
-                    {v.emoji} {v.label}
-                  </span>
-                  <span className="text-[8px] text-slate-400 leading-tight">{v.desc}</span>
-                </button>
-              ))}
+            {/* ===== PILIH GAYA — 2 SEKAT (LAKI-LAKI kiri | PEREMPUAN kanan) ===== */}
+            <div className="shrink-0 grid grid-cols-2 gap-3 py-2.5">
+              {/* SEKAT KIRI — KATEGORI LAKI-LAKI */}
+              <div className="flex flex-col gap-1.5 rounded-xl border border-sky-500/30 bg-slate-900 p-2.5 min-w-0">
+                <p className="flex items-center gap-1.5 px-1 pb-1 text-[9px] font-black uppercase tracking-widest text-sky-300">
+                  👨 Kategori Laki-laki
+                </p>
+                {AUDIO_VOICES.filter((v) => v.cat === "laki").map((v) => (
+                  <VoiceStyleItem
+                    key={v.id}
+                    v={v}
+                    selected={audioVoice === v.id}
+                    onToggle={(id) => setAudioVoice((prev) => (prev === id ? "" : id))}
+                  />
+                ))}
+              </div>
+
+              {/* SEKAT KANAN — KATEGORI PEREMPUAN */}
+              <div className="flex flex-col gap-1.5 rounded-xl border border-pink-500/30 bg-slate-900 p-2.5 min-w-0">
+                <p className="flex items-center gap-1.5 px-1 pb-1 text-[9px] font-black uppercase tracking-widest text-pink-300">
+                  👩 Kategori Perempuan
+                </p>
+                {AUDIO_VOICES.filter((v) => v.cat === "perempuan").map((v) => (
+                  <VoiceStyleItem
+                    key={v.id}
+                    v={v}
+                    selected={audioVoice === v.id}
+                    onToggle={(id) => setAudioVoice((prev) => (prev === id ? "" : id))}
+                  />
+                ))}
+              </div>
             </div>
             {/*PART1*/}
 
             {/* BARIS 1 : Penampil audio / status proses */}
-            <div className="flex-1 min-h-0 flex items-center justify-center rounded-xl border border-yellow-400/30 bg-black/40 p-4">
+            <div className="flex-1 min-h-0 flex items-center justify-center rounded-xl border border-yellow-400/30 bg-slate-900 p-4">
               {audioStatus === "processing" ? (
                 <div className="flex flex-col items-center gap-2 text-amber-300">
                   <Loader2 className="w-10 h-10 animate-spin" />
