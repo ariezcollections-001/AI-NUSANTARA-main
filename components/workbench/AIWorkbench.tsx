@@ -1080,7 +1080,31 @@ export default function AIWorkbench({
   };
 
   return (
-    <div className="relative w-full h-full max-h-full overflow-hidden">
+    <div id="aiw-root" className="relative w-full h-full max-h-full overflow-hidden">
+      {/* Cetak A4 — hanya lembar kertas yang dicetak (chrome aplikasi disembunyikan, zoom 100%). */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          #aiw-doc-paper, #aiw-doc-paper * { visibility: visible !important; }
+          #aiw-doc-paper {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            margin: 0 !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            max-width: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            zoom: 1 !important;
+          }
+          #aiw-root, #aiw-pane, #aiw-scroll, #aiw-paper-wrap {
+            overflow: visible !important;
+            position: static !important;
+            height: auto !important;
+          }
+        }
+      `}</style>
       <div className="w-full h-full bg-transparent p-3 flex flex-col gap-2">
       {(docZoomed || chatZoomed) && (
         <div
@@ -1279,6 +1303,7 @@ export default function AIWorkbench({
 
         {/* ===== SEKAT 2 (55%) : KERTAS DOKUMEN MURNI + PANEL TOMBOL ===== */}
         <section
+          id="aiw-pane"
           className={
             docZoomed
               ? "fixed inset-0 z-50 m-auto w-[86vw] h-[86vh] overflow-auto flex flex-col bg-[var(--paper-bg)] p-3 rounded-2xl border border-slate-700/70 shadow-[0_25px_80px_rgba(0,0,0,0.65)]"
@@ -1458,8 +1483,8 @@ export default function AIWorkbench({
           </div>
 
           {/* Kontainer kertas — tinggi terkunci kaku, gulung hanya di dalam sekat kanan */}
-          <div className="flex-1 overflow-y-auto pr-1">
-            <div className="px-1 pt-2 pb-6">
+          <div id="aiw-scroll" className="flex-1 overflow-auto pr-1">
+            <div id="aiw-paper-wrap" className="px-1 pt-2 pb-6">
               <div
                 ref={paperRef}
                 contentEditable={!isLocked}
@@ -1474,7 +1499,8 @@ export default function AIWorkbench({
                   fontFamily: FONTS[docFont],
                   zoom: paperScale / 100,
                 }}
-                className="mx-auto min-h-[520px] max-w-[820px] rounded-lg bg-white text-slate-800 shadow-[0_15px_40px_rgba(0,0,0,0.55)] p-8 outline-none whitespace-pre-wrap leading-relaxed"
+                id="aiw-doc-paper"
+                className="mx-auto w-[210mm] min-h-[297mm] rounded-lg bg-white text-slate-800 shadow-[0_15px_40px_rgba(0,0,0,0.55)] p-8 outline-none whitespace-pre-wrap leading-relaxed"
               />
             </div>
           </div>
