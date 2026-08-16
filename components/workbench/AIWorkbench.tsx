@@ -724,6 +724,9 @@ export default function AIWorkbench({
   const chatZoomed = chatZoom > 1.02;
   const activeTemplates = FEATURE_TEMPLATES[featureId] ?? FALLBACK_TEMPLATES;
   const paperRef = useRef<HTMLDivElement>(null);
+  // 🔍 Zoom lembar kertas (skala kertas, BUKAN ukuran kolom) — agar user bisa lihat 1 lembar penuh atau memperbesar tampilan.
+  const [paperScale, setPaperScale] = useState(100);
+  const bumpPaperScale = (d: number) => setPaperScale((s) => Math.min(220, Math.max(40, s + d)));
 
   useEffect(() => {
     const el = paperRef.current;
@@ -1408,6 +1411,22 @@ export default function AIWorkbench({
               </button>
               <button
                 type="button"
+                onClick={() => bumpPaperScale(-10)}
+                className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black text-white transition-all active:scale-95"
+                title="Perkecil lembar dokumen — lihat satu halaman penuh"
+              >
+                📄 −
+              </button>
+              <button
+                type="button"
+                onClick={() => bumpPaperScale(10)}
+                className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-black text-white transition-all active:scale-95"
+                title="Perbesar lembar dokumen — tampilan lebih dekat"
+              >
+                📄 +
+              </button>
+              <button
+                type="button"
                 onClick={docZoomIn}
                 className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
                 title="Zoom In kolom dokumen (isi satu layar)"
@@ -1433,7 +1452,7 @@ export default function AIWorkbench({
                 </button>
               )}
               <span className="ml-auto text-[9px] font-mono text-slate-500">
-                {Math.round(docZoom * 100)}% · {fontSize}px
+                📄 {paperScale}% · {fontSize}px
               </span>
             </div>
           </div>
@@ -1453,6 +1472,7 @@ export default function AIWorkbench({
                 style={{
                   fontSize,
                   fontFamily: FONTS[docFont],
+                  zoom: paperScale / 100,
                 }}
                 className="mx-auto min-h-[520px] max-w-[820px] rounded-lg bg-white text-slate-800 shadow-[0_15px_40px_rgba(0,0,0,0.55)] p-8 outline-none whitespace-pre-wrap leading-relaxed"
               />
