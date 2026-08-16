@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDashboardLive } from "@/components/DashboardLiveContext";
 import AIWorkbench from "@/components/workbench/AIWorkbench";
+import FeatureTogglePanel from "./FeatureTogglePanel";
+import { useFeaturePrefs } from "@/lib/useFeaturePrefs";
 import {
   ArrowLeft,
   Send,
@@ -181,6 +183,7 @@ export default function TampilanPC({
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [appTheme, setAppTheme] = useState<"dark" | "light">("dark");
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const featurePrefs = useFeaturePrefs();
   const [platformLogo, setPlatformLogo] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -417,6 +420,7 @@ export default function TampilanPC({
           </div>
           {/* Tombol pilih tema background (Hitam/Putih) */}
           <div className="relative">
+            <FeatureTogglePanel />
             <button
               type="button"
               onClick={() => setShowThemeMenu((v) => !v)}
@@ -604,7 +608,7 @@ export default function TampilanPC({
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-1.5 p-2 min-h-0">
                   {fiturNusantara
-                    .filter((item) => item.cat === kat)
+                    .filter((item) => item.cat === kat && featurePrefs.isEnabled(item.id))
                     .map((item) => (
                       <button
                         key={item.id}

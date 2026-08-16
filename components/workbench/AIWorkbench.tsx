@@ -58,7 +58,7 @@ interface SseFrame {
 /** Aksi yang bisa diusulkan AI untuk kertas dokumen (kolom kanan). */
 interface AiAction {
   label: string;
-    type: "copy" | "append" | "revise" | "template" | "summarize" | "translate" | "expand" | "bullet" | "to_table" | "tone_down" | "restore" | "create";
+            type: "copy" | "append" | "revise" | "template" | "summarize" | "translate" | "expand" | "bullet" | "to_table" | "tone_down" | "restore" | "create" | "edit" | "delete";
   payload?: string;
 }
 
@@ -1191,7 +1191,7 @@ const AI_EMPTY_PROMPT =
           typeToPaper("append", chunk); // ✦ mesin ketik: ditulis per huruf seperti berjalan
         }
         if (data.filledData && Object.keys(data.filledData).length) {
-          setAiFilled((p) => ({ ...p, ...data.filledData }));
+                    setAiFilled((p) => ({ ...p, ...data.filledData })); for (const a of data.actions ?? []) { const t = String(a?.type); if (t === "revise" || t === "edit" || t === "delete") applyAiAction(a); }
         }
       }
     } catch (e) {
@@ -1307,6 +1307,45 @@ const AI_EMPTY_PROMPT =
       cancelTypewriter();
       setDocText("");
       if (!aiLoading) void askAI(AI_FIRST_PROMPT);
+      return;
+    }
+        // ✦ edit / delete — penyuntingan LASAK langsung ke kertas dokumen.
+    // Dipicu otomatis oleh askAI (auto-apply) bila model mengusulkan aksi edit/delete,
+    // agar perubahan benar-benar TERLIHAT di kertas — bukan hanya diklaim di reply.
+    if (a.type === "edit" || a.type === "delete") {
+      const pp = a.payload ?? "";
+      if (!pp) return;
+      const cur = (docTextRef.current ?? docText).trim();
+      let next = cur;
+      if (a.type === "delete") {
+        const i = cur.indexOf(pp);
+        if (i < 0) return; // teks tidak ditemukan → biarkan kertas tak berubah (aman)
+        next = cur.slice(0, i) + cur.slice(i + pp.length);
+      } else {
+        // edit: payload JSON {"find":"<teks lama>","replace":"<teks baru>"}
+        try {
+          const o = JSON.parse(pp);
+          const f = typeof o?.find === "string" ? o.find : "";
+          const r = typeof o?.replace === "string" ? o.replace : "";
+          if (f) {
+            const i = cur.indexOf(f);
+            if (i < 0) return; // teks lama tidak ditemukan → tidak ubah
+            next = cur.slice(0, i) + r + cur.slice(i + f.length);
+          } else if (r) {
+            next = r; // tidak ada find → ganti seluruh dokumen dengan replace
+          }
+        } catch {
+          return; // payload bukan JSON yang valid → lewati dengan aman
+        }
+      }
+      next = next.replace(/\s+$/, "");
+      cancelTypewriter();
+      if (!next || !next.trim()) {
+        setDocText("");
+        aiWriteDoneRef.current = true;
+        return;
+      }
+      typeToPaper("replace", next);
       return;
     }
     const p = a.payload;

@@ -4,7 +4,8 @@ import { getFreeKeyPool, getPaidKeyPool, blockKey } from "@/lib/aiVault";
 import type { RotatingKey } from "@/lib/aiVault";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureSettings } from "@/lib/featureSettings";
-import { getCatalogFeature, buildLayeredPrompt } from "@/lib/featureCatalog";
+import { getCatalogFeature } from "@/lib/featureCatalog";
+import { buildStrictLayeredPrompt, checkUserMessageSafety } from "@/lib/aiStrictEngine";
 
 /**
  * AI-NUSANTARA — Asisten Dokumen (✨ AI Generate)
@@ -196,7 +197,7 @@ ATURAN MENGUASAI ISI KERTAS (WAJIB):
 - Kamu SELALU memakai isi kertas saat ini (lihat DOKUMEN) dan DATA YANG SUDAH TERISI sebagai dasar.
 - Teks yang sudah ada di kertas TIDAK BOLEH hilang, kecuali user meminta menghapus bagian tertentu.
 - User boleh minta EDIT apa pun: memperbaiki kata/kalimat, mengubah/ganti bagian, menghapus sebagian teks, menyisip, atau menjadikan dokumen murni. Patuhi permintaan itu.
-- Jika user minta edit parsial (mis. "ubah kalimat X", "hapus bagian Y", "ganti judul") → aksi "revise" berisi SELURUH dokumen hasil akhir: mulai dari isi kertas sekarang, gabungkan semua field dari DATA YANG SUDAH TERISI, terapkan HANYA perubahan yang diminta, sisanya tetap. Kirim teks PENUH, bukan hanya bagian yang berubah.
+- Jika user minta edit parsial (mis. "ubah kalimat X", "hapus bagian Y", "ganti judul") → aksi "revise" berisi SELURUH dokumen hasil akhir: mulai dari isi kertas sekarang, gabungkan semua field dari DATA YANG SUDAH TERISI, terapkan HANYA perubahan yang diminta, sisanya tetap. Kirim teks PENUH, bukan hanya bagian yang berubah. Untuk perubahan kecil (ganti satu kalimat/kata) atau penghapusan sebagian teks, gunakan aksi "edit" (payload = JSON {"find":"<teks lama>","replace":"<teks baru>"}) atau "delete" (payload = "<teks yang akan dihapus>") — perubahan ini langsung ditulis ke kertas dokumen.
 
 ATURAN PEMANTAUAN DOKUMEN & KELENGKAPAN (WAJIB):
 - Jika pesan Anda mengindikasikan dokumen baru saja berubah/diperbarui (mis. diawali "📡"), sebagai pengamat teliti bacalah DOKUMEN (isi kertas PALING BARU). Laporkan ringkas di reply: bagian yang sudah terisi, bagian yang masih kosong/kurang/bermasalah. SELALU sertakan "questions" berisi 2-3 pilihan KLIK-LANJUT (lengkapi field, perbaiki kalimat, tambah bagian); bila isi sudah cukup, sertakan juga 1-2 "actions" siap pakai. Jangan menulis ulang seluruh dokumen tanpa diminta.
@@ -206,6 +207,8 @@ ATURAN Aksi (actions) — kirim hanya saat mengusulkan menulis ke kertas:
 - "copy": payload = SELURUH teks akhir dokumen (isi kertas lama + field terisi digabung jadi satu dokumen lengkap).
 - "append": payload = catatan tambahan yang DITAMBAHKAN di bawah kertas (tidak menghapus apa pun).
 - "revise": payload = SELURUH dokumen SETELAH di-edit sesuai permintaan user (hapus sebagian, ganti kalimat, dll). TAPI jangan hanya mengembalikan bagian yang berubah.
+- "edit": payload = JSON {"find":"<teks lama>","replace":"<teks baru>"} — ganti SEBAGIAN isi kertas (hapus kemunculan pertama "<teks lama>", ganti dengan "<teks baru>") secara langsung, sisanya dokumen tetap utuh.
+- "delete": payload = "<teks yang akan dihapus>" — hapus kemunculan pertama pada kertas secara langsung; sisanya dokumen tetap utuh.
 - "template": payload = SELURUH kerangka kertas final yang memuat isi kertas yang sudah ada + semua field terisi di posisi yang logis.
 - "summarize": payload = poin-poin ringkasan (cemerlang/point) dari SELURUH isi kertas saat ini — ditambahkan di bawah (tidak menghapus).
 - "translate": payload = terjemahan isi kertas ke Bahasa Indonesia↔English (atau bahasa yang diminta user) — ditambahkan di bawah.
@@ -236,6 +239,12 @@ export async function POST(request: Request) {
   const filledData = body.filledData ?? {};
   const history = body.history ?? [];
   const feature = body.feature ?? "";
+    // 🔒 GATE deterministik: tolak identity-hijacking / upaya bocorkan sistem.
+  const talkSafety = checkUserMessageSafety(message, feature);
+  if (!talkSafety.safe) {
+    return NextResponse.json({ ok: false, error: talkSafety.refuse }, { status: 400 });
+  }
+
   const email = await resolveEmail();
 
   // 🎯 LAPISAN PERSONA FITUR (FOUNDER) — berlapis di atas lapisan mesin.
@@ -252,7 +261,8 @@ export async function POST(request: Request) {
         ? Number(catal.temperature)
         : 0.3;
 
-  const systemInstruction = buildLayeredPrompt(
+    const systemInstruction = buildStrictLayeredPrompt(
+    feature,
     SYSTEM_PROMPT,
     founderPrompt ?? catal?.system_prompt ?? null,
   )

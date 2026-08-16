@@ -2,6 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { ArrowLeft, Send, Copy, FileText, Sparkles, Loader2 } from "lucide-react";
+import FeatureTogglePanel from "./FeatureTogglePanel";
+import { useFeaturePrefs } from "@/lib/useFeaturePrefs";
 
 interface FiturNusantara {
   id: string;
@@ -35,6 +37,7 @@ const fiturNusantara: FiturNusantara[] = [
 
 export default function TampilanHP({ maxInputChars = 500 }: ResponsiveDashboardProps) {
   const [activeTab, setActiveTab] = useState("GURU");
+  const featurePrefs = useFeaturePrefs();
   const [selectedFitur, setSelectedFitur] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
@@ -414,6 +417,7 @@ export default function TampilanHP({ maxInputChars = 500 }: ResponsiveDashboardP
 
         {/* Tombol Klaster Tabs */}
         <div className="flex flex-wrap gap-1.5 mb-1.5 border-b border-slate-800 pb-1.5 shrink-0">
+          <FeatureTogglePanel />
           {["GURU", "MAHASISWA", "UMKM"].map((tab) => (
             <button
               key={tab}
@@ -432,7 +436,7 @@ export default function TampilanHP({ maxInputChars = 500 }: ResponsiveDashboardP
         {/* Grid 11 Fitur Nusantara - Compact */}
         <div className="grid grid-cols-1 gap-1.5 overflow-y-auto min-h-0 pb-1">
           {fiturNusantara
-            .filter((item) => item.cat === activeTab)
+            .filter((item) => item.cat === activeTab && featurePrefs.isEnabled(item.id))
             .map((item) => (
               <button
                 key={item.id}

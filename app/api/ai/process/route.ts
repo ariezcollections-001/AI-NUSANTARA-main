@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getVaultKeys } from "@/lib/aiVault";
+import { featureEnginePrefix, checkUserMessageSafety } from "@/lib/aiStrictEngine";
 
 const requestHistory: Record<string, number[]> = {};
 
@@ -416,11 +417,18 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!featureInstructions[featureId]) {
+    if (!featureInstructions[featureId]) {
     return NextResponse.json(
       { error: "Fitur AI tidak dikenali." },
       { status: 400 },
     );
+  }
+
+  // 🔒 GATE deterministik: tolak identity-hijacking / upaya bocorkan sistem
+  // sebelum menyentuh model — menjamin aturan mesin (Lapisan 1) kaku.
+  const procSafety = checkUserMessageSafety(userInput, featureId);
+  if (!procSafety.safe) {
+    return NextResponse.json({ error: procSafety.refuse }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -445,8 +453,9 @@ export async function POST(request: Request) {
   const userData = userRecord.data as { character_balance?: number; email?: string } | null;
   const currentBalance = Number(userData?.character_balance ?? 0) || 0;
 
-  const apiKeyData = await findBestApiKey();
-  const systemPrompt = buildSystemPrompt(featureId, userInput, email);
+    const apiKeyData = await findBestApiKey();
+  const systemPrompt =
+    featureEnginePrefix(featureId) + "\n\n" + buildSystemPrompt(featureId, userInput, email);
 
   try {
     const suspiciousPatterns = [/drop\s+table/i, /<script\b/i, /union\s+select/i, /--\s*$/i];
@@ -591,7 +600,8 @@ export async function GET(request: Request) {
     }
 
     const email = userEmail || user.email || "anon@ai-nusantara.local";
-    const systemPrompt = buildSystemPrompt(featureId, userInput, email);
+        const systemPrompt =
+      featureEnginePrefix(featureId) + "\n\n" + buildSystemPrompt(featureId, userInput, email);
 
     // 🔴 BACA SALDO REAL dari DB (bukan cache) — agar cek & deduksi konsisten.
     const userRecord = await supabase

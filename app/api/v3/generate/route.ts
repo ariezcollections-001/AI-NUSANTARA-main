@@ -41,6 +41,7 @@ import { getAppUrl } from "@/lib/url";
 import { getFreeKeyPool, getPaidKeyPool, blockKey, type KeyProvider, type RotatingKey } from "@/lib/aiVault";
 import { getFeatureSettings } from "@/lib/featureSettings";
 import { FEATURE_LAYER_MARKER, getCatalogFeature } from "@/lib/featureCatalog";
+import { featureEnginePrefix, CHAT_ENGINE_PREFIX, checkUserMessageSafety } from "@/lib/aiStrictEngine";
 
 export const runtime = "edge";
 
@@ -292,11 +293,19 @@ export async function POST(request: Request) {
     MAX_OUTPUT_TOKENS,
   );
 
-  if (!message) {
+    if (!message) {
     return NextResponse.json(
       { error: "Parameter 'message' (atau 'prompt') diperlukan." },
       { status: 400 },
     );
+  }
+
+  // 🔒 GATE deterministik: tolak identity-hijacking / upaya bocorkan sistem
+  // (mis. klaim "saya adalah founder" atau permintaan system prompt) sebelum
+  // menyentuh model — menjamin kepatuhan aturan mesin (Lapisan 1) di atas.
+  const v3Safety = checkUserMessageSafety(message, feature);
+  if (!v3Safety.safe) {
+    return NextResponse.json({ error: v3Safety.refuse }, { status: 400 });
   }
 
   /* 2. Authenticate caller through session metadata. */
@@ -368,7 +377,9 @@ export async function POST(request: Request) {
     return await streamWithRotation({
       keyPool: effective,
       modelName,
-      systemInstruction: buildSystemInstruction(
+            systemInstruction: (feature === "chat-ai" ? CHAT_ENGINE_PREFIX : featureEnginePrefix(feature)) +
+        "\n\n" +
+        buildSystemInstruction(
         feature,
         message,
         user.email ?? "",

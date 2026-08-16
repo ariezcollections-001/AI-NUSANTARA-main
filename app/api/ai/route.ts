@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import modelConfig from "@/chatLanguageModels.json";
+import { CHAT_ENGINE_PREFIX, checkUserMessageSafety } from "@/lib/aiStrictEngine";
 
 const DEFAULT_MODEL_CONFIG = [modelConfig];
 
@@ -90,7 +91,7 @@ async function callProvider(provider: { apiKey: string; models: { id: string; ur
         messages: [
           {
             role: "system",
-            content: "Anda adalah AI-NUSANTARA, validasi informasi di Indonesia, jangan mengarang data, output harus jujur jika informasi tidak lengkap.",
+                        content: `${CHAT_ENGINE_PREFIX}`,
           },
           {
             role: "user",
@@ -139,8 +140,14 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const prompt = String(body.prompt ?? "").trim();
 
-  if (!prompt) {
+    if (!prompt) {
     return NextResponse.json({ error: "Prompt AI wajib diisi." }, { status: 400 });
+  }
+
+  // 🔒 GATE deterministik: tolak identity-hijacking / upaya bocorkan sistem.
+  const aiSafety = checkUserMessageSafety(prompt, "Chat AI (Umum)");
+  if (!aiSafety.safe) {
+    return NextResponse.json({ error: aiSafety.refuse }, { status: 400 });
   }
 
   const maintenanceMode = await getMaintenanceMode();
