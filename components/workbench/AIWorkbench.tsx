@@ -10,7 +10,6 @@ import {
   Unlock,
   Type,
   Loader2,
-  Sparkles,
   History,
   Trash2,
   ClipboardPaste,
@@ -55,6 +54,34 @@ interface SseFrame {
   };
 }
 
+/** Aksi yang bisa diusulkan AI untuk kertas dokumen (kolom kanan). */
+interface AiAction {
+  label: string;
+  type: "copy" | "append" | "revise" | "template";
+  payload?: string;
+}
+
+interface AiTalkResult {
+  ok?: boolean;
+  error?: string;
+  reply: string;
+  questions: string[];
+  nextField: string | null;
+  filledData: Record<string, string>;
+  actions: AiAction[];
+}
+
+interface ChatMessage {
+  id: string;
+  role: "user" | "ai";
+  content: string;
+  ts?: number;
+  /** Untuk pesan AI asisten — chip pertanyaan cepat (opsional). */
+  questions?: string[];
+  /** Untuk pesan AI asisten — aksi menulis ke kertas (opsional). */
+  actions?: AiAction[];
+}
+
 interface DocTemplate {
   id: string;
   label: string;
@@ -72,6 +99,14 @@ interface AIWorkbenchProps {
 
 const makeId = () =>
   Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+// Ubah kunci id field ("mata_pelajaran" / "mapel") jadi label ramah pembaca:
+// "Mata Pelajaran", "Mapel", dst — dipakai untuk penulisan bertahap ke kertas.
+const prettyField = (k: string) =>
+  k
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 // Tanggal lokal YYYY-MM-DD
 const todayStr = () => {
@@ -678,8 +713,19 @@ export default function AIWorkbench({
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
-  const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // --- ASISTEN AI DOKUMEN (✨ AI Generate) — modal float di atas konten,
+  //     tidak menggeser toolbar kanan / kertas A4, sembunyikan saat print. ---
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiFilled, setAiFilled] = useState<Record<string, string>>({});
+  const aiScrollRef = useRef<HTMLDivElement | null>(null);
+  const AI_FIRST_PROMPT =
+    "Saya ingin kamu membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanya satu per satu field penting (Mapel, Kelas, Nama, Judul, Tujuan) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Setelah cukup, sarankan aksi (copy/append/revise/template).";
 
   // --- SEKAT 3 : GENERATE AUDIO (khusus fitur audio-mp3) ---
   const [showAudioModal, setShowAudioModal] = useState(false);
@@ -733,10 +779,49 @@ export default function AIWorkbench({
     if (el && el.innerText !== docText) el.innerText = docText;
   }, [docText]);
 
+  // --- Efek MESIN KETIK (✦) — AI menulis per huruf ke kertas seperti berjalan,
+  //     tidak muncul seketika; terasa modern & prosesnya terlihat jelas. ---
+  const docTextRef = useRef("");
   useEffect(() => {
-    const el = chatScrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+    docTextRef.current = docText;
+  }, [docText]);
+  const typeTimerRef = useRef<number | null>(null);
+  const cancelTypewriter = () => {
+    if (typeTimerRef.current !== null) {
+      window.clearInterval(typeTimerRef.current);
+      typeTimerRef.current = null;
+    }
+  };
+  // mode "append" → tulis bertahap di bawah teks yang sudah ada;
+  // mode "replace" → kosongkan kertas dulu, lalu dokumen baru diketik ulang.
+  const typeToPaper = (mode: "append" | "replace", full: string) => {
+    cancelTypewriter();
+    let base = "";
+    if (mode === "append") {
+      const cur = (docTextRef.current ?? "").trimEnd();
+      base = cur ? `${cur}\n\n` : "";
+    } else {
+      setDocText(""); // mode ganti → bersihkan dulu, lalu "menulis ulang" per huruf
+    }
+    const len = full.length;
+    if (len === 0) return;
+    const perTick = len > 400 ? 3 : len > 150 ? 2 : 1;
+    const stepMs = len > 400 ? 14 : len > 150 ? 18 : 28;
+    let i = 0;
+    window.setTimeout(() => {
+      typeTimerRef.current = window.setInterval(() => {
+        i = Math.min(i + perTick, len);
+        const el = paperRef.current;
+        if (el) el.innerText = base + full.slice(0, i); // tulis streaming langsung ke DOM
+        if (i >= len) {
+          setDocText(base + full); // sinkronkan state akhir (tinta menetap)
+          cancelTypewriter();
+        }
+      }, stepMs);
+    }, mode === "replace" ? 160 : 24);
+  };
+
+  // Auto-scroll kolom AI (kolom kiri) — diurus di bawah (aiScrollRef).
 
   // ---- Muat riwayat (sessions per tanggal) SETELAH mount (hindari hydration mismatch) ----
   useEffect(() => {
@@ -801,7 +886,10 @@ export default function AIWorkbench({
   }, [history, featureId]);
 
   const handleClearHistory = () => {
-    // Kosongkan ruang obrolan AKTIF saja (bukan menghapus seluruh riwayat)
+    // Kosongkan ruang obrolan AKTIF (kolom AI kiri) — bukan hapus seluruh riwayat lama.
+    setAiMessages([]);
+    setAiInput("");
+    setAiError(null);
     setMessages([]);
     setShowHistory(false);
     setConfirmModal(null);
@@ -941,9 +1029,14 @@ export default function AIWorkbench({
   };
 
   /* ====== Tombol-tombol kontrol kertas dokumen ====== */
-  const handleBlank = () => setDocText("");
-  const handleTemplate = (tpl: DocTemplate) =>
+  const handleBlank = () => {
+    cancelTypewriter();
+    setDocText("");
+  };
+  const handleTemplate = (tpl: DocTemplate) => {
+    cancelTypewriter();
     setDocText(tpl.body ? tpl.title + "\n" + "=".repeat(26) + "\n\n" + tpl.body : "");
+  };
   const toggleLock = () => setIsLocked((p) => !p);
   const cycleFont = () =>
     setDocFont((p) => (p === "sans" ? "serif" : p === "serif" ? "mono" : "sans"));
@@ -982,6 +1075,7 @@ export default function AIWorkbench({
       .replace(/[ ]{2,}/g, " ") // run spasi ganda -> 1 spasi
       .replace(/\n{3,}/g, "\n\n") // 3+ baris kosong berturut-turut -> 1 baris kosong
       .trim();
+    cancelTypewriter();
     setDocText(clean);
   };
   const handleExportWord = () => {
@@ -1012,6 +1106,125 @@ export default function AIWorkbench({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+    /* ====== ASISTEN AI DOKUMEN (✨ AI Generate) — panggil /api/ai/talk ====== */
+  const askAI = async (text: string) => {
+    const t = text.trim();
+    if (!t || aiLoading) return;
+    setAiInput("");
+    setAiError(null);
+    setAiLoading(true);
+
+    const userMsg: ChatMessage = { id: makeId(), role: "user", content: t, ts: Date.now() };
+    const thinkMsg: ChatMessage = { id: makeId(), role: "ai", content: "", ts: Date.now() };
+    setAiMessages((prev) => [...prev, userMsg, thinkMsg]);
+    const finish = () => setAiLoading(false);
+
+    try {
+      const res = await fetch("/api/ai/talk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: t,
+          docText: docText,
+          filledData: aiFilled,
+          history: aiMessages,
+          feature: featureId,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as AiTalkResult | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(
+          (data as AiTalkResult | null)?.error ?? `AI error (${res.status})`,
+        );
+      }
+      setAiMessages((prev) =>
+        prev.map((m) =>
+          m.id === thinkMsg.id
+            ? {
+                ...m,
+                content: data.reply,
+                questions: data.questions?.length ? data.questions : undefined,
+                actions: data.actions?.length ? data.actions : undefined,
+              }
+            : m,
+        ),
+      );
+      // ===== PENULISAN BERTAHAP: setiap field baru yang dijawab AI (via chip pilihan
+      // atau ketik manual) LANGSUNG ditulis ke kertas dokumen, satu per satu —
+      // bukan menunggu proses selesai lalu ditulis menyeluruh.
+      {
+        const prevFilled = aiFilled;
+        const newly = Object.entries(data.filledData ?? {}).filter(
+          ([k, v]) =>
+            typeof k === "string" &&
+            k.trim() !== "" &&
+            typeof v === "string" &&
+            v.trim() !== "" &&
+            prevFilled[k] !== v,
+        );
+        if (newly.length) {
+          const chunk = newly
+            .map(([k, v]) => `${prettyField(k)}: ${String(v).trim()}`)
+            .join("\n");
+          typeToPaper("append", chunk); // ✦ mesin ketik: ditulis per huruf seperti berjalan
+        }
+        if (data.filledData && Object.keys(data.filledData).length) {
+          setAiFilled((p) => ({ ...p, ...data.filledData }));
+        }
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "Gagal menghubungi AI.");
+      setAiMessages((prev) =>
+        prev.map((m) =>
+          m.id === thinkMsg.id
+            ? { ...m, content: "⚠️ Gagal menghubungi AI. Cek koneksi/kunci di Vault Founder." }
+            : m,
+        ),
+      );
+    } finally {
+      finish();
+    }
+  };
+
+  // ✨ AI TERTANAM DI KOLOM KIRI — langsung berjalan saat fitur dibuka, tanpa klik.
+  // Tujuannya: user menyaksikan sendiri proses AI mengisi kertas dokumen (kolom kanan)
+  // secara live.
+  const aiBootRef = useRef(false);
+  useEffect(() => {
+    if (aiBootRef.current) return;
+    aiBootRef.current = true;
+    const t = window.setTimeout(() => {
+      if (aiMessages.length === 0 && !aiLoading) askAI(AI_FIRST_PROMPT);
+    }, 300);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-scroll kolom AI mengikuti isi terbaru
+  useEffect(() => {
+    const el = aiScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [aiMessages, aiLoading]);
+
+  const sendAIMessage = () => {
+    askAI(aiInput);
+  };
+
+  const askQuick = (q: string) => {
+    askAI(q);
+  };
+
+    const applyAiAction = (a: AiAction) => {
+    const p = a.payload;
+    if (!p) return;
+    // copy / revise / template → MENGGANTI isi kertas; append → menambah di bawah
+    if (a.type === "copy" || a.type === "revise" || a.type === "template") {
+      typeToPaper("replace", p); // ✦ ganti → diketik ulang per huruf
+    } else if (a.type === "append") {
+      typeToPaper("append", p); // ✦ tambah → diketik per huruf di bawah kertas
+    }
   };
 
   /* ====== GENERATE AUDIO — ubah teks kolom dokumen menjadi MP3 (khusus audio-mp3) ====== */
@@ -1098,10 +1311,15 @@ export default function AIWorkbench({
             border-radius: 0 !important;
             zoom: 1 !important;
           }
-          #aiw-root, #aiw-pane, #aiw-scroll, #aiw-paper-wrap {
+                    #aiw-root, #aiw-pane, #aiw-scroll, #aiw-paper-wrap {
             overflow: visible !important;
             position: static !important;
             height: auto !important;
+          }
+          /* ✨ Asisten AI — sembunyikan total di print agar hanya kertas A4 keluar */
+          #aiw-ai-panel,
+          #aiw-ai-panel * {
+            display: none !important;
           }
         }
       `}</style>
@@ -1130,7 +1348,10 @@ export default function AIWorkbench({
         >
           <div className="shrink-0 px-3 py-2 border-b border-yellow-400/30 bg-black/40 flex items-center justify-between gap-2">
             <h2 className="text-[11px] font-black uppercase tracking-widest text-amber-400">
-              💬 Ruang Diskusi
+              ✨ AI Isi Dokumen{" "}
+              <span className="text-[9px] font-mono tracking-normal text-slate-500 normal-case">
+                ● {Object.keys(aiFilled).length} field terisi
+              </span>
             </h2>
             <div className="flex items-center gap-1.5">
               <button
@@ -1188,18 +1409,19 @@ export default function AIWorkbench({
 
           
 
-          <div ref={chatScrollRef} className="flex-1 overflow-y-auto flex flex-col gap-2 p-3 min-h-0">
-            {messages.length === 0 && (
+          <div ref={aiScrollRef} className="flex-1 overflow-y-auto flex flex-col gap-2 p-3 min-h-0">
+            {aiMessages.length === 0 && (
               <div className="m-auto text-center max-w-xs">
                 <div className="text-3xl">🤖</div>
                 <p className="mt-2 text-[11px] text-slate-400 leading-relaxed">
-                  Ketik perintah di bawah, AI Nusantara akan menjawab sesuai
-                  peran fitur <b className="text-amber-400">{featureTitle}</b>{" "}
-                  dan hasilnya bisa dipotong/disalin dari kertas dokumen kanan.
+                  AI Nusantara akan memandu pengisian kertas dokumen{" "}
+                  <b className="text-amber-400">{featureTitle}</b> dan
+                  menulis hasilnya otomatis di kertas kolom kanan — pantau
+                  prosesnya langsung di sini.
                 </p>
               </div>
             )}
-            {messages.map((m) => (
+            {aiMessages.map((m) => (
               <div
                 key={m.id}
                 className={`flex items-end gap-1.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}
@@ -1235,38 +1457,72 @@ export default function AIWorkbench({
             ))}
           </div>
 
-          {chatError && (
+          {(() => {
+            const lastAi = [...aiMessages].reverse().find((m) => m.role === "ai");
+            const qs = (lastAi?.questions ?? []).filter((q): q is string => !!q);
+            const acts = (lastAi?.actions ?? []).filter((a): a is AiAction => !!a);
+            return (
+              <>
+                {qs.length > 0 && (
+                  <div className="shrink-0 px-3 pb-1 flex flex-wrap gap-1.5">
+                    {qs.map((q, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => askQuick(q)}
+                        disabled={aiLoading}
+                        className="px-2.5 py-1 rounded-xl border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] text-amber-200 text-left transition-all active:scale-95 disabled:opacity-40"
+                        title="Jawab pertanyaan ini"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {acts.length > 0 && (
+                  <div className="shrink-0 px-3 pb-1 flex flex-wrap gap-1.5">
+                    {acts.map((a, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => applyAiAction(a)}
+                        className="px-2.5 py-1 rounded-xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/20 text-[9px] font-black text-amber-300 transition-all active:scale-95"
+                        title={a.label}
+                      >
+                        {a.label} → tulis ke kertas
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {aiLoading && (
+                  <div className="shrink-0 px-3 pb-1 flex items-center gap-2 text-[9px] text-slate-400">
+                    <Loader2 className="w-3 h-3 animate-spin text-amber-300" />
+                    AI sedang menulis ke kertas dokumen (kolom kanan)…
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
+          {(aiError || chatError) && (
             <div className="shrink-0 mx-3 mb-1 px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-950/40 text-[10px] text-red-300">
-              ⚠️ {chatError}
+              ⚠️ {aiError ?? chatError}
             </div>
           )}
 
-          {/* Kotak input + tombol GENERATE emas (auto-clear) */}
+          {/* Kotak input + tombol KIRIM ke AI (Enter untuk kirim) */}
           <div className="shrink-0 border-t border-yellow-400/30 bg-black/40 p-2">
-            {examplePrompt && (
-              <button
-                type="button"
-                onClick={() => {
-                  setInputText(examplePrompt);
-                }}
-                className="w-full mb-1.5 flex items-start gap-2 px-2.5 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-left text-[9px] text-white transition-colors"
-                title="Isi kotak input dengan contoh prompt khas fitur ini"
-              >
-                <Sparkles className="w-3 h-3 mt-0.5 text-amber-400 shrink-0" />
-                <span className="line-clamp-2 leading-snug">
-                  Contoh: {examplePrompt}
-                </span>
-              </button>
-            )}
             <textarea
-              value={inputText}
-              onChange={(e) =>
-                setInputText(e.target.value.slice(0, maxInputChars))
-              }
-              placeholder={
-                examplePrompt ? "Atau ketik prompt sendiri di sini…" : "Ketik prompt / revisi dokumen di sini…"
-              }
-              maxLength={maxInputChars}
+              value={aiInput}
+              onChange={(e) => setAiInput(e.target.value.slice(0, 2000))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!aiLoading) sendAIMessage();
+                }
+              }}
+              placeholder="Ketik perintah / jawaban di sini — AI langsung isi kertas dokumen di kolom kanan…"
+              maxLength={2000}
               className="w-full h-16 resize-none rounded-xl border border-yellow-400/30 bg-black/40 p-2 text-xs text-white placeholder:text-slate-500/60 outline-none focus:border-yellow-400/60"
             />
                         <p
@@ -1277,23 +1533,23 @@ export default function AIWorkbench({
             </p>
             <div className="mt-1.5 flex flex-row items-center justify-between gap-2">
               <span className="text-[9px] font-mono text-slate-500">
-                {inputText.length} / {maxInputChars}
+                {aiInput.length} / 2000
               </span>
               <button
                 type="button"
-                onClick={() => handleGenerate()}
-                disabled={!inputText.trim() || isLoading}
+                onClick={sendAIMessage}
+                disabled={!aiInput.trim() || aiLoading}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl border border-yellow-400/40 bg-black/40 hover:bg-black/60 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-amber-300 shadow-lg shadow-yellow-400/20 transition-all active:scale-95"
               >
-                {isLoading ? (
+                {aiLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating
+                    Mengirim…
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    Generate
+                    Kirim ke AI
                   </>
                 )}
               </button>
@@ -1464,8 +1720,11 @@ export default function AIWorkbench({
                 className="px-2 py-1.5 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-white transition-all active:scale-95"
                 title="Zoom Out kolom dokumen (kembali ke posisi semula)"
               >
-                🔍 Zoom −
+                                🔍 Zoom −
               </button>
+              <span className="ml-auto text-[9px] font-mono text-slate-500">
+                📄 {paperScale}% · {fontSize}px
+              </span>
               {featureId === "audio-mp3" && (
                 <button
                   type="button"
@@ -1490,6 +1749,7 @@ export default function AIWorkbench({
                 contentEditable={!isLocked}
                 suppressContentEditableWarning
                 onInput={(e) => {
+                  cancelTypewriter(); // user mengetik manual → hentikan mesin ketik AI
                   const el = e.currentTarget;
                   setDocText(el.innerText);
                 }}
@@ -1508,7 +1768,91 @@ export default function AIWorkbench({
       </div>
       </div>
 
-      {/* Modal Riwayat Chat (ukuran besar seperti zoom-in) */}
+            {/* ===== MODAL ASISTEN AI DOKUMEN (✨) — float, tidak ganti layout ===== */}
+      {aiOpen && (
+        <>
+          <div className="fixed inset-0 z-[50] bg-black/70" onClick={() => { if (aiLoading) return; setAiOpen(false); }} />
+          <div id="aiw-ai-panel" className="fixed inset-0 z-[60] flex items-center justify-center p-2 overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-2xl max-h-[90vh] rounded-2xl border border-yellow-400/30 bg-[#030712] shadow-[0_25px_80px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden">
+              <div className="shrink-0 px-4 py-3 border-b border-yellow-400/30 flex items-center justify-between gap-2">
+                <h3 className="text-xs font-black uppercase tracking-widest text-amber-400">✨ Asisten AI Dokumen <span className="text-[9px] font-mono text-slate-500">(field: {Object.keys(aiFilled).length})</span></h3>
+                <button type="button" onClick={() => { if (aiLoading) return; setAiOpen(false); }} className="px-2.5 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-white transition-all" title="Tutup asisten AI">✕ Tutup</button>
+              </div>
+              <div ref={aiScrollRef} className="flex-1 overflow-y-auto flex flex-col gap-2 p-3 min-h-0">
+                {aiMessages.map((m) => (
+                  <div key={m.id} className={`flex items-end gap-1.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed shadow whitespace-pre-wrap break-words ${m.role === "user" ? "rounded-br-sm border border-yellow-400/30 bg-black/40 text-white" : "rounded-bl-sm border border-yellow-400/30 bg-black/40 text-slate-200"}`}>
+                      {m.role === "ai" && m.content === "" ? (<span className="flex items-center gap-1 text-slate-300"><Loader2 className="w-3 h-3 animate-spin" />AI menyiapkan…</span>) : m.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+                            {(() => {
+                const lastAi = [...aiMessages].reverse().find((m) => m.role === "ai");
+                const aiQ = (lastAi?.questions ?? []).filter((q): q is string => !!q);
+                return aiQ.length > 0 ? (
+                  <div className="shrink-0 mx-3 mb-2 flex flex-wrap gap-1.5">
+                    {aiQ.map((q, i) => (
+                      <button key={i} type="button" onClick={() => askQuick(q)} disabled={aiLoading} className="px-2.5 py-1 rounded-xl border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] text-amber-200 text-left transition-all active:scale-95 disabled:opacity-40" title="Jawab pertanyaan ini">{q}</button>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+                                          {(() => {
+                const lastAi = [...aiMessages].reverse().find((m) => m.role === "ai");
+                const aiA = (lastAi?.actions ?? []).filter((a): a is AiAction => !!a);
+                return aiA.length > 0 ? (
+                  <div className="shrink-0 mx-3 mb-2 flex flex-wrap gap-1.5">
+                    {aiA.map((a, i) => (
+                      <button key={i} type="button" onClick={() => applyAiAction(a)} className="px-2.5 py-1 rounded-xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/20 text-[9px] font-black text-amber-300 transition-all active:scale-95" title={a.label}>
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+
+              {aiError && (
+                <div className="shrink-0 mx-3 mb-1 px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-950/40 text-[10px] text-red-300">⚠️ {aiError}</div>
+              )}
+
+              <div className="shrink-0 border-t border-yellow-400/30 bg-black/40 p-2">
+                <textarea
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value.slice(0, 2000))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!aiLoading) sendAIMessage();
+                    }
+                  }}
+                  placeholder="Ketik jawaban / revisi di sini…"
+                  maxLength={2000}
+                  rows={2}
+                  className="w-full resize-none rounded-xl border border-yellow-400/30 bg-black/40 p-2 text-xs text-white placeholder:text-slate-500/60 outline-none focus:border-yellow-400/60"
+                />
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="text-[9px] font-mono text-slate-500">{aiInput.length} / 2000</span>
+                  <button type="button" onClick={sendAIMessage} disabled={!aiInput.trim() || aiLoading} className="flex items-center gap-2 px-4 py-1.5 rounded-xl border border-yellow-400/40 bg-black/40 hover:bg-black/60 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-amber-300 active:scale-95">
+                    {aiLoading ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Mengirim…
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3 h-3" />
+                        Kirim
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+                               </>
+      )}
+
       {showHistory && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
