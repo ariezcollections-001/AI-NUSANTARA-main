@@ -329,10 +329,21 @@ export default function FounderDashboard() {
 
     async function addVaultKey() {
     if (!newVaultKey.trim()) return alert('Masukkan API key terlebih dahulu.');
+    const k = newVaultKey.trim();
+    // ⚠️ Penjaga format — cegah kunci masuk ke kolom yang salah tanpa sadar.
+    const isGemini = /^AIza[A-Za-z0-9_-]{10,}$/.test(k);
+    const isOpenRouter = /^sk-or-/i.test(k);
+    const isEleven = /^sk(?:_|-)[A-Za-z0-9]{10,}$/i.test(k) && !isOpenRouter;
+    if (newVaultType === 'elevenlabs' && (isGemini || isOpenRouter)) {
+      return alert('Kunci ini berformat Gemini/OpenRouter, bukan ElevenLabs (`sk-…`). Kolom ElevenLabs hanya menerima kunci ElevenLabs.');
+    }
+    if (newVaultType !== 'elevenlabs' && isEleven) {
+      return alert(`Kunci tampaknya ElevenLabs (“${k.slice(0, 10)}…”). Ganti “Jenis Kunci” ke ElevenLabs (TTS MP3) agar masuk kolom yang benar.`);
+    }
     const next = { ...vaultKeys };
-    if (newVaultType === 'gemini') next.gemini = [...next.gemini, newVaultKey.trim()];
-    else if (newVaultType === 'elevenlabs') next.elevenlabs = [...next.elevenlabs, newVaultKey.trim()];
-    else next.openrouter = [...next.openrouter, newVaultKey.trim()];
+    if (newVaultType === 'gemini') next.gemini = [...next.gemini, k];
+    else if (newVaultType === 'elevenlabs') next.elevenlabs = [...next.elevenlabs, k];
+    else next.openrouter = [...next.openrouter, k];
     try {
       await saveVaultKeys(next);
       setNewVaultKey('');
