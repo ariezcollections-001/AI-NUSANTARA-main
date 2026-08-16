@@ -1484,7 +1484,7 @@ export default function AIWorkbench({
 
           {/* Kontainer kertas — tinggi terkunci kaku, gulung hanya di dalam sekat kanan */}
           <div id="aiw-scroll" className="flex-1 overflow-auto pr-1">
-            <div id="aiw-paper-wrap" className="px-1 pt-2 pb-6">
+            <div id="aiw-paper-wrap" className="flex items-center justify-center px-1 pt-2 min-h-full">
               <div
                 ref={paperRef}
                 contentEditable={!isLocked}
