@@ -58,7 +58,7 @@ interface SseFrame {
 /** Aksi yang bisa diusulkan AI untuk kertas dokumen (kolom kanan). */
 interface AiAction {
   label: string;
-    type: "copy" | "append" | "revise" | "template" | "summarize" | "translate" | "expand" | "bullet";
+    type: "copy" | "append" | "revise" | "template" | "summarize" | "translate" | "expand" | "bullet" | "to_table" | "tone_down" | "restore" | "create";
   payload?: string;
 }
 
@@ -726,7 +726,11 @@ export default function AIWorkbench({
   const [aiFilled, setAiFilled] = useState<Record<string, string>>({});
   const aiScrollRef = useRef<HTMLDivElement | null>(null);
   const AI_FIRST_PROMPT =
-    "Saya ingin membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanya satu per satu field penting (Mapel, Kelas, Nama, Judul, Tujuan) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Kamu HARUS menguasai seluruh isi kertas: bila user minta edit, revisi, ganti kata/kalimat, atau menghapus sebagian teks, siapkan aksi 'revise' berisi SELURUH dokumen hasil edit. Setelah field cukup, sarankan aksi (copy/append/revise/template/summarize/translate/expand). Jika semua field sudah terisi dan dokumen sudah ada isi, fokuskan pada aksi (ringkasan, terjemahan, perbanyak, revise) — jangan lagi mengulang pertanyaan field yang sama.";
+    "Sambut user dengan ramah-tamah dan anggap ia BARU akan membuat dokumen baru, apa pun yang terjadi sebelumnya — tak peduli berapa kali kolom chat dikosongkan hari ini. Saya ingin membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanya satu per satu field penting (Mapel, Kelas, Nama, Judul, Tujuan) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Kamu HARUS menguasai seluruh isi kertas: bila user minta edit, revisi, ganti kata/kalimat, atau menghapus sebagian teks, siapkan aksi 'revise' berisi SELURUH dokumen hasil edit. Setelah field cukup, sarankan aksi (copy/append/revise/template/summarize/translate/expand). Jika semua field sudah terisi dan dokumen sudah ada isi, fokuskan pada aksi (ringkasan, terjemahan, perbanyak, revise) — jangan lagi mengulang pertanyaan field yang sama. Pahami situasi pengguna: sapalah ramah sesuai FITUR yang ia pilih dan langsung tawarkan 2-3 pilihan siap klik untuk memulai mengisi dokumen.";
+  const AI_MONITOR_PROMPT =
+    "[📡 PEMANTAUAN DOKUMEN] Teks dokumen di kertas kolom kanan baru saja diubah/diperbarui. Teliti bacalah SELURUH isi kertas PALING BARU (lihat DOKUMEN): periksa bagian yang kosong, tidak lengkap, atau bermasalah. Laporkan singkat di reply, lalu SELALU beri 2-3 'questions' siap klik untuk langkah lanjut (lengkapi field, perbaiki kalimat, tambah bagian), dan bila isi sudah cukup sertakan 1-2 'actions' siap pakai. Jangan menulis ulang seluruh dokumen tanpa diminta.";
+const AI_EMPTY_PROMPT =
+    "[🧭 KONDISI KERTAS] Kertas dokumen di kolom kanan sekarang KOSONG. Tegaskan dengan ramah bahwa dokumen kosong, lalu ajukan 'questions' berisi pilihan siap-klik untuk mulai (mis. berisi 'Buat dokumen baru', 'Isi otomatis dari awal'). Bila ada cadangan, ingatkan bahwa tombol '↩️ Kembalikan Dokumen' tersedia di kiri atas untuk memulihkan isi terakhir bila tadi tidak sengaja menghapus. Jangan menulis ke kertas (biarkan actions kosong) — cukup sapa dan tawarkan.";
 
   // --- SEKAT 3 : GENERATE AUDIO (khusus fitur audio-mp3) ---
   const [showAudioModal, setShowAudioModal] = useState(false);
@@ -787,16 +791,23 @@ export default function AIWorkbench({
     docTextRef.current = docText;
   }, [docText]);
   const typeTimerRef = useRef<number | null>(null);
+  const aiWritingRef = useRef(false); // mesin ketik AI sedang aktif
+  const aiWriteDoneRef = useRef(false); // satu siklus tulis AI barusan selesai
+  const monitorTimerRef = useRef<number | null>(null); // jeda pemantauan dokumen
+  const lastDocBackupRef = useRef(""); // cadangan teks kertas terakhir (untuk "kembalikan dokumen")
+  const prevDocRef = useRef<string | null>(null); // isi kertas sebelumnya (deteksi "kertas jadi kosong")
   const cancelTypewriter = () => {
     if (typeTimerRef.current !== null) {
       window.clearInterval(typeTimerRef.current);
       typeTimerRef.current = null;
     }
+    aiWritingRef.current = false;
   };
   // mode "append" → tulis bertahap di bawah teks yang sudah ada;
   // mode "replace" → kosongkan kertas dulu, lalu dokumen baru diketik ulang.
   const typeToPaper = (mode: "append" | "replace", full: string) => {
     cancelTypewriter();
+    aiWritingRef.current = true; // tandai: AI menulis — pantauan dokumen dilewati dulu
     let base = "";
     if (mode === "append") {
       const cur = (docTextRef.current ?? "").trimEnd();
@@ -805,7 +816,10 @@ export default function AIWorkbench({
       setDocText(""); // mode ganti → bersihkan dulu, lalu "menulis ulang" per huruf
     }
     const len = full.length;
-    if (len === 0) return;
+    if (len === 0) {
+      aiWritingRef.current = false;
+      return;
+    }
     const perTick = len > 400 ? 3 : len > 150 ? 2 : 1;
     const stepMs = len > 400 ? 14 : len > 150 ? 18 : 28;
     let i = 0;
@@ -816,6 +830,8 @@ export default function AIWorkbench({
         if (el) el.innerText = base + full.slice(0, i); // tulis streaming langsung ke DOM
         if (i >= len) {
           setDocText(base + full); // sinkronkan state akhir (tinta menetap)
+          aiWritingRef.current = false;
+          aiWriteDoneRef.current = true; // perubahan ini berasal dari AI → dilewati pemantau
           cancelTypewriter();
         }
       }, stepMs);
@@ -850,17 +866,12 @@ export default function AIWorkbench({
       } catch { /* abaikan */ }
     }
     setHistory(sessions);
+    // Kolom chat SELALU tampil untuk HARI INI. Bila hari ini punya sesi → dimuat;
+    // bila tidak (user baru, atau kolom chat sudah dikosongkan) → kolom KOSONG, dan AI
+    // menyapa sendiri. Riwayat tanggal lain TIDAK otomatis muncul — hanya lewat History.
+    setActiveDate(today);
     const todaySess = sessions.find((s) => s.date === today);
-    if (todaySess) {
-      setAiMessages(todaySess.messages);
-      setActiveDate(today);
-    } else if (sessions.length) {
-      const latest = sessions[sessions.length - 1];
-      setAiMessages(latest.messages);
-      setActiveDate(latest.date);
-    } else {
-      setActiveDate(today);
-    }
+    setAiMessages(todaySess ? todaySess.messages : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1118,16 +1129,16 @@ export default function AIWorkbench({
   };
 
     /* ====== ASISTEN AI DOKUMEN (✨ AI Generate) — panggil /api/ai/talk ====== */
-  const askAI = async (text: string) => {
+  const askAI = async (text: string, silent = false) => {
     const t = text.trim();
     if (!t || aiLoading) return;
-    setAiInput("");
+    if (!silent) setAiInput("");
     setAiError(null);
     setAiLoading(true);
 
     const userMsg: ChatMessage = { id: makeId(), role: "user", content: t, ts: Date.now() };
     const thinkMsg: ChatMessage = { id: makeId(), role: "ai", content: "", ts: Date.now() };
-    setAiMessages((prev) => [...prev, userMsg, thinkMsg]);
+    setAiMessages((prev) => (silent ? [...prev, thinkMsg] : [...prev, userMsg, thinkMsg]));
     const finish = () => setAiLoading(false);
 
     try {
@@ -1136,7 +1147,7 @@ export default function AIWorkbench({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: t,
-          docText: docText,
+          docText: docTextRef.current ?? docText,
           filledData: aiFilled,
           history: aiMessages,
           feature: featureId,
@@ -1197,25 +1208,86 @@ export default function AIWorkbench({
     }
   };
 
-  // ✨ AI TERTANAM DI KOLOM KIRI — langsung berjalan saat fitur dibuka, tanpa klik.
-  // Tujuannya: user menyaksikan sendiri proses AI mengisi kertas dokumen (kolom kanan)
-  // secara live.
-  const aiBootRef = useRef(false);
+  // ✨ AI TERTANAM DI KOLOM KIRI — menyapa otomatis KAPAN PUN kolom chat kosong
+  // (baru buka fitur, habis kolom dikosongkan, atau muat sesi kosong). Tujuannya:
+  // user menyaksikan AI mengisi kertas dokumen (kolom kanan) secara live. Jeda kecil
+  // memberi waktu bagi muat-sesi di atas untuk mengisi; bila ada sesi, sapaan dibatalkan.
+  const greetTimerRef = useRef<number | null>(null);
   useEffect(() => {
-    if (aiBootRef.current) return;
-    aiBootRef.current = true;
-    const t = window.setTimeout(() => {
-      if (aiMessages.length === 0 && !aiLoading) askAI(AI_FIRST_PROMPT);
-    }, 300);
-    return () => window.clearTimeout(t);
+    if (greetTimerRef.current) {
+      window.clearTimeout(greetTimerRef.current);
+      greetTimerRef.current = null;
+    }
+    if (aiLoading || aiMessages.length > 0) return;
+    greetTimerRef.current = window.setTimeout(() => {
+      greetTimerRef.current = null;
+      if (aiMessages.length === 0 && !aiLoading) void askAI(AI_FIRST_PROMPT);
+    }, 250);
+    return () => {
+      if (greetTimerRef.current) {
+        window.clearTimeout(greetTimerRef.current);
+        greetTimerRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [aiMessages, aiLoading]);
 
   // Auto-scroll kolom AI mengikuti isi terbaru
   useEffect(() => {
     const el = aiScrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [aiMessages, aiLoading]);
+
+  // 🧭 PEMAHAMAN KONDISI KERTAS — memantau isi dokumen & memahami situasi yang terjadi:
+  // 1) menyimpan cadangan teks terakhir (untuk tombol "kembalikan dokumen"),
+  // 2) bila kertas dikosongkan USER → AI sadar, lalu menawarkan "buat baru / kembalikan",
+  // 3) bila isi berubah manual → AI membaca isi terkini & memberi saran/aksi siap-pakai.
+  // Semua dilewati bila perubahan berasal dari mesin ketik AI sendiri.
+  useEffect(() => {
+    const cur = docText ?? "";
+    const fromAI = aiWriteDoneRef.current;
+    aiWriteDoneRef.current = false; // konsumsi penanda tulis AI (1 perubahan)
+    const byAI = fromAI || aiWritingRef.current;
+
+    if (cur.trim()) lastDocBackupRef.current = cur; // selalu simpan teks kertas terakhir
+
+    if (byAI || aiLoading) return;
+
+    if (monitorTimerRef.current) {
+      window.clearTimeout(monitorTimerRef.current);
+      monitorTimerRef.current = null;
+    }
+
+    const wasFilled = (prevDocRef.current ?? "").trim() !== "";
+    prevDocRef.current = cur;
+    if (!cur.trim()) {
+      // Kertas jadi KOSONG karena USER (bukan AI) → AI sadar & menawarkan pilihan.
+      if (wasFilled) {
+        const b = lastDocBackupRef.current;
+        void askAI(
+          b
+            ? `${AI_EMPTY_PROMPT} Cadangan tersedia — beri tahu user bisa menekan ↩️ Kembalikan Dokumen.`
+            : AI_EMPTY_PROMPT,
+          true,
+        );
+      }
+      return;
+    }
+
+    // Isi kertas berubah manual → AI membaca & memberi saran/aksi.
+    monitorTimerRef.current = window.setTimeout(() => {
+      monitorTimerRef.current = null;
+      if (aiLoading) return;
+      void askAI(AI_MONITOR_PROMPT, true);
+    }, 1800);
+    return () => {
+      if (monitorTimerRef.current) {
+        window.clearTimeout(monitorTimerRef.current);
+        monitorTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docText]);
 
   const sendAIMessage = () => {
     askAI(aiInput);
@@ -1226,13 +1298,24 @@ export default function AIWorkbench({
   };
 
     const applyAiAction = (a: AiAction) => {
+    if (a.type === "restore") {
+      const back = lastDocBackupRef.current;
+      if (back && back.trim()) typeToPaper("replace", back);
+      return;
+    }
+    if (a.type === "create") {
+      cancelTypewriter();
+      setDocText("");
+      if (!aiLoading) void askAI(AI_FIRST_PROMPT);
+      return;
+    }
     const p = a.payload;
     if (!p) return;
     // copy / revise → hasil FINAL mengganti kertas (mulai dari kertas bersih);
     // template → final, TAPI dengan pengaman: bila AI lupa mengikutkan isi kertas
     // yang sudah ada (hasil diskusi dengan tombol pilihan), jangan dihapus —
     // tambahkan saja di bawah agar tidak ada teks yang lenyap.
-    if (a.type === "copy" || a.type === "revise") {
+    if (a.type === "copy" || a.type === "revise" || a.type === "to_table" || a.type === "tone_down") {
       typeToPaper("replace", p);
     } else if (a.type === "template") {
       const curNorm = (docTextRef.current ?? "").replace(/\s+/g, " ").trim();
@@ -1439,6 +1522,34 @@ export default function AIWorkbench({
           
 
           <div ref={aiScrollRef} className="flex-1 overflow-y-auto flex flex-col gap-2 p-3 min-h-0">
+            {(docText || "").trim() === "" && (
+              <div className="shrink-0 rounded-2xl border border-amber-400/40 bg-black/40 p-3 backdrop-blur">
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  🧭 Kertas dokumen saat ini{" "}
+                  <b className="text-amber-300">kosong</b>. Mau mulai dari mana?
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { if (!aiLoading) void askAI(AI_FIRST_PROMPT); }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-400/40 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-emerald-300 transition-all active:scale-95"
+                    title="Mulai membuat dokumen baru bersama AI"
+                  >
+                    📝 Buat Dokumen Baru
+                  </button>
+                  {(lastDocBackupRef.current || "").trim() !== "" && (
+                    <button
+                      type="button"
+                      onClick={() => typeToPaper("replace", lastDocBackupRef.current)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-yellow-400/40 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-amber-200 transition-all active:scale-95"
+                      title="Kembalikan teks kertas sebelum dokumen dikosongkan"
+                    >
+                      ↩️ Kembalikan Dokumen
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
             {aiMessages.length === 0 && (
               <div className="m-auto text-center max-w-xs">
                 <div className="text-3xl">🤖</div>
