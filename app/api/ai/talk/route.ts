@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getFreeKeyPool, getPaidKeyPool, blockKey } from "@/lib/aiVault";
 import type { RotatingKey } from "@/lib/aiVault";
 import { createClient } from "@/lib/supabase/server";
+import { getFeatureSettings } from "@/lib/featureSettings";
+import { getCatalogFeature, buildLayeredPrompt } from "@/lib/featureCatalog";
 
 /**
  * AI-NUSANTARA — Asisten Dokumen (✨ AI Generate)
@@ -60,13 +62,14 @@ async function callGemini(
   key: string,
   systemInstruction: string,
   userText: string,
+  temperature = 0.3,
 ): Promise<string> {
   const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({ model: MODEL });
   const result = await model.generateContent({
     systemInstruction,
     contents: [{ role: "user", parts: [{ text: userText }] }],
-        generationConfig: { maxOutputTokens: MAX_TOKENS, temperature: 0.3, topP: 0.95 },
+        generationConfig: { maxOutputTokens: MAX_TOKENS, temperature, topP: 0.95 },
   });
   return result.response.text();
 }
@@ -75,6 +78,7 @@ async function callOpenRouter(
   key: string,
   systemInstruction: string,
   userText: string,
+  temperature = 0.3,
 ): Promise<string> {
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -91,7 +95,7 @@ async function callOpenRouter(
         { role: "user", content: userText },
       ],
             max_tokens: MAX_TOKENS,
-      temperature: 0.3,
+      temperature,
     }),
     });
   if (!res.ok) {
@@ -234,7 +238,24 @@ export async function POST(request: Request) {
   const feature = body.feature ?? "";
   const email = await resolveEmail();
 
-  const systemInstruction = SYSTEM_PROMPT
+  // 🎯 LAPISAN PERSONA FITUR (FOUNDER) — berlapis di atas lapisan mesin.
+  // Suhu mengikuti pengaturan Founder di ai_settings bila fitur aktif;
+  // bila tidak, memakai suhu bawaan katalog.
+  const featSettings = await getFeatureSettings(feature).catch(() => null);
+  const catal = getCatalogFeature(feature);
+  const founderActive = !!featSettings?.active;
+  const founderPrompt = founderActive ? featSettings?.prompt ?? null : null;
+  const aiTemperature =
+    founderActive && featSettings?.temperature != null
+      ? Number(featSettings.temperature)
+      : catal && catal.temperature != null
+        ? Number(catal.temperature)
+        : 0.3;
+
+  const systemInstruction = buildLayeredPrompt(
+    SYSTEM_PROMPT,
+    founderPrompt ?? catal?.system_prompt ?? null,
+  )
     .replace("__FEATURE__", feature || "umum")
     .replace("__HISTORY__", history.length ? JSON.stringify(history) : "(belum ada)")
     .replace("__DOC__", docText ? docText.slice(0, 12000) : "(kertas dokumen masih kosong)")
@@ -265,9 +286,9 @@ export async function POST(request: Request) {
     try {
       let text: string;
       if (cand.provider === "gemini") {
-        text = await callGemini(cand.key, systemInstruction, userText);
+        text = await callGemini(cand.key, systemInstruction, userText, aiTemperature);
       } else if (cand.provider === "openrouter") {
-        text = await callOpenRouter(cand.key, systemInstruction, userText);
+        text = await callOpenRouter(cand.key, systemInstruction, userText, aiTemperature);
       } else {
         throw new Error(`Provider ${cand.provider} tidak didukung`);
       }

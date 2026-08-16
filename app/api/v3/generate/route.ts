@@ -39,6 +39,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/url";
 import { getFreeKeyPool, getPaidKeyPool, blockKey, type KeyProvider, type RotatingKey } from "@/lib/aiVault";
+import { getFeatureSettings } from "@/lib/featureSettings";
+import { FEATURE_LAYER_MARKER, getCatalogFeature } from "@/lib/featureCatalog";
 
 export const runtime = "edge";
 
@@ -197,6 +199,7 @@ function buildSystemInstruction(
   feature: string,
   userInput: string,
     userEmail: string,
+    founderLayer?: string | null,
 ): string {
   // chat-ai = ruang obrolan BEBAS: tidak terikat pada cakupan 14 fitur khusus.
   if (feature === "chat-ai") {
@@ -237,7 +240,12 @@ ${userInput}`;
     );
   })();
 
-  return `${instruction}\n\nEmail pengguna: ${userEmail || "anon@ai-nusantara.local"}\n\nPANDUAN PERBINCANGAN:\n1. Balas pertanyaan/perintah pengguna apa adanya dan proporsional — tidak perlu menumpahkan laporan/struktur panjang bila belum diminta. JANGAN pernah memulai atau menyelipkan sapaan 'Halo', 'Hai', 'Selamat datang' pada setiap balasan; sambutan pembuka hanya sekali di awal bila kolom obrolan masih kosong. Wajib selalu menjawab dengan SOPAN, RAMAH, SABAR, dan SIAP MEMBANTU apa pun yang diketik user, di fitur mana pun — dilarang keras memaki, memarahi, menghina, menertawakan, atau merendahkan user.\n2. Tetap gunakan pengetahuan khusus dari peran fitur di atas saat menjawab.\n3. Kolom diskusi BEBAS selama masih seputar fitur yang dipilih — termasuk tanya cara pakai, tombol ⚡ TEMPLATE, uji coba 'tes'/'coba', atau penjelasan tombol kanan. Hanya TOLAK dengan ramah bila topik benar-benar TIDAK berkaitan (mis. keamanan/founder/retas/berita) lalu arahkan ke CHAT AI.\n4. Jawab dalam bahasa Indonesia yang jelas, profesional, komprehensif namun padat, hindari halusinasi, dan jangan mengarang fakta.\n\nInput pengguna:\n${userInput}`;
+  // 🎯 Sisipkan LAPISAN FOUNDER (persona per fitur) tepat setelah lapisan mesin,
+  // sebelum PANDUAN — membentuk prompt berlapis yang konsisten di semua fitur.
+  const layered = (founderLayer ?? "").trim();
+  const finalInstruction = layered ? `${instruction}\n\n${FEATURE_LAYER_MARKER}\n${layered}` : instruction;
+
+  return `${finalInstruction}\n\nEmail pengguna: ${userEmail || "anon@ai-nusantara.local"}\n\nPANDUAN PERBINCANGAN:\n1. Balas pertanyaan/perintah pengguna apa adanya dan proporsional — tidak perlu menumpahkan laporan/struktur panjang bila belum diminta. JANGAN pernah memulai atau menyelipkan sapaan 'Halo', 'Hai', 'Selamat datang' pada setiap balasan; sambutan pembuka hanya sekali di awal bila kolom obrolan masih kosong. Wajib selalu menjawab dengan SOPAN, RAMAH, SABAR, dan SIAP MEMBANTU apa pun yang diketik user, di fitur mana pun — dilarang keras memaki, memarahi, menghina, menertawakan, atau merendahkan user.\n2. Tetap gunakan pengetahuan khusus dari peran fitur di atas saat menjawab.\n3. Kolom diskusi BEBAS selama masih seputar fitur yang dipilih — termasuk tanya cara pakai, tombol ⚡ TEMPLATE, uji coba 'tes'/'coba', atau penjelasan tombol kanan. Hanya TOLAK dengan ramah bila topik benar-benar TIDAK berkaitan (mis. keamanan/founder/retas/berita) lalu arahkan ke CHAT AI.\n4. Jawab dalam bahasa Indonesia yang jelas, profesional, komprehensif namun padat, hindari halusinasi, dan jangan mengarang fakta.\n\nInput pengguna:\n${userInput}`;
 }
 
 /*
@@ -264,10 +272,21 @@ export async function POST(request: Request) {
   const message = String(rawBody.message ?? rawBody.prompt ?? "").trim().slice(0, MAX_INPUT_LENGTH);
   const feature = String(rawBody.feature ?? rawBody.featureId ?? "").trim();
   const model = rawBody.model?.trim();
+  // 🎯 LAPISAN FOUNDER: persona & suhu per fitur dari ai_settings (cache 30 dtk)
+  // atau katalog bawaan bila belum ada barisnya di Founder.
+  const featSettings = await getFeatureSettings(feature).catch(() => null);
+  const catal = getCatalogFeature(feature);
     const temperature =
     Number(rawBody.temperature) ||
     FEATURE_DEFAULT_TEMPERATURE[feature] ||
     DEFAULT_TEMPERATURE;
+  // Suhu efektif: pengaturan Founder (ai_settings) → catalog → bawaan mesin.
+  const effectiveTemperature =
+    featSettings && featSettings.active && featSettings.temperature != null
+      ? Number(featSettings.temperature)
+      : catal && catal.temperature != null
+        ? Number(catal.temperature)
+        : temperature;
   const maxTokens = Math.min(
     Number(rawBody.maxTokens) || MAX_OUTPUT_TOKENS,
     MAX_OUTPUT_TOKENS,
@@ -349,9 +368,18 @@ export async function POST(request: Request) {
     return await streamWithRotation({
       keyPool: effective,
       modelName,
-      systemInstruction: buildSystemInstruction(feature, message, user.email ?? ""),
+      systemInstruction: buildSystemInstruction(
+        feature,
+        message,
+        user.email ?? "",
+        feature === "chat-ai"
+          ? null
+          : (featSettings?.active && featSettings.prompt
+              ? featSettings.prompt
+              : (catal?.system_prompt ?? null)),
+      ),
       message,
-      temperature,
+      temperature: effectiveTemperature,
       maxTokens,
       signal: request.signal,
       user,

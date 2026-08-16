@@ -430,6 +430,11 @@ export default function FounderDashboard() {
       }
     }
 
+    // --- 🔄 Features: sinkron otomatis (add kolom/baris fitur baru dari katalog) ---
+    try {
+      await fetch('/api/founder/sync-features', { method: 'POST', cache: 'no-store' });
+    } catch { /* non-fatal */ }
+
     // --- Features: fetch from backend real API first ---
     try {
       const featRes = await fetch('/api/founder/features', { cache: 'no-store' });
@@ -827,21 +832,67 @@ export default function FounderDashboard() {
 
   async function saveFeature(feature: Feature) {
     if (creditPauseActive) return alert('Operasi dilarang: Sistem sedang dijeda karena credit OpenRouter menipis.');
+    // Simpan ke DATABASE (ai_settings) dulu — supaya pengaturan Founder ini
+    // benar-benar dipakai mesin AI (v3 + asisten). Fallback lokal bila API gagal.
     try {
-            setFeatures((prev) => {
-              const copy = (prev || []).map((p) => ({ ...p }));
-              const idx = copy.findIndex((p) => p.id === feature.id);
-              if (idx === -1) copy.push(feature);
-              else copy[idx] = feature;
-              try { localStorage.setItem('founder_mock_features', JSON.stringify(copy)); } catch {}
-              return copy;
-            });
-            alert('Feature tersimpan (local).');
-            return { ok: true };
+      const res = await fetch('/api/founder/features', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({
+          id: feature.id,
+          feature_name: feature.feature_name,
+          system_prompt: feature.system_prompt ?? '',
+          temperature: Number(feature.temperature ?? 0),
+          is_active: Boolean(feature.is_active ?? true),
+          seo_title: feature.seo_title ?? null,
+          seo_description: feature.seo_description ?? null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'features API failed');
+      setFeatures((prev) => {
+        const copy = (prev || []).map((p) => ({ ...p }));
+        const idx = copy.findIndex((p) => p.id === feature.id);
+        if (idx === -1) copy.push(feature);
+        else copy[idx] = feature;
+        try { localStorage.setItem('founder_mock_features', JSON.stringify(copy)); } catch {}
+        return copy;
+      });
+      alert('Feature tersimpan ke database ✅ — mesin AI langsung memakai prompt & suhu ini.');
+      return { ok: true };
     } catch (err) {
-            console.error('saveFeature local failed', err);
-            alert('Gagal menyimpan feature: ' + String(err));
-                        return { ok: false, error: String(err) };
+      console.error('saveFeature failed', err);
+      setFeatures((prev) => {
+        const copy = (prev || []).map((p) => ({ ...p }));
+        const idx = copy.findIndex((p) => p.id === feature.id);
+        if (idx === -1) copy.push(feature);
+        else copy[idx] = feature;
+        try { localStorage.setItem('founder_mock_features', JSON.stringify(copy)); } catch {}
+        return copy;
+      });
+      alert('Gagal menyimpan ke database: ' + String(err));
+      return { ok: false, error: String(err) };
+    }
+  }
+
+  // 🔄 Sinkron fitur otomatis — pastikan SETIAP fitur yang tampil di user
+  // punya kolom baris (system prompt + suhu) di ai_settings, sesuai katalog.
+  async function syncFeaturesNow() {
+    try {
+      const res = await fetch('/api/founder/sync-features', { method: 'POST', cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      const featRes = await fetch('/api/founder/features', { cache: 'no-store' });
+      const featData = await featRes.json();
+      if (featRes.ok && Array.isArray(featData.features)) {
+        setFeatures(featData.features as Feature[]);
+        try { localStorage.setItem('founder_mock_features', JSON.stringify(featData.features)); } catch {}
+      }
+      alert(`🔄 Sinkron selesai: ${data?.added ?? 0} fitur baru ditambahkan (total ${data?.total ?? 0} fitur).`);
+      return { ok: true };
+    } catch (err) {
+      alert('Gagal sinkron fitur: ' + String(err));
+      return { ok: false, error: String(err) };
     }
   }
 
@@ -1904,6 +1955,14 @@ export default function FounderDashboard() {
                                                         <h4 className="font-bold">{features.length} Fitur - System Prompts</h4>
               <div className="space-y-4 max-h-96 overflow-auto">
                 {/* Kolom Tambah / Edit Prompt Manual beserta aturan temperatur */}
+                <button
+                        type="button"
+                        onClick={() => syncFeaturesNow()}
+                        className="mt-2 px-3 py-1.5 bg-sky-500/20 border border-sky-400/40 rounded text-xs font-bold text-sky-300 hover:bg-sky-500/30 transition"
+                        title="Pastikan semua fitur user punya kolom system prompt di sini (auto-tambah fitur baru)"
+                      >
+                        🔄 Sinkron Fitur Otomatis
+                      </button>
                 <div className="p-3 rounded-lg border border-dashed border-slate-700 bg-slate-800/30 space-y-3">
                   <div className="text-xs font-bold text-amber-400">➕ Tambah Fitur Manual (Prompt + Temperature)</div>
                   <div className="grid grid-cols-2 gap-2">
