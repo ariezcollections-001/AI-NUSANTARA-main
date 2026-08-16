@@ -175,6 +175,16 @@ export default function FounderDashboard() {
 
   // 🔴 LOAD PRODUCTION CONFIG FROM CLOUD (Supabase founder_config) — source of truth
   async function loadCloudConfigs() {
+    // Cadangan lokal — agar key yang baru disimpan tidak "hilang" saat reload
+    // bila akses cloud belum/belum sempat menyimpan. Cloud tetap dipertahankan bila berisi.
+    const readLocalArr = (k: string): string[] => {
+      try { const raw = localStorage.getItem('founder_keys_' + k); return raw ? (JSON.parse(raw) as string[]) : []; } catch { return []; }
+    };
+    const pickVault = (k: string, cloud: unknown): string[] => {
+      const c = Array.isArray(cloud) ? (cloud as string[]) : [];
+      const l = readLocalArr(k);
+      return Array.from(new Set([...c, ...l])).map((x) => String(x).trim()).filter((x) => x.length > 0);
+    };
     // Muat Vault langsung dari server route (service-role, bebas RLS) agar selalu
     // identik dengan apa yang tersimpan di DB — di localhost maupun Vercel.
     try {
@@ -184,9 +194,9 @@ export default function FounderDashboard() {
         const parsed = JSON.parse(vdata.data.key_value);
         if (parsed && typeof parsed === 'object') {
           setVaultKeys({
-            gemini: Array.isArray(parsed.gemini) ? parsed.gemini : [],
-            openrouter: Array.isArray(parsed.openrouter) ? parsed.openrouter : [],
-            elevenlabs: Array.isArray(parsed.elevenlabs) ? parsed.elevenlabs : [],
+            gemini: pickVault('gemini', parsed.gemini),
+            openrouter: pickVault('openrouter', parsed.openrouter),
+            elevenlabs: pickVault('elevenlabs', parsed.elevenlabs),
           });
         }
       }
@@ -217,9 +227,9 @@ export default function FounderDashboard() {
           const parsed = JSON.parse(map.vault_keys);
           if (parsed && typeof parsed === "object") {
             setVaultKeys({
-              gemini: Array.isArray(parsed.gemini) ? parsed.gemini : [],
-              openrouter: Array.isArray(parsed.openrouter) ? parsed.openrouter : [],
-              elevenlabs: Array.isArray(parsed.elevenlabs) ? parsed.elevenlabs : [],
+              gemini: pickVault('gemini', parsed.gemini),
+              openrouter: pickVault('openrouter', parsed.openrouter),
+              elevenlabs: pickVault('elevenlabs', parsed.elevenlabs),
             });
           }
         } catch {

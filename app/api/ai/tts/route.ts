@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveElevenLabsKey } from "@/lib/aiVault";
+import { getElevenLabsKeyPool, blockKey } from "@/lib/aiVault";
 
 /* ====== 14 WATAK SUARA PREMIUM ======
    id di sini WAJIB sinkron dengan const AUDIO_VOICES
@@ -76,46 +76,61 @@ export async function POST(request: Request) {
     };
 
     const selectedConfig = voiceConfig[selectedVoice];
-    const elevenLabsApiKey = await resolveElevenLabsKey();
-
-    if (!elevenLabsApiKey) {
-      // Fallback: Return a simple text response indicating TTS is not configured
+    const elevenLabsPool = await getElevenLabsKeyPool();
+    if (elevenLabsPool.length === 0) {
       return NextResponse.json(
         {
-          error: "Layanan TTS belum dikonfigurasi. Silakan isi ElevenLabs API Key di halaman Founder → KOLAM TOKEN GLOBAL (VAULT API KEY RAHASIA) → kolom ElevenLabs Keys (TTS MP3), atau di .env.local (ELEVENLABS_API_KEY).",
+          error: "Layanan TTS belum dikonfigurasi. Silakan isi setidaknya satu ElevenLabs API Key di halaman Founder → KOLAM TOKEN GLOBAL (VAULT API KEY RAHASIA) → kolom ElevenLabs Keys (TTS MP3), atau di .env.local (ELEVENLABS_API_KEY).",
           voice: selectedVoice,
         },
         { status: 501 }
       );
     }
 
-    // Call ElevenLabs API
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${selectedConfig.voice_id}`,
-      {
+    // 🔁 ROTATOR ElevenLabs — sama seperti kolam kunci Gemini/OpenRouter di fitur lain:
+    //    coba setiap kunci dari pool; bila 401/403/429, blokir sementara (cooldown 60 detik)
+    //    lalu lanjut ke kunci berikutnya. Kunci yang berhasil dipakai untuk request ini.
+    let response: Response | null = null;
+    for (const apiKey of elevenLabsPool) {
+      const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${selectedConfig.voice_id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "xi-api-key": elevenLabsApiKey,
+          "xi-api-key": apiKey,
         },
         body: JSON.stringify({
-          text: text.slice(0, 5000), // Limit to 5000 characters for API
+          text: text.slice(0, 5000),
           model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: selectedConfig.stability,
             similarity_boost: selectedConfig.similarity_boost,
           },
         }),
+      });
+      if (r.ok) {
+        response = r;
+        break;
       }
-    );
+      if (r.status === 401 || r.status === 403 || r.status === 429) {
+        blockKey("elevenlabs", apiKey); // masuk cooldown 60 detik
+        continue;
+      }
+      response = r; // error lain (bukan rate-limit) → berhenti dan laporkan
+      break;
+    }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("ElevenLabs API error:", response.status, errorText);
-      return NextResponse.json(
-        { error: `Gagal memproses audio: ${response.statusText}` },
-        { status: response.status }
-      );
+    if (!response || !response.ok) {
+      const status = response?.status ?? 502;
+      let errorText = "";
+      if (response) {
+        try { errorText = await response.text(); } catch { /* ignore */ }
+      }
+      console.error("ElevenLabs API error:", status, errorText);
+      const message =
+        status === 429
+          ? "Gagal memproses audio — semua kunci ElevenLabs sedang dibatasi (rate limit). Coba lagi nanti atau tambahkan kunci di Vault Founder."
+          : `Gagal memproses audio: ${response?.statusText ?? "network error"}`;
+      return NextResponse.json({ error: message }, { status });
     }
 
     const audioBuffer = await response.arrayBuffer();

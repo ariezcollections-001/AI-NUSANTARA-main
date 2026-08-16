@@ -44,7 +44,7 @@ function toArr(val: unknown): string[] {
  *      balik ke free agar tidak memicu tagihan.
  */
 
-export type KeyProvider = "gemini" | "openrouter";
+export type KeyProvider = "gemini" | "openrouter" | "elevenlabs";
 
 export interface RotatingKey {
   provider: KeyProvider;
@@ -131,15 +131,38 @@ export async function resolveGeminiKey(getter: () => Promise<VaultKeys> = getVau
  * Vault API; semua fitur termasuk Generate Audio pakai apikey dari sana.
  * Ambil key pertama yang valid dari pool elevenlabs, fallback env bila kosong.
  */
-export async function resolveElevenLabsKey(getter: () => Promise<VaultKeys> = getVaultKeys): Promise<string> {
+let elevenLabsRotateIdx = 0;
+
+/**
+ * 🔴 KOLAM kunci ElevenLabs (ROTATOR) — semua key dari vault (kolom ElevenLabs
+ * Keys TTS MP3) + fallback env; hanya key valid & belum diblokir yang dipakai.
+ * Menyamakan prinsip rotator Gemini/OpenRouter agar Generate Audio memakai
+ * beberapa kunci secara bergilir, bukan cuma 1 kunci.
+ */
+export async function getElevenLabsKeyPool(getter: () => Promise<VaultKeys> = getVaultKeys): Promise<string[]> {
   try {
     const vault = await getter();
-    const fromVault = vault.elevenlabs.find(isValidElevenLabsKey);
-    if (fromVault) return fromVault.trim();
+    const fromVault = (vault.elevenlabs || []).filter(isValidElevenLabsKey).map((k) => k.trim());
+    const env = (process.env.ELEVENLABS_API_KEY || "").trim();
+    return Array.from(new Set([...fromVault, ...(env ? [env] : [])])).filter(
+      (k) => k.length > 0 && !isBlocked("elevenlabs", k)
+    );
   } catch {
-    /* jika vault tidak bisa dibaca, lanjut ke fallback env */
+    const env = (process.env.ELEVENLABS_API_KEY || "").trim();
+    return env ? [env] : [];
   }
-  return (process.env.ELEVENLABS_API_KEY || "").trim();
+}
+
+export async function resolveElevenLabsKey(getter: () => Promise<VaultKeys> = getVaultKeys): Promise<string> {
+  try {
+    const pool = await getElevenLabsKeyPool(getter);
+    if (pool.length === 0) return "";
+    const idx = elevenLabsRotateIdx % pool.length;
+    elevenLabsRotateIdx = (idx + 1) % pool.length;
+    return pool[idx];
+  } catch {
+    return (process.env.ELEVENLABS_API_KEY || "").trim();
+  }
 }
 
 
