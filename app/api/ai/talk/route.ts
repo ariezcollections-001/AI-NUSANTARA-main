@@ -26,7 +26,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://ai-nusantara.local";
 
 interface AiAction {
   label: string;
-  type: "copy" | "append" | "revise" | "template";
+  type: "copy" | "append" | "revise" | "template" | "summarize" | "translate" | "expand" | "bullet";
   payload?: string;
 }
 interface TalkResult {
@@ -66,7 +66,7 @@ async function callGemini(
   const result = await model.generateContent({
     systemInstruction,
     contents: [{ role: "user", parts: [{ text: userText }] }],
-    generationConfig: { maxOutputTokens: MAX_TOKENS, temperature: 0.2, topP: 0.95 },
+        generationConfig: { maxOutputTokens: MAX_TOKENS, temperature: 0.3, topP: 0.95 },
   });
   return result.response.text();
 }
@@ -90,8 +90,8 @@ async function callOpenRouter(
         { role: "system", content: systemInstruction },
         { role: "user", content: userText },
       ],
-      max_tokens: MAX_TOKENS,
-      temperature: 0.2,
+            max_tokens: MAX_TOKENS,
+      temperature: 0.3,
     }),
     });
   if (!res.ok) {
@@ -197,6 +197,11 @@ ATURAN Aksi (actions) — kirim hanya saat mengusulkan menulis ke kertas:
 - "append": payload = catatan tambahan yang DITAMBAHKAN di bawah kertas (tidak menghapus apa pun).
 - "revise": payload = SELURUH dokumen SETELAH di-edit sesuai permintaan user (hapus sebagian, ganti kalimat, dll). TAPI jangan hanya mengembalikan bagian yang berubah.
 - "template": payload = SELURUH kerangka kertas final yang memuat isi kertas yang sudah ada + semua field terisi di posisi yang logis.
+- "summarize": payload = poin-poin ringkasan (cemerlang/point) dari SELURUH isi kertas saat ini — ditambahkan di bawah (tidak menghapus).
+- "translate": payload = terjemahan isi kertas ke Bahasa Indonesia↔English (atau bahasa yang diminta user) — ditambahkan di bawah.
+- "expand": payload = versi yang Diperkaya/lebih rinci dari isi kertas (tambah contoh / penjelasan) — ditambahkan di bawah.
+- "bullet": payload = isi kertas Diurutkan menjadi daftar bercencil (•) — ditambahkan di bawah.
+- ATURAN Aksi: tiap balasan yang menulis ke kertas WAJIB kirim actions NON-KOSONG. Bila dokumen sudah cukup panjang & terisi, sertakan 2–3 dari: "copy", "template", "summarize", "translate", "expand", "bullet". Bila masih mengumpulkan field satu-per-satu, kirim actions kosong & fokus pada questions supaya user cukup klik.
 
 FORMAT KELUARAN: Jawab HANYA satu objek JSON tunggal (TANPA fence kode, TANPA prologue/epilogue).
 Skema: {"reply":string,"questions":string[],"nextField":string|null,"filledData":object,"actions":array<{label:string,type:string,payload?:string>}>}.

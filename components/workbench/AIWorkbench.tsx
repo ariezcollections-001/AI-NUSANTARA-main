@@ -16,6 +16,7 @@ import {
   Check,
   Play,
   Square,
+  Search,
   Download,
   Volume2,
   X,
@@ -57,7 +58,7 @@ interface SseFrame {
 /** Aksi yang bisa diusulkan AI untuk kertas dokumen (kolom kanan). */
 interface AiAction {
   label: string;
-  type: "copy" | "append" | "revise" | "template";
+    type: "copy" | "append" | "revise" | "template" | "summarize" | "translate" | "expand" | "bullet";
   payload?: string;
 }
 
@@ -725,7 +726,7 @@ export default function AIWorkbench({
   const [aiFilled, setAiFilled] = useState<Record<string, string>>({});
   const aiScrollRef = useRef<HTMLDivElement | null>(null);
   const AI_FIRST_PROMPT =
-    "Saya ingin membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanya satu per satu field penting (Mapel, Kelas, Nama, Judul, Tujuan) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Kamu HARUS menguasai seluruh isi kertas: bila user minta edit, revisi, ganti kata/kalimat, atau menghapus sebagian teks, siapkan aksi 'revise' berisi SELURUH dokumen hasil edit. Setelah field cukup, sarankan aksi (copy/append/revise/template).";
+    "Saya ingin membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanya satu per satu field penting (Mapel, Kelas, Nama, Judul, Tujuan) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Kamu HARUS menguasai seluruh isi kertas: bila user minta edit, revisi, ganti kata/kalimat, atau menghapus sebagian teks, siapkan aksi 'revise' berisi SELURUH dokumen hasil edit. Setelah field cukup, sarankan aksi (copy/append/revise/template/summarize/translate/expand). Jika semua field sudah terisi dan dokumen sudah ada isi, fokuskan pada aksi (ringkasan, terjemahan, perbanyak, revise) — jangan lagi mengulang pertanyaan field yang sama.";
 
   // --- SEKAT 3 : GENERATE AUDIO (khusus fitur audio-mp3) ---
   const [showAudioModal, setShowAudioModal] = useState(false);
@@ -851,11 +852,11 @@ export default function AIWorkbench({
     setHistory(sessions);
     const todaySess = sessions.find((s) => s.date === today);
     if (todaySess) {
-      setMessages(todaySess.messages);
+      setAiMessages(todaySess.messages);
       setActiveDate(today);
     } else if (sessions.length) {
       const latest = sessions[sessions.length - 1];
-      setMessages(latest.messages);
+      setAiMessages(latest.messages);
       setActiveDate(latest.date);
     } else {
       setActiveDate(today);
@@ -863,15 +864,17 @@ export default function AIWorkbench({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sinkronkan pesan aktif ke dalam sesi pada tanggal aktif
+  // Sinkronkan percakapan AI (kolom kiri) ke dalam sesi pada tanggal aktif
   useEffect(() => {
     if (!activeDate) return;
     setHistory((prev) => {
       const rest = prev.filter((s) => s.date !== activeDate);
-      return messages.length ? [...rest, { date: activeDate, messages }] : rest;
+      return aiMessages.length
+        ? [...rest, { date: activeDate, messages: aiMessages }]
+        : rest;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, activeDate]);
+  }, [aiMessages, activeDate]);
 
   // Simpan riwayat ke localStorage
   useEffect(() => {
@@ -898,7 +901,9 @@ export default function AIWorkbench({
   const loadSession = (date: string) => {
     const sess = history.find((s) => s.date === date);
     setActiveDate(date);
-    setMessages(sess ? sess.messages : []);
+    setAiMessages(sess ? sess.messages : []);
+    setAiInput("");
+    setAiError(null);
     setShowHistory(false);
   };
 
@@ -918,7 +923,9 @@ export default function AIWorkbench({
       const nextActive = next.length ? next[next.length - 1].date : todayStr();
       const sess = next.find((s) => s.date === nextActive);
       setActiveDate(nextActive);
-      setMessages(sess ? sess.messages : []);
+      setAiMessages(sess ? sess.messages : []);
+      setAiInput("");
+      setAiError(null);
     }
     setCheckedDates([]);
     setConfirmModal(null);
@@ -927,7 +934,9 @@ export default function AIWorkbench({
 
   const handleDeleteAll = () => {
     setHistory([]);
-    setMessages([]);
+    setAiMessages([]);
+    setAiInput("");
+    setAiError(null);
     setActiveDate(todayStr());
     setCheckedDates([]);
     setConfirmModal(null);
@@ -1234,8 +1243,14 @@ export default function AIWorkbench({
       } else {
         typeToPaper("replace", p); // payload sudah memuat isi lama → hasil final penuh
       }
-    } else if (a.type === "append") {
-      typeToPaper("append", p); // tambah di bawah kertas, tanpa menghapus apa pun
+        } else if (
+            a.type === "append" ||
+      a.type === "summarize" ||
+      a.type === "translate" ||
+      a.type === "expand" ||
+      a.type === "bullet"
+    ) {
+      typeToPaper("append", p); // tambahkan di bawah kertas (catatan/ringkasan/terjemahan/pembesaran)
     }
   };
 
@@ -1359,12 +1374,14 @@ export default function AIWorkbench({
           style={chatZoomed ? { width: "86vw" } : undefined}
         >
           <div className="shrink-0 px-3 py-2 border-b border-yellow-400/30 bg-black/40 flex items-center justify-between gap-2">
-            <h2 className="text-[11px] font-black uppercase tracking-widest text-amber-400">
-              ✨ AI Isi Dokumen{" "}
-              <span className="text-[9px] font-mono tracking-normal text-slate-500 normal-case">
-                ● {Object.keys(aiFilled).length} field terisi
+            <div className="flex flex-col">
+              <h2 className="text-[13px] font-black uppercase tracking-widest text-amber-400 leading-none">
+                ✨ AI ASSISTENT
+              </h2>
+              <span className="mt-0.5 text-[12px] font-mono tracking-normal text-slate-400">
+               📄 ● {Object.keys(aiFilled).length} field terisi
               </span>
-            </h2>
+            </div>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
@@ -1383,21 +1400,21 @@ export default function AIWorkbench({
                 <Trash2 className="w-3 h-3" /> Hapus
               </button>
               <span className="w-px h-4 bg-yellow-400/30" />
-              <button
+                            <button
                 type="button"
                 onClick={chatZoomIn}
-                className="px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-emerald-300 transition-all active:scale-95"
                 title="Zoom In kolom chat (isi satu layar)"
               >
-                🔍 Zoom +
+                <Search className="w-3 h-3" /> Zoom +
               </button>
-              <button
+                            <button
                 type="button"
                 onClick={chatZoomOut}
-                className="px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-white transition-all active:scale-95"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-yellow-400/30 bg-black/40 hover:bg-black/60 text-[9px] font-black uppercase text-white transition-all active:scale-95"
                 title="Zoom Out kolom chat (kembali ke posisi semula)"
               >
-                🔍 Zoom −
+                <Search className="w-3 h-3" /> Zoom −
               </button>
               <span className="w-px h-4 bg-yellow-400/30" />
               <button
