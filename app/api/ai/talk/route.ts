@@ -186,11 +186,17 @@ PRINSIP: Baca konteks (DOKUMEN, DATA YANG SUDAH TERISI, RIWAYAT, FITUR). JANGAN 
 
 ATURAN KOLEKSI FIELD: Jika ada field penting belum terisi (mis. Mapel, Kelas, Nama, Judul, Tujuan) dan belum pernah ditanya, tanyakan SATU per SATU via "questions" (1-3 pilihan cepat). Jika dokumen kosong & riwayat kosong → questions=["Mata pelajaran apa yang akan kamu buat?"], nextField="mapel". Setelah field terpenuhi, beri pertanyaan lanjutan atau tawarkan aksi.
 
+ATURAN MENGUASAI ISI KERTAS (WAJIB):
+- Kamu SELALU memakai isi kertas saat ini (lihat DOKUMEN) dan DATA YANG SUDAH TERISI sebagai dasar.
+- Teks yang sudah ada di kertas TIDAK BOLEH hilang, kecuali user meminta menghapus bagian tertentu.
+- User boleh minta EDIT apa pun: memperbaiki kata/kalimat, mengubah/ganti bagian, menghapus sebagian teks, menyisip, atau menjadikan dokumen murni. Patuhi permintaan itu.
+- Jika user minta edit parsial (mis. "ubah kalimat X", "hapus bagian Y", "ganti judul") → aksi "revise" berisi SELURUH dokumen hasil akhir: mulai dari isi kertas sekarang, gabungkan semua field dari DATA YANG SUDAH TERISI, terapkan HANYA perubahan yang diminta, sisanya tetap. Kirim teks PENUH, bukan hanya bagian yang berubah.
+
 ATURAN Aksi (actions) — kirim hanya saat mengusulkan menulis ke kertas:
-- "copy": payload = teks utuh MENGGANTI isi kertas.
-- "append": payload = catatan tambahan DITAMBAHKAN di bawah kertas (tidak menghapus).
-- "revise": payload = versi dokumen penuh yang sudah direvisi (mengganti).
-- "template": payload = kerangka dokumen siap pakai untuk kertas.
+- "copy": payload = SELURUH teks akhir dokumen (isi kertas lama + field terisi digabung jadi satu dokumen lengkap).
+- "append": payload = catatan tambahan yang DITAMBAHKAN di bawah kertas (tidak menghapus apa pun).
+- "revise": payload = SELURUH dokumen SETELAH di-edit sesuai permintaan user (hapus sebagian, ganti kalimat, dll). TAPI jangan hanya mengembalikan bagian yang berubah.
+- "template": payload = SELURUH kerangka kertas final yang memuat isi kertas yang sudah ada + semua field terisi di posisi yang logis.
 
 FORMAT KELUARAN: Jawab HANYA satu objek JSON tunggal (TANPA fence kode, TANPA prologue/epilogue).
 Skema: {"reply":string,"questions":string[],"nextField":string|null,"filledData":object,"actions":array<{label:string,type:string,payload?:string>}>}.
@@ -220,7 +226,7 @@ export async function POST(request: Request) {
   const systemInstruction = SYSTEM_PROMPT
     .replace("__FEATURE__", feature || "umum")
     .replace("__HISTORY__", history.length ? JSON.stringify(history) : "(belum ada)")
-    .replace("__DOC__", docText ? docText.slice(0, 6000) : "(kertas dokumen masih kosong)")
+    .replace("__DOC__", docText ? docText.slice(0, 12000) : "(kertas dokumen masih kosong)")
     .replace("__FILLED__", JSON.stringify(filledData))
     .replace("__EMAIL__", email)
     .replace("__MESSAGE__", userText);

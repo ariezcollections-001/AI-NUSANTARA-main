@@ -23,7 +23,7 @@ import {
 
 /* =====================================================================
    AIWorkbench — Editor Dua Sekat yang Ditanam ke Dalam Setiap Fitur.
-   Sekat kiri : ruang diskusi user & AI (balon chat + GENERATE streaming
+   Sekat kiri : kolom AI pintar (asisten isi dokumen) — tulis bertahap per huruf (mesin ketik)
                 ke /api/v3/generate, auto-clear & auto-scroll).
    Sekat kanan: kertas dokumen murni (contenteditable) + zoom engine +
                 8 tombol kontrol hidup.
@@ -725,7 +725,7 @@ export default function AIWorkbench({
   const [aiFilled, setAiFilled] = useState<Record<string, string>>({});
   const aiScrollRef = useRef<HTMLDivElement | null>(null);
   const AI_FIRST_PROMPT =
-    "Saya ingin kamu membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanya satu per satu field penting (Mapel, Kelas, Nama, Judul, Tujuan) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Setelah cukup, sarankan aksi (copy/append/revise/template).";
+    "Saya ingin membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanya satu per satu field penting (Mapel, Kelas, Nama, Judul, Tujuan) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Kamu HARUS menguasai seluruh isi kertas: bila user minta edit, revisi, ganti kata/kalimat, atau menghapus sebagian teks, siapkan aksi 'revise' berisi SELURUH dokumen hasil edit. Setelah field cukup, sarankan aksi (copy/append/revise/template).";
 
   // --- SEKAT 3 : GENERATE AUDIO (khusus fitur audio-mp3) ---
   const [showAudioModal, setShowAudioModal] = useState(false);
@@ -1219,11 +1219,23 @@ export default function AIWorkbench({
     const applyAiAction = (a: AiAction) => {
     const p = a.payload;
     if (!p) return;
-    // copy / revise / template → MENGGANTI isi kertas; append → menambah di bawah
-    if (a.type === "copy" || a.type === "revise" || a.type === "template") {
-      typeToPaper("replace", p); // ✦ ganti → diketik ulang per huruf
+    // copy / revise → hasil FINAL mengganti kertas (mulai dari kertas bersih);
+    // template → final, TAPI dengan pengaman: bila AI lupa mengikutkan isi kertas
+    // yang sudah ada (hasil diskusi dengan tombol pilihan), jangan dihapus —
+    // tambahkan saja di bawah agar tidak ada teks yang lenyap.
+    if (a.type === "copy" || a.type === "revise") {
+      typeToPaper("replace", p);
+    } else if (a.type === "template") {
+      const curNorm = (docTextRef.current ?? "").replace(/\s+/g, " ").trim();
+      const headCur = curNorm.slice(0, 50);
+      const payNorm = (p ?? "").replace(/\s+/g, " ").trim();
+      if (curNorm && headCur && !payNorm.includes(headCur)) {
+        typeToPaper("append", p); // isi lama tidak terbawa → tambahkan di bawah, jangan hapus
+      } else {
+        typeToPaper("replace", p); // payload sudah memuat isi lama → hasil final penuh
+      }
     } else if (a.type === "append") {
-      typeToPaper("append", p); // ✦ tambah → diketik per huruf di bawah kertas
+      typeToPaper("append", p); // tambah di bawah kertas, tanpa menghapus apa pun
     }
   };
 
