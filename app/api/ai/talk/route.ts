@@ -5,6 +5,9 @@ import type { RotatingKey } from "@/lib/aiVault";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureSettings } from "@/lib/featureSettings";
 import { getCatalogFeature } from "@/lib/featureCatalog";
+import { retrieveSumber } from "@/lib/sumberValid";
+import { rateLimit } from "@/lib/rateLimit";
+import { auditLog } from "@/lib/auditLog";
 import { buildStrictLayeredPrompt, checkUserMessageSafety } from "@/lib/aiStrictEngine";
 
 /**
@@ -29,7 +32,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://ai-nusantara.local";
 
 interface AiAction {
   label: string;
-    type: "copy" | "append" | "revise" | "template" | "summarize" | "translate" | "expand" | "bullet" | "to_table" | "tone_down";
+    type: "copy" | "append" | "revise" | "template" | "summarize" | "translate" | "expand" | "bullet" | "to_table" | "tone_down" | "edit" | "delete";
   payload?: string;
 }
 interface TalkResult {
@@ -199,10 +202,15 @@ ATURAN MENGUASAI ISI KERTAS (WAJIB):
 - User boleh minta EDIT apa pun: memperbaiki kata/kalimat, mengubah/ganti bagian, menghapus sebagian teks, menyisip, atau menjadikan dokumen murni. Patuhi permintaan itu.
 - Jika user minta edit parsial (mis. "ubah kalimat X", "hapus bagian Y", "ganti judul") → aksi "revise" berisi SELURUH dokumen hasil akhir: mulai dari isi kertas sekarang, gabungkan semua field dari DATA YANG SUDAH TERISI, terapkan HANYA perubahan yang diminta, sisanya tetap. Kirim teks PENUH, bukan hanya bagian yang berubah. Untuk perubahan kecil (ganti satu kalimat/kata) atau penghapusan sebagian teks, gunakan aksi "edit" (payload = JSON {"find":"<teks lama>","replace":"<teks baru>"}) atau "delete" (payload = "<teks yang akan dihapus>") — perubahan ini langsung ditulis ke kertas dokumen.
 
+SUMBER VALID (jadikan acuan isi; cantumkan sumber bila relevan):
+__SUMBER__
+
 ATURAN PEMANTAUAN DOKUMEN & KELENGKAPAN (WAJIB):
 - Jika pesan Anda mengindikasikan dokumen baru saja berubah/diperbarui (mis. diawali "📡"), sebagai pengamat teliti bacalah DOKUMEN (isi kertas PALING BARU). Laporkan ringkas di reply: bagian yang sudah terisi, bagian yang masih kosong/kurang/bermasalah. SELALU sertakan "questions" berisi 2-3 pilihan KLIK-LANJUT (lengkapi field, perbaiki kalimat, tambah bagian); bila isi sudah cukup, sertakan juga 1-2 "actions" siap pakai. Jangan menulis ulang seluruh dokumen tanpa diminta.
 - KELENGKAPAN & KEDALAMAN (WAJIB — DILARANG MALAS): hasil tulisan/revisi dokumen WAJIB UTUH, RAMPUNG, dan SUPER LENGKAP sesuai cakupan fitur — setiap bagian penting terisi PENUH dengan konten DETAIL (pendahuluan, penjelasan tiap poin, contoh konkret, penutup), BUKAN sekadar kerangka/fragmen/2-3 baris singkat. Jangan berhenti di versi pendek; bangun dokumen selengkap dan se-utuh mungkin.
 - BERBASIS SUMBER VALID: isi dokumen mengacu pada pengetahuan/kaidah yang VALID & relevan dengan topik fitur (struktur resmi dokumen, kaidah bahasa, konten sahih). DILARANG MENGARANG fakta/angka/tanggal/peraturan yang tidak kamu yakini — untuk hal yang tak pasti, tulis versi umum yang aman atau tandai "(sesuaikan)" agar Founder tinggal melengkapinya, sementara isi lainnya tetap kaya dan sahih. Selalu periksa ulang payload setiap aksi sebelum mengirim.
+- SEKSI WAJIB DOKUMEN (WAJIB diisi SEMUA sampai tuntas, dengan urutan logis sesuai fitur): jangan pernah melewati atau menyisakan bagian kosong.
+__SECTIONS__
 
 ATURAN Aksi (actions) — kirim hanya saat mengusulkan menulis ke kertas:
 - "copy": payload = SELURUH teks akhir dokumen (isi kertas lama + field terisi digabung jadi satu dokumen lengkap).
@@ -247,7 +255,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: talkSafety.refuse }, { status: 400 });
   }
 
-  const email = await resolveEmail();
+    const email = await resolveEmail();
+
+  // 🛡️ RATE LIMIT per user/IP (anon fallback). Dipaksa sebelum panggilan provider.
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "anon";
+  const rateKey = email || ip;
+  const rl = rateLimit(rateKey, 60, 60_000);
+  if (!rl.ok) {
+    auditLog({ feature, action: "rate_limited", detail: rateKey.slice(0, 64), ok: false });
+    return NextResponse.json(
+      { ok: false, error: `Rate limit tercapai untuk "${rateKey.slice(0, 32)}". Coba lagi dalam ${rl.retryAfterSec}s.` },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
 
   // 🎯 LAPISAN PERSONA FITUR (FOUNDER) — berlapis di atas lapisan mesin.
   // Suhu mengikuti pengaturan Founder di ai_settings bila fitur aktif;
@@ -273,7 +293,18 @@ export async function POST(request: Request) {
     .replace("__DOC__", docText ? docText.slice(0, 12000) : "(kertas dokumen masih kosong)")
     .replace("__FILLED__", JSON.stringify(filledData))
     .replace("__EMAIL__", email)
-    .replace("__MESSAGE__", userText);
+    .replace("__MESSAGE__", userText)
+    .replace(
+      "__SUMBER__",
+      (retrieveSumber(feature, userText, docText || "").slice(0, 1500)) ||
+        "(Gunakan pengetahuan umum yang valid dan sesuai kaidah; tandai hal yang belum pasti dengan '(sesuaikan)').",
+    )
+    .replace(
+      "__SECTIONS__",
+      (catal?.doc_sections?.length
+        ? catal.doc_sections.map((s) => `- ${s}`).join("\n")
+        : "- Susun struktur dokumen lengkap & utuh sesuai fitur dan persona."),
+    );
 
   const freePool = await getFreeKeyPool();
   const paidPool = await getPaidKeyPool();
@@ -293,7 +324,9 @@ export async function POST(request: Request) {
     );
   }
 
-  let lastErr = "";
+    let lastErr = "";
+  const t0 = Date.now();
+  auditLog({ feature, action: "talk_start", detail: "len=" + userText.length, ok: true });
   for (const cand of pool) {
     try {
       let text: string;
@@ -305,6 +338,8 @@ export async function POST(request: Request) {
         throw new Error(`Provider ${cand.provider} tidak didukung`);
       }
       const parsed = parseTalkJson(text);
+            const dur = Date.now() - t0;
+      auditLog({ feature, action: "talk_ok", detail: cand.provider + "/" + parsed.reply.length, ms: dur, ok: true });
       return NextResponse.json({ ok: true, ...parsed });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

@@ -26,6 +26,7 @@ export interface CatalogFeature {
   temperature: number;
   seo_title: string;
   seo_description: string;
+  doc_sections?: string[];
 }
 
 /** Penanda pemisah di dalam prompt final — membedakan layer engine vs founder. */
@@ -50,6 +51,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.2,
     seo_title: "Gen RPP",
     seo_description: "Generator RPP Kurikulum Merdeka",
+    doc_sections: ["Informasi Umum (identitas, alokasi waktu, profil pelajar Pancasila, sarana-prasarana)", "Tujuan Pembelajaran (dengan kata kerja operasional)", "Langkah Kegiatan Pembelajaran (pendahuluan, inti alur MERDEKA, penutup)", "Asesmen (diagnostik, formatif, sumatif + rubrik)", "Lampiran LKPD/bahan bacaan"],
   },
   {
     feature_slug: "buat-soal",
@@ -60,6 +62,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.2,
     seo_title: "Buat Soal",
     seo_description: "Generator Soal Ujian HOTS",
+    doc_sections: ["Identitas (mata pelajaran, kelas, alokasi waktu)", "Petunjuk Pengerjaan", "Soal Pilihan Ganda HOTS (stimulus + pengecoh bermakna)", "Soal Esai/Uraian", "Kunci Jawaban + Pembahasan Singkat", "Pedoman Penskoran"],
   },
   {
     feature_slug: "koreksi-tugas",
@@ -70,6 +73,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.1,
     seo_title: "Koreksi Tugas",
     seo_description: "Koreksi & Umpan Balik Tugas",
+    doc_sections: ["Ringkasan Penilaian (nilai 1-100)", "Rincian Koreksi Per Butir (letak salah + saran)", "Apresiasi & Kelebihan", "Kesimpulan dan Langkah Perbaikan"],
   },
   {
     feature_slug: "bahan-ajar",
@@ -80,6 +84,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.4,
     seo_title: "Bahan Ajar",
     seo_description: "Modul & Materi Ajar",
+    doc_sections: ["Identitas Modul & Tujuan Pembelajaran", "Uraian Materi (per bagian, contoh, ilustrasi)", "Latihan/Evaluasi", "Rangkuman & Daftar Pustaka"],
   },
   {
     feature_slug: "bedah-jurnal",
@@ -90,6 +95,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.2,
     seo_title: "Bedah Jurnal",
     seo_description: "Analisis & Review Jurnal Ilmiah",
+    doc_sections: ["Identitas Artikel & Ringkasan", "Pendahuluan & Latar Belakang", "Metode (desain, sampel, instrumen, analisis)", "Hasil & Pembahasan", "Keterbatasan, Kesimpulan & Research Gap", "Implikasi Praktis untuk Penelitian Berikut"],
   },
   {
     feature_slug: "rangkum-buku",
@@ -100,6 +106,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.3,
     seo_title: "Rangkum Buku",
     seo_description: "Rangkuman Buku untuk Belajar",
+    doc_sections: ["Identitas Buku", "Ringkasan Per Bab (ide pokok tiap sub-bab)", "Konsep Kunci & Istilah Penting", "Kutipan/Poin Penting", "3-5 Kesimpulan & Refleksi"],
   },
   {
     feature_slug: "kerangka-skripsi",
@@ -110,6 +117,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.2,
     seo_title: "Kerangka Skripsi",
     seo_description: "Outline Skripsi Bab 1-5",
+    doc_sections: ["Halaman Sampul & 2-3 Opsi Saran Judul", "BAB 1 Pendahuluan (latar belakang, rumusan, tujuan, manfaat)", "BAB 2 Kajian Teori", "BAB 3 Metode Penelitian", "BAB 4 & 5 (kerangka hasil & penutup)", "Referensi + Tahapan/Skala Waktu"],
   },
   {
     feature_slug: "tiktok-viral",
@@ -120,6 +128,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.7,
     seo_title: "TikTok Viral",
     seo_description: "Skrip Video TikTok & Reels",
+    doc_sections: ["Hook 3 Detik Pertama (angka/pertanyaan/kontroversi)", "Skrip 30-60 Detik (storytelling, benefit, CTA)", "Panduan Visual (kamera, overlay, musik)", "2 Hook Alternatif + Varian"],
   },
   {
     feature_slug: "caption-ig",
@@ -130,6 +139,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.8,
     seo_title: "Caption IG",
     seo_description: "Caption Instagram Jualan",
+    doc_sections: ["Tujuan & Target Audiens", "3 Varian Caption (pendek/santai, storytelling, hard-promo - teknik AIDA)", "8-12 Hashtag Tepat Sasaran", "Call to Action", "Ide Visual Pendamping"],
   },
   {
     feature_slug: "ide-bisnis",
@@ -140,6 +150,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.6,
     seo_title: "Ide Bisnis",
     seo_description: "Ide Usaha UMKM Modal Kecil",
+    doc_sections: ["Deskripsi Ide & Konsep Inti", "Target Pasar & Lokasi", "Perkiraan Modal Awal & Potensi Margin", "Langkah Mulai Minggu Pertama", "SWOT & Risiko", "Tips Eksekusi Realistis"],
   },
   {
     feature_slug: "bahasa-formal",
@@ -150,6 +161,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.2,
     seo_title: "Bahasa Formal",
     seo_description: "Penulisan Bahasa Resmi & Korporat",
+    doc_sections: ["Teks Asli (bila disediakan)", "Teks Formal Hasil (baku KBBI/PUEBI, kalimat efektif)", "Catatan Perbaikan Singkat"],
   },
   {
     feature_slug: "chat-ai",
@@ -170,6 +182,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.6,
     seo_title: "Audio MP3",
     seo_description: "Naskah Narasi Audio Manusiawi",
+    doc_sections: ["Arah Voice (target pendengar, emosi)", "Naskah Narasi (kalimat pendek, arahan suara dalam kurung)", "Penanda Jeda/Penekanan", "Durasi & Varian Pembacaan"],
   },
   {
     feature_slug: "generator-propaganda",
@@ -180,6 +193,7 @@ export const FEATURE_CATALOG: CatalogFeature[] = [
     temperature: 0.7,
     seo_title: "Generator Propaganda Konten",
     seo_description: "Konten Persuasi & Kampanye Positif",
+    doc_sections: ["Tujuan Kampanye & Target Audiens", "Inti Pesan & Sudut Emosi", "3 Varian Konten (poster/quotes, skrip pendek, caption)", "Catatan Etika & Verifikasi Fakta"],
   },
 ];
 

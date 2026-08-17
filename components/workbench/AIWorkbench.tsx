@@ -726,7 +726,7 @@ export default function AIWorkbench({
   const [aiFilled, setAiFilled] = useState<Record<string, string>>({});
   const aiScrollRef = useRef<HTMLDivElement | null>(null);
   const AI_FIRST_PROMPT =
-    "Sambut user dengan ramah-tamah dan anggap ia BARU akan membuat dokumen baru, apa pun yang terjadi sebelumnya — tak peduli berapa kali kolom chat dikosongkan hari ini. Saya ingin membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanya satu per satu field penting (Mapel, Kelas, Nama, Judul, Tujuan) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Kamu HARUS menguasai seluruh isi kertas: bila user minta edit, revisi, ganti kata/kalimat, atau menghapus sebagian teks, siapkan aksi 'revise' berisi SELURUH dokumen hasil edit. Setelah field cukup, sarankan aksi (copy/append/revise/template/summarize/translate/expand). Jika semua field sudah terisi dan dokumen sudah ada isi, fokuskan pada aksi (ringkasan, terjemahan, perbanyak, revise) — jangan lagi mengulang pertanyaan field yang sama. Pahami situasi pengguna: sapalah ramah sesuai FITUR yang ia pilih dan langsung tawarkan 2-3 pilihan siap klik untuk memulai mengisi dokumen.";
+    "Sambut user dengan ramah-tamah dan anggap ia BARU akan membuat dokumen baru, apa pun yang terjadi sebelumnya — tak peduli berapa kali kolom chat dikosongkan hari ini. Saya ingin membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanyakan field/kelengkapan penting yang relevan dengan fitur yang sedang dipakai (JANGAN terpaku pada Mapel/Kelas/Nama — ikuti struktur dan persona fitur itu) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Kamu HARUS menguasai seluruh isi kertas: bila user minta edit, revisi, ganti kata/kalimat, atau menghapus sebagian teks, siapkan aksi 'revise' berisi SELURUH dokumen hasil edit. ISILAH kertas dengan SUPER LENGKAP, UTUH, dan DETAIL sesuai struktur & cakupan fitur — DILARANG malas atau berhenti di kerangka singkat; tuntaskan semua bagian penting sebelum menyerahkan dokumen. Setelah field cukup, sarankan aksi (copy/append/revise/template/summarize/translate/expand). Jika semua field sudah terisi dan dokumen sudah ada isi, fokuskan pada aksi (ringkasan, terjemahan, perbanyak, revise) — jangan lagi mengulang pertanyaan field yang sama. Pahami situasi pengguna: sapalah ramah sesuai FITUR yang ia pilih dan langsung tawarkan 2-3 pilihan siap klik untuk memulai mengisi dokumen.";
   const AI_MONITOR_PROMPT =
     "[📡 PEMANTAUAN DOKUMEN] Teks dokumen di kertas kolom kanan baru saja diubah/diperbarui. Teliti bacalah SELURUH isi kertas PALING BARU (lihat DOKUMEN): periksa bagian yang kosong, tidak lengkap, atau bermasalah. Laporkan singkat di reply, lalu SELALU beri 2-3 'questions' siap klik untuk langkah lanjut (lengkapi field, perbaiki kalimat, tambah bagian), dan bila isi sudah cukup sertakan 1-2 'actions' siap pakai. Jangan menulis ulang seluruh dokumen tanpa diminta.";
 const AI_EMPTY_PROMPT =
@@ -789,6 +789,8 @@ const AI_EMPTY_PROMPT =
   const docTextRef = useRef("");
   // penanda: sudah-coba-retry (maksimal SEKALI) untuk satu perintah ubah/hapus/tambah agar TIDAK loop tak terbatas
   const changeCtxRetriedRef = useRef(false);
+  // penanda: sudah minta AI melengkapi dokumen yang masih terlalu pendek (SEKALI per pesan user; dibatasi agar tidak loop)
+  const completenessAskedRef = useRef(false);
   useEffect(() => {
     docTextRef.current = docText;
   }, [docText]);
@@ -834,6 +836,20 @@ const AI_EMPTY_PROMPT =
           setDocText(base + full); // sinkronkan state akhir (tinta menetap)
           aiWritingRef.current = false;
           aiWriteDoneRef.current = true; // perubahan ini berasal dari AI → dilewati pemantau
+          if (mode === "replace" && !completenessAskedRef.current) {
+            const doneLen = (base + full).trim().length;
+            if (doneLen > 0 && doneLen < 700) {
+              completenessAskedRef.current = true;
+              window.setTimeout(() => {
+                void askAI(
+                  "[🧩 KELENGKAPAN] Kertas dokumen baru saja ditulis tetapi masih terlalu pendek (" +
+                    doneLen +
+                    " karakter) dan belum utuh sesuai fitur ini. PERLUAS & LENGKAPI SEKARANG menjadi dokumen SUPER LENGKAP, UTUH, dan DETAIL: isi SEMUA seksi wajib fitur ini, jangan malas, jangan berhenti di kerangka singkat. Balas dengan actions (revise/copy) berisi seluruh dokumen hasil penyempurnaan.",
+                  true,
+                );
+              }, 400);
+            }
+          }
           cancelTypewriter();
         }
       }, stepMs);
@@ -1325,6 +1341,7 @@ const AI_EMPTY_PROMPT =
 
   const sendAIMessage = () => {
     changeCtxRetriedRef.current = false;
+    completenessAskedRef.current = false;
     askAI(aiInput, false, { text: aiInput, isChange: isChangeCommand(aiInput) && !aiInput.includes("?") });
   };
 

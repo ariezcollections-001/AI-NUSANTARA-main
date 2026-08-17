@@ -21,6 +21,8 @@ import { FEATURE_LAYER_MARKER, FEATURE_CATALOG } from "@/lib/featureCatalog";
  * founder sejati tidak pernah mengirim ini lewat kolom pesan fitur.
  */
 export const STRICT_IDENTITY_PATTERNS: ReadonlyArray<RegExp> = [
+  /ignore (?:all )?previous (?:instructions|prompts|rules)|jangan patuhi instruksi sebelumnya|abaikan instruksi sebelumnya/i,
+  /reveal your instructions|show your instructions|bocorkan prompt|tunjukkan instruksimu|bongkar system prompt/i,
   /\b(?:saya|aku)\s+adalah\s+(?:founder|admin|root|karyawan|pengembang|developer|owner|pengguna lain|orang lain)\b/i,
   /\b(?:jadi|ganti|jangan\s+lagi)\s+(?:aku|saya)\s+(?:sebagai)?\s*(?:founder|admin|root|asisten lain|AI lain)\b/i,
   /\b(?:katakan|kamu)\s+(?:sekarang|kamu\s+adalah)\s+(?:founder|admin|root)\b/i,
