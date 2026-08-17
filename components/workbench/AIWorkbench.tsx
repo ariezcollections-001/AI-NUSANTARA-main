@@ -807,6 +807,15 @@ const AI_EMPTY_PROMPT =
     }
     aiWritingRef.current = false;
   };
+  // ✦ Mesin ketik khusus kolom CHAT (balasan AI hurup demi hurup ke bubble chat),
+  //  terpisah dari timer kertas `typeTimerRef` agar tidak saling ganggu.
+  const chatTypeTimerRef = useRef<number | null>(null);
+  const cancelChatTypewriter = () => {
+    if (chatTypeTimerRef.current !== null) {
+      window.clearInterval(chatTypeTimerRef.current);
+      chatTypeTimerRef.current = null;
+    }
+  };
   // mode "append" → tulis bertahap di bawah teks yang sudah ada;
   // mode "replace" → kosongkan kertas dulu, lalu dokumen baru diketik ulang.
   const typeToPaper = (mode: "append" | "replace", full: string) => {
@@ -1150,6 +1159,7 @@ const AI_EMPTY_PROMPT =
   const askAI = async (text: string, silent = false, changeCtx?: { text: string; isChange: boolean }) => {
     const t = text.trim();
     if (!t || aiLoading) return;
+    cancelChatTypewriter(); // hentikan mesin ketik chat sebelumnya bila belum selesai
     if (!silent) setAiInput("");
     setAiError(null);
     setAiLoading(true);
@@ -1202,18 +1212,63 @@ const AI_EMPTY_PROMPT =
           (data as AiTalkResult | null)?.error ?? `AI error (${res.status})`,
         );
       }
+      // ✦ TYPEWRITER kolom chat: kirim balasan AI hurup demi hurup (bukan sekaligus),
+      //  mirip mesin ketik kolom kertas. questions/actions — dicolokkan pada akhir agar
+      //  chip/chtombol aksi di UI tetap lengkap. aiLoading tetap dikelola oleh finally
+      //  di bawah, sehingga jeda retry 1.2s & logika aksi tidak berubah.
+      const replyText = (data.reply ?? "").toString();
+      const replyId = thinkMsg.id;
       setAiMessages((prev) =>
         prev.map((m) =>
-          m.id === thinkMsg.id
-            ? {
-                ...m,
-                content: data.reply,
-                questions: data.questions?.length ? data.questions : undefined,
-                actions: data.actions?.length ? data.actions : undefined,
-              }
+          m.id === replyId
+            ? { ...m, content: "", questions: undefined, actions: undefined }
             : m,
         ),
       );
+      if (replyText.length === 0) {
+        setAiMessages((prev) =>
+          prev.map((m) =>
+            m.id === replyId
+              ? {
+                  ...m,
+                  content: replyText,
+                  questions: data.questions?.length ? data.questions : undefined,
+                  actions: data.actions?.length ? data.actions : undefined,
+                }
+              : m,
+          ),
+        );
+      } else {
+        const perTick = replyText.length > 400 ? 3 : replyText.length > 150 ? 2 : 1;
+        const stepMs = replyText.length > 400 ? 14 : replyText.length > 150 ? 18 : 28;
+        let i = 0;
+        chatTypeTimerRef.current = window.setInterval(() => {
+          i = Math.min(i + perTick, replyText.length);
+          setAiMessages((prev) =>
+            prev.map((m) =>
+              m.id === replyId ? { ...m, content: replyText.slice(0, i) } : m,
+            ),
+          );
+          if (i >= replyText.length) {
+            if (chatTypeTimerRef.current !== null) {
+              window.clearInterval(chatTypeTimerRef.current);
+              chatTypeTimerRef.current = null;
+            }
+            setAiMessages((prev) =>
+              prev.map((m) =>
+                m.id === replyId
+                  ? {
+                      ...m,
+                      content: replyText,
+                      questions: data.questions?.length ? data.questions : undefined,
+                      actions: data.actions?.length ? data.actions : undefined,
+                    }
+                  : m,
+              ),
+            );
+          }
+        }, stepMs);
+      }
       // ===== PENULISAN BERTAHAP: setiap field baru yang dijawab AI (via chip pilihan
       // atau ketik manual) LANGSUNG ditulis ke kertas dokumen, satu per satu —
       // bukan menunggu proses selesai lalu ditulis menyeluruh.
@@ -1264,7 +1319,7 @@ const AI_EMPTY_PROMPT =
     if (aiLoading || aiMessages.length > 0) return;
     greetTimerRef.current = window.setTimeout(() => {
       greetTimerRef.current = null;
-      if (aiMessages.length === 0 && !aiLoading) void askAI(AI_FIRST_PROMPT);
+      if (aiMessages.length === 0 && !aiLoading) void askAI(AI_FIRST_PROMPT, true);
     }, 250);
     return () => {
       if (greetTimerRef.current) {
@@ -1358,7 +1413,7 @@ const AI_EMPTY_PROMPT =
     if (a.type === "create") {
       cancelTypewriter();
       setDocText("");
-      if (!aiLoading) void askAI(AI_FIRST_PROMPT);
+      if (!aiLoading) void askAI(AI_FIRST_PROMPT, true);
       return;
     }
         // ✦ edit / delete — penyuntingan LASAK langsung ke kertas dokumen.
@@ -1625,7 +1680,7 @@ const AI_EMPTY_PROMPT =
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <button
                     type="button"
-                    onClick={() => { if (!aiLoading) void askAI(AI_FIRST_PROMPT); }}
+                    onClick={() => { if (!aiLoading) void askAI(AI_FIRST_PROMPT, true); }}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-400/40 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-emerald-300 transition-all active:scale-95"
                     title="Mulai membuat dokumen baru bersama AI"
                   >
