@@ -9,6 +9,7 @@ import { retrieveSumber } from "@/lib/sumberValid";
 import { rateLimit } from "@/lib/rateLimit";
 import { auditLog } from "@/lib/auditLog";
 import { buildStrictLayeredPrompt, checkUserMessageSafety } from "@/lib/aiStrictEngine";
+import { isOffTopic } from "@/lib/topicGuard";
 
 /**
  * AI-NUSANTARA — Asisten Dokumen (✨ AI Generate)
@@ -253,6 +254,24 @@ export async function POST(request: Request) {
   const talkSafety = checkUserMessageSafety(message, feature);
   if (!talkSafety.safe) {
     return NextResponse.json({ ok: false, error: talkSafety.refuse }, { status: 400 });
+  }
+
+  // 🔒 GATE topik fitur (Feature Lock Mode): tolak DETERMINISTIK permintaan di luar
+  // ruang lingkup fitur — SELAIN identity gate di atas. chat-ai & anon bebas; permintaan
+  // luar (mis. resep/surat lameran/hacking) DITOLAK 400 + disarankan fitur lain.
+  const topicDecision = isOffTopic(feature, userText, docText);
+  if (topicDecision.offTopic) {
+    auditLog({ feature, action: "topic_offtopic_blocked", detail: userText.slice(0, 120), ok: false });
+    return NextResponse.json(
+      {
+        ok: false,
+        offTopic: true,
+        error: topicDecision.reason ?? "Di luar ruang lingkup fitur ini.",
+        suggestedFeature: topicDecision.suggestedFeature ?? null,
+        suggestedSlug: topicDecision.suggestedSlug ?? null,
+      },
+      { status: 400, headers: { "X-Topic-Guard": "off" } },
+    );
   }
 
     const email = await resolveEmail();

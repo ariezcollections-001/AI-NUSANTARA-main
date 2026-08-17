@@ -70,6 +70,9 @@ interface AiTalkResult {
   nextField: string | null;
   filledData: Record<string, string>;
   actions: AiAction[];
+  offTopic?: boolean;
+  suggestedFeature?: string;
+  suggestedSlug?: string;
 }
 
 interface ChatMessage {
@@ -727,6 +730,12 @@ export default function AIWorkbench({
   const aiScrollRef = useRef<HTMLDivElement | null>(null);
   const AI_FIRST_PROMPT =
     "Sambut user dengan ramah-tamah dan anggap ia BARU akan membuat dokumen baru, apa pun yang terjadi sebelumnya — tak peduli berapa kali kolom chat dikosongkan hari ini. Saya ingin membantu mengisi & memperbaiki kertas dokumen. Bacalah isi kertas di kolom kanan, lalu tanyakan field/kelengkapan penting yang relevan dengan fitur yang sedang dipakai (JANGAN terpaku pada Mapel/Kelas/Nama — ikuti struktur dan persona fitur itu) yang perlu diisi. Jika kertas masih kosong, mulailah dengan pertanyaan 'Mata pelajaran apa yang akan kamu buat?'. Tunjukkan pertanyaannya lewat 'questions', kumpulkan jawaban ke 'filledData'. Kamu HARUS menguasai seluruh isi kertas: bila user minta edit, revisi, ganti kata/kalimat, atau menghapus sebagian teks, siapkan aksi 'revise' berisi SELURUH dokumen hasil edit. ISILAH kertas dengan SUPER LENGKAP, UTUH, dan DETAIL sesuai struktur & cakupan fitur — DILARANG malas atau berhenti di kerangka singkat; tuntaskan semua bagian penting sebelum menyerahkan dokumen. Setelah field cukup, sarankan aksi (copy/append/revise/template/summarize/translate/expand). Jika semua field sudah terisi dan dokumen sudah ada isi, fokuskan pada aksi (ringkasan, terjemahan, perbanyak, revise) — jangan lagi mengulang pertanyaan field yang sama. Pahami situasi pengguna: sapalah ramah sesuai FITUR yang ia pilih dan langsung tawarkan 2-3 pilihan siap klik untuk memulai mengisi dokumen.";
+  const aiGreetPrompt =
+    AI_FIRST_PROMPT +
+    "\n[INSTRUKSI PALING PENTING — SAAT MENYAPA]: User sedang berada di FITUR " +
+    featureTitle + " (" + featureId + "). SAMBANG user ramah-TAPI-FAKUS: sebutkan " + featureTitle +
+    " secara alami di pembuka kalimat; tiap tawaran pertama (questions/actions) & sapaan WAJIB " +
+    "relevan dengan " + featureTitle + ", sesuaikan nada & juru bahasa ke tema " + featureTitle + ".";
   const AI_MONITOR_PROMPT =
     "[📡 PEMANTAUAN DOKUMEN] Teks dokumen di kertas kolom kanan baru saja diubah/diperbarui. Teliti bacalah SELURUH isi kertas PALING BARU (lihat DOKUMEN): periksa bagian yang kosong, tidak lengkap, atau bermasalah. Laporkan singkat di reply, lalu SELALU beri 2-3 'questions' siap klik untuk langkah lanjut (lengkapi field, perbaiki kalimat, tambah bagian), dan bila isi sudah cukup sertakan 1-2 'actions' siap pakai. Jangan menulis ulang seluruh dokumen tanpa diminta.";
 const AI_EMPTY_PROMPT =
@@ -1182,6 +1191,14 @@ const AI_EMPTY_PROMPT =
         }),
       });
       const data = (await res.json().catch(() => null)) as AiTalkResult | null;
+      // ✦ GATE off-topic (400 dari route): jangan tampilkan sebagai error biasa.
+      if (data?.offTopic) {
+        const saran = data.suggestedFeature || featureTitle || featureId;
+        setAiError("⚠️ Ini di luar ruang lingkup **" + (featureTitle || featureId) + ". Pakai **" + saran + "** di samping. 😊");
+        setAiMessages((prev) => prev.map((m) => m.id === thinkMsg.id ? { ...m, content: "⚠️ Maaf, ini di luar ruang lingkup " + (featureTitle || featureId) + ". Buka **" + saran + "** untuk membahasnya. 😊", questions: [], actions: [] } : m));
+        return;
+      }
+
       // ✦ AUTO-APPLY aksi penyuntingan kertas (revise/edit/delete) — dieksekusi SELALU,
       // tidak bergantung filledData (perbaikan bug: sebelumnya hanya berjalan saat ada field baru).
       const beforeDoc = paperRef.current?.innerText ?? docTextRef.current ?? docText;
@@ -1319,7 +1336,7 @@ const AI_EMPTY_PROMPT =
     if (aiLoading || aiMessages.length > 0) return;
     greetTimerRef.current = window.setTimeout(() => {
       greetTimerRef.current = null;
-      if (aiMessages.length === 0 && !aiLoading) void askAI(AI_FIRST_PROMPT, true);
+      if (aiMessages.length === 0 && !aiLoading) void askAI(aiGreetPrompt, true);
     }, 250);
     return () => {
       if (greetTimerRef.current) {
@@ -1413,7 +1430,7 @@ const AI_EMPTY_PROMPT =
     if (a.type === "create") {
       cancelTypewriter();
       setDocText("");
-      if (!aiLoading) void askAI(AI_FIRST_PROMPT, true);
+      if (!aiLoading) void askAI(aiGreetPrompt, true);
       return;
     }
         // ✦ edit / delete — penyuntingan LASAK langsung ke kertas dokumen.
@@ -1670,6 +1687,7 @@ const AI_EMPTY_PROMPT =
 
           
 
+          <div className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border border-sky-400/30 bg-sky-900/30 text-[10px] font-bold text-sky-300">🔒 Fitur: {featureTitle || featureId}</div>
           <div ref={aiScrollRef} className="flex-1 overflow-y-auto flex flex-col gap-2 p-3 min-h-0">
             {(docText || "").trim() === "" && (
               <div className="shrink-0 rounded-2xl border border-amber-400/40 bg-black/40 p-3 backdrop-blur">
@@ -1680,7 +1698,7 @@ const AI_EMPTY_PROMPT =
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <button
                     type="button"
-                    onClick={() => { if (!aiLoading) void askAI(AI_FIRST_PROMPT, true); }}
+                    onClick={() => { if (!aiLoading) void askAI(aiGreetPrompt, true); }}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-400/40 bg-black/40 hover:bg-black/60 text-[10px] font-bold text-emerald-300 transition-all active:scale-95"
                     title="Mulai membuat dokumen baru bersama AI"
                   >
