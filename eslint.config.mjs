@@ -24,6 +24,15 @@ const eslintConfig = [
       "verify_vault_live.mjs",
       "scripts/**",
       "_*.*",
+      // Output & generated: bukan source aplikasi, tak perlu dilint.
+      ".next/**",
+      "next-env.d.ts",
+      "node_modules/**",
+      // Test & skrip smoke di repo (Playwright, smoke_tests): dev-only.
+      "tests/**",
+      "smoke_tests.js",
+      "coverage/**",
+      "playwright-report/**",
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
