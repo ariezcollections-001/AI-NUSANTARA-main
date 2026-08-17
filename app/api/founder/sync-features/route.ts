@@ -49,6 +49,7 @@ export async function POST() {
   try {
     const db = (process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : verify.supabase) as ReturnType<typeof createAdminClient>;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existingRes = await (db as any).from("ai_settings").select("feature_slug,system_prompt,temperature");
     if (existingRes.error) throw existingRes.error;
 
@@ -63,6 +64,7 @@ export async function POST() {
 
     let added = 0;
     if (missing.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const insertRes = await (db as any).from("ai_settings").insert(
         missing.map((f) => ({
           feature_slug: f.feature_slug,
@@ -98,6 +100,7 @@ export async function POST() {
 
     let upgraded = 0;
     if (upgrades.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const upRes = await (db as any).from("ai_settings").upsert(upgrades, { onConflict: "feature_slug" });
       if (upRes.error) throw upRes.error;
       upgraded = upgrades.length;
