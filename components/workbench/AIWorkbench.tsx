@@ -787,6 +787,8 @@ const AI_EMPTY_PROMPT =
   // --- Efek MESIN KETIK (✦) — AI menulis per huruf ke kertas seperti berjalan,
   //     tidak muncul seketika; terasa modern & prosesnya terlihat jelas. ---
   const docTextRef = useRef("");
+  // penanda: sudah-coba-retry (maksimal SEKALI) untuk satu perintah ubah/hapus/tambah agar TIDAK loop tak terbatas
+  const changeCtxRetriedRef = useRef(false);
   useEffect(() => {
     docTextRef.current = docText;
   }, [docText]);
@@ -1129,7 +1131,7 @@ const AI_EMPTY_PROMPT =
   };
 
     /* ====== ASISTEN AI DOKUMEN (✨ AI Generate) — panggil /api/ai/talk ====== */
-  const askAI = async (text: string, silent = false) => {
+  const askAI = async (text: string, silent = false, changeCtx?: { text: string; isChange: boolean }) => {
     const t = text.trim();
     if (!t || aiLoading) return;
     if (!silent) setAiInput("");
@@ -1154,6 +1156,31 @@ const AI_EMPTY_PROMPT =
         }),
       });
       const data = (await res.json().catch(() => null)) as AiTalkResult | null;
+      // ✦ AUTO-APPLY aksi penyuntingan kertas (revise/edit/delete) — dieksekusi SELALU,
+      // tidak bergantung filledData (perbaikan bug: sebelumnya hanya berjalan saat ada field baru).
+      const beforeDoc = paperRef.current?.innerText ?? docTextRef.current ?? docText;
+      let applied = false;
+      let hadSurgical = false;
+      for (const a of data?.actions ?? []) {
+        const t = String(a?.type);
+        if (t === "revise" || t === "append") { applyAiAction(a); applied = true; }
+        else if (t === "edit" || t === "delete") { applyAiAction(a); hadSurgical = true; }
+      }
+      // ✦ JAMINAN EKSEKUSI (bounded): kalau user memerintahkan ubah/hapus/tambah dan AI ternyata
+      // hanya menarasikan prosa tanpa action yang dieksekusi -> minta ulang SEKALI (retried) dengan
+      // arahan eksplisit, supaya kertas dokumen SELALU ter-update secara live.
+      if (hadSurgical) {
+        const afterDoc = paperRef.current?.innerText ?? docTextRef.current ?? docText;
+        if (afterDoc !== beforeDoc) applied = true;
+      }
+      if (changeCtx?.isChange && data?.ok && !applied && !changeCtxRetriedRef.current && !silent) {
+        changeCtxRetriedRef.current = true;
+        const instr =
+          "KERJAKAN SEKARANG di kertas dokumen (live): bila pesan user memang meminta perubahan " +
+          "(ubah/hapus/tambah/edit), kirim JSON berisi field actions (revise/edit/delete/append) + " +
+          "payload lengkap hasil edit. Kalau user hanya bertanya, jawab saja tanpa mengubah kertas.";
+        window.setTimeout(() => void askAI(changeCtx.text + "\n" + instr, true), 1200);
+      }
       if (!res.ok || !data?.ok) {
         throw new Error(
           (data as AiTalkResult | null)?.error ?? `AI error (${res.status})`,
@@ -1191,7 +1218,7 @@ const AI_EMPTY_PROMPT =
           typeToPaper("append", chunk); // ✦ mesin ketik: ditulis per huruf seperti berjalan
         }
         if (data.filledData && Object.keys(data.filledData).length) {
-                    setAiFilled((p) => ({ ...p, ...data.filledData })); for (const a of data.actions ?? []) { const t = String(a?.type); if (t === "revise" || t === "edit" || t === "delete") applyAiAction(a); }
+                              setAiFilled((p) => ({ ...p, ...data.filledData }));
         }
       }
     } catch (e) {
@@ -1289,8 +1316,16 @@ const AI_EMPTY_PROMPT =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docText]);
 
+  // Deteksi perintah ubah/hapus/tambah (token-based, tanpa backslash — aman untuk inisial regex).
+  const changeVerbs: string[] = ["ubah","ganti","revisi","edit","hapus","hapuskan","buang","tambah","tambahkan","sisipkan","tulis","tuliskan","perbaiki","koreksi","replace","delete","modify","remove","rewrite"];
+  const isChangeCommand = (tt0: string) => {
+    const words = tt0.toLowerCase().split(/[^a-z]+/);
+    return changeVerbs.some((v) => words.some((word) => word.includes(v)));
+  };
+
   const sendAIMessage = () => {
-    askAI(aiInput);
+    changeCtxRetriedRef.current = false;
+    askAI(aiInput, false, { text: aiInput, isChange: isChangeCommand(aiInput) && !aiInput.includes("?") });
   };
 
   const askQuick = (q: string) => {
@@ -1315,7 +1350,7 @@ const AI_EMPTY_PROMPT =
     if (a.type === "edit" || a.type === "delete") {
       const pp = a.payload ?? "";
       if (!pp) return;
-      const cur = (docTextRef.current ?? docText).trim();
+      const cur = (paperRef.current?.innerText ?? docTextRef.current ?? docText).trim();
       let next = cur;
       if (a.type === "delete") {
         const i = cur.indexOf(pp);
@@ -1345,7 +1380,10 @@ const AI_EMPTY_PROMPT =
         aiWriteDoneRef.current = true;
         return;
       }
-      typeToPaper("replace", next);
+      // SURGICAL (paten): set langsung ke DOM + sinkron state — TANPA mengetik ulang seluruh dokumen.
+      docTextRef.current = next;
+      setDocText(next);
+      if (paperRef.current) paperRef.current.innerText = next;
       return;
     }
     const p = a.payload;
